@@ -29,7 +29,7 @@ datafusion-datasource = { version = "54", default-features = false }
 datafusion-datasource-parquet = "54"
 flatgeobuf = { version = "5.0", default-features = false }
 futures = "0.3"
-geo = "0.31.0"
+geo = "0.33.1"
 geo-traits = "0.3.0"
 geoarrow-array = "0.8.0"
 geoarrow-flatgeobuf = "0.8.0"
@@ -49,3 +49,10 @@ thiserror = "1"
 tokio = { version = "1.9", default-features = false }
 wkb = "0.9"
 wkt = "0.14"
+
+# geoarrow-expr-geo 0.8 on crates.io holds geo 0.31, which cannot share a graph with
+# geo 0.33; the atlas fork is 0.8.0 with only geo moved to 0.33.
+[patch.crates-io]
+geoarrow-array = { git = "https://github.com/atlas/geoarrow-rs", rev = "13d9e0122915a0a45f26deba86bcdccb18d9b62f" }
+geoarrow-expr-geo = { git = "https://github.com/atlas/geoarrow-rs", rev = "13d9e0122915a0a45f26deba86bcdccb18d9b62f" }
+geoarrow-schema = { git = "https://github.com/atlas/geoarrow-rs", rev = "13d9e0122915a0a45f26deba86bcdccb18d9b62f" }
