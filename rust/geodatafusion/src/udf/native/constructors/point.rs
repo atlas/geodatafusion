@@ -5,9 +5,8 @@ use std::sync::{Arc, LazyLock};
 use arrow_array::cast::AsArray;
 use arrow_array::types::Float64Type;
 use arrow_array::{Array, ArrayRef, new_null_array};
-use arrow_buffer::NullBuffer;
 use arrow_schema::{DataType, Field, FieldRef};
-use datafusion::common::internal_err;
+use datafusion::common::{internal_datafusion_err, internal_err};
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
@@ -15,12 +14,14 @@ use datafusion::logical_expr::{
 };
 use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
-use geoarrow_array::array::{PointArray, SeparatedCoordBuffer};
-use geoarrow_array::builder::PointBuilder;
-use geoarrow_schema::{CoordType, Crs, Dimension, Metadata, PointType};
+use geoarrow_array::builder::WkbBuilder;
+use geoarrow_array::capacity::WkbCapacity;
+use geoarrow_schema::{Crs, Dimension, GeoArrowType, Metadata};
+use wkt::types::Coord;
 
 use crate::error::GeoDataFusionResult;
 use crate::util::args::scalar_srid;
+use crate::util::field::wkb_return_field;
 use crate::util::signature::{Arg, coerce_args};
 use crate::util::srid::srid_to_crs;
 
@@ -48,19 +49,17 @@ static POINT_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
     related_udf(name = "st_pointz")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct Point {
-    coord_type: CoordType,
-}
+pub struct Point;
 
 impl Point {
-    pub fn new(coord_type: CoordType) -> Self {
-        Self { coord_type }
+    pub fn new() -> Self {
+        Self
     }
 }
 
 impl Default for Point {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -78,7 +77,7 @@ impl ScalarUDFImpl for Point {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        point_return_field(self.name(), &args, Dimension::XY, self.coord_type, 2)
+        point_return_field(self.name(), &args, 2)
     }
 
     fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
@@ -86,7 +85,7 @@ impl ScalarUDFImpl for Point {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(point_impl(&args, 2)?)
+        Ok(point_impl(&args, Dimension::XY)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -119,19 +118,17 @@ static POINTZ_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
     related_udf(name = "st_makepoint")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct PointZ {
-    coord_type: CoordType,
-}
+pub struct PointZ;
 
 impl PointZ {
-    pub fn new(coord_type: CoordType) -> Self {
-        Self { coord_type }
+    pub fn new() -> Self {
+        Self
     }
 }
 
 impl Default for PointZ {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -149,7 +146,7 @@ impl ScalarUDFImpl for PointZ {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        point_return_field(self.name(), &args, Dimension::XYZ, self.coord_type, 3)
+        point_return_field(self.name(), &args, 3)
     }
 
     fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
@@ -157,7 +154,7 @@ impl ScalarUDFImpl for PointZ {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(point_impl(&args, 3)?)
+        Ok(point_impl(&args, Dimension::XYZ)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -190,19 +187,17 @@ static POINTM_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
     related_udf(name = "st_makepointm")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct PointM {
-    coord_type: CoordType,
-}
+pub struct PointM;
 
 impl PointM {
-    pub fn new(coord_type: CoordType) -> Self {
-        Self { coord_type }
+    pub fn new() -> Self {
+        Self
     }
 }
 
 impl Default for PointM {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -220,7 +215,7 @@ impl ScalarUDFImpl for PointM {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        point_return_field(self.name(), &args, Dimension::XYM, self.coord_type, 3)
+        point_return_field(self.name(), &args, 3)
     }
 
     fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
@@ -228,7 +223,7 @@ impl ScalarUDFImpl for PointM {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(point_impl(&args, 3)?)
+        Ok(point_impl(&args, Dimension::XYM)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -262,19 +257,17 @@ static POINTZM_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
     related_udf(name = "st_makepoint")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct PointZM {
-    coord_type: CoordType,
-}
+pub struct PointZM;
 
 impl PointZM {
-    pub fn new(coord_type: CoordType) -> Self {
-        Self { coord_type }
+    pub fn new() -> Self {
+        Self
     }
 }
 
 impl Default for PointZM {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -292,7 +285,7 @@ impl ScalarUDFImpl for PointZM {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        point_return_field(self.name(), &args, Dimension::XYZM, self.coord_type, 4)
+        point_return_field(self.name(), &args, 4)
     }
 
     fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
@@ -300,7 +293,7 @@ impl ScalarUDFImpl for PointZM {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(point_impl(&args, 4)?)
+        Ok(point_impl(&args, Dimension::XYZM)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -310,13 +303,7 @@ impl ScalarUDFImpl for PointZM {
 
 /// The return field of a point constructor whose coordinates are followed by an optional
 /// constant SRID at `srid_index`.
-fn point_return_field(
-    name: &str,
-    args: &ReturnFieldArgs,
-    dim: Dimension,
-    coord_type: CoordType,
-    srid_index: usize,
-) -> Result<FieldRef> {
+fn point_return_field(name: &str, args: &ReturnFieldArgs, srid_index: usize) -> Result<FieldRef> {
     let crs = if args.arg_fields.len() > srid_index {
         scalar_srid(name, args, srid_index)?
             .map(srid_to_crs)
@@ -324,21 +311,24 @@ fn point_return_field(
     } else {
         Crs::default()
     };
-    let typ = PointType::new(dim, Arc::new(Metadata::new(crs, None))).with_coord_type(coord_type);
-    Ok(Arc::new(typ.to_field(name, true)))
+    Ok(wkb_return_field(name, Arc::new(Metadata::new(crs, None))))
 }
 
-/// Builds the points of a point constructor from its first `coord_count` arguments. A NULL SRID
-/// gives NULL in every row.
-fn point_impl(args: &ScalarFunctionArgs, coord_count: usize) -> GeoDataFusionResult<ColumnarValue> {
+/// Builds the points of a point constructor from its coordinate arguments. A NULL SRID gives
+/// NULL in every row.
+fn point_impl(args: &ScalarFunctionArgs, dim: Dimension) -> GeoDataFusionResult<ColumnarValue> {
+    let coord_count = dim.size();
     // SQL NULL in, SQL NULL out.
     if matches!(args.args.get(coord_count), Some(ColumnarValue::Scalar(srid)) if srid.is_null()) {
         let nulls = new_null_array(args.return_field.data_type(), args.number_rows);
         return Ok(ColumnarValue::Array(nulls));
     }
     let arrays = ColumnarValue::values_to_arrays(&args.args[..coord_count])?;
-    let point_arr = create_point_array(arrays, &args.return_field)?;
-    Ok(point_arr.into_array_ref().into())
+    Ok(ColumnarValue::Array(create_point_array(
+        &arrays,
+        dim,
+        &args.return_field,
+    )?))
 }
 
 #[user_doc(
@@ -356,11 +346,10 @@ fn point_impl(args: &ScalarFunctionArgs, coord_count: usize) -> GeoDataFusionRes
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct MakePoint {
     signature: Signature,
-    coord_type: CoordType,
 }
 
 impl MakePoint {
-    pub fn new(coord_type: CoordType) -> Self {
+    pub fn new() -> Self {
         Self {
             signature: Signature::one_of(
                 vec![
@@ -379,14 +368,13 @@ impl MakePoint {
                 ],
                 Volatility::Immutable,
             ),
-            coord_type,
         }
     }
 }
 
 impl Default for MakePoint {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -403,22 +391,18 @@ impl ScalarUDFImpl for MakePoint {
         internal_err!("return_field_from_args should be called instead")
     }
 
-    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
-        let dim = match args.arg_fields.len() {
-            2 => Dimension::XY,
-            3 => Dimension::XYZ,
-            4 => Dimension::XYZM,
-            _ => unreachable!(),
-        };
-
-        let typ = PointType::new(dim, Default::default()).with_coord_type(self.coord_type);
-        Ok(typ.to_field("", true).into())
+    fn return_field_from_args(&self, _args: ReturnFieldArgs) -> Result<FieldRef> {
+        Ok(wkb_return_field(self.name(), Default::default()))
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        let arrays = ColumnarValue::values_to_arrays(&args.args)?;
-        let point_arr = create_point_array(arrays, &args.return_field)?;
-        Ok(point_arr.into_array_ref().into())
+        let dim = match args.args.len() {
+            2 => Dimension::XY,
+            3 => Dimension::XYZ,
+            4 => Dimension::XYZM,
+            n => return internal_err!("st_makepoint: unexpected {n} arguments"),
+        };
+        Ok(point_impl(&args, dim)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -440,24 +424,22 @@ impl ScalarUDFImpl for MakePoint {
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct MakePointM {
     signature: Signature,
-    coord_type: CoordType,
 }
 
 impl MakePointM {
-    pub fn new(coord_type: CoordType) -> Self {
+    pub fn new() -> Self {
         Self {
             signature: Signature::exact(
                 vec![DataType::Float64, DataType::Float64, DataType::Float64],
                 Volatility::Immutable,
             ),
-            coord_type,
         }
     }
 }
 
 impl Default for MakePointM {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -474,16 +456,12 @@ impl ScalarUDFImpl for MakePointM {
         internal_err!("return_field_from_args should be called instead")
     }
 
-    fn return_field_from_args(&self, _args: ReturnFieldArgs) -> Result<Arc<Field>> {
-        let typ =
-            PointType::new(Dimension::XYM, Default::default()).with_coord_type(self.coord_type);
-        Ok(typ.to_field("", true).into())
+    fn return_field_from_args(&self, _args: ReturnFieldArgs) -> Result<FieldRef> {
+        Ok(wkb_return_field(self.name(), Default::default()))
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        let arrays = ColumnarValue::values_to_arrays(&args.args)?;
-        let point_arr = create_point_array(arrays, &args.return_field)?;
-        Ok(point_arr.into_array_ref().into())
+        Ok(point_impl(&args, Dimension::XYM)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -491,109 +469,46 @@ impl ScalarUDFImpl for MakePointM {
     }
 }
 
+/// Writes WKB points from coordinate arrays: X, Y, then Z and M as `dim` has them. A NULL in
+/// any coordinate makes the point NULL.
 fn create_point_array(
-    arrays: Vec<ArrayRef>,
+    arrays: &[ArrayRef],
+    dim: Dimension,
     return_field: &Field,
-) -> GeoDataFusionResult<PointArray> {
-    let x = arrays[0].as_primitive::<Float64Type>();
-    let y = arrays[1].as_primitive::<Float64Type>();
-    let z = arrays.get(2).map(|arr| arr.as_primitive::<Float64Type>());
-    let m = arrays.get(3).map(|arr| arr.as_primitive::<Float64Type>());
-
-    let typ = return_field.extension_type::<PointType>();
-    let point_arr = match typ.coord_type() {
-        CoordType::Interleaved => {
-            let mut builder = PointBuilder::with_capacity(typ, x.len());
-
-            match (z, m) {
-                (None, None) => {
-                    for (x, y) in x.iter().zip(y.iter()) {
-                        if let (Some(x), Some(y)) = (x, y) {
-                            let coord = wkt::types::Coord {
-                                x,
-                                y,
-                                z: None,
-                                m: None,
-                            };
-                            builder.push_coord(Some(&coord));
-                        } else {
-                            builder.push_null();
-                        }
-                    }
-                }
-                (Some(z), None) => {
-                    for ((x, y), z) in x.iter().zip(y.iter()).zip(z.iter()) {
-                        if let (Some(x), Some(y), Some(z)) = (x, y, z) {
-                            let coord = wkt::types::Coord {
-                                x,
-                                y,
-                                z: Some(z),
-                                m: None,
-                            };
-                            builder.push_coord(Some(&coord));
-                        } else {
-                            builder.push_null();
-                        }
-                    }
-                }
-                (None, Some(m)) => {
-                    for ((x, y), m) in x.iter().zip(y.iter()).zip(m.iter()) {
-                        if let (Some(x), Some(y), Some(m)) = (x, y, m) {
-                            let coord = wkt::types::Coord {
-                                x,
-                                y,
-                                z: None,
-                                m: Some(m),
-                            };
-                            builder.push_coord(Some(&coord));
-                        } else {
-                            builder.push_null();
-                        }
-                    }
-                }
-                (Some(z), Some(m)) => {
-                    for (((x, y), z), m) in x.iter().zip(y.iter()).zip(z.iter()).zip(m.iter()) {
-                        if let (Some(x), Some(y), Some(z), Some(m)) = (x, y, z, m) {
-                            let coord = wkt::types::Coord {
-                                x,
-                                y,
-                                z: Some(z),
-                                m: Some(m),
-                            };
-                            builder.push_coord(Some(&coord));
-                        } else {
-                            builder.push_null();
-                        }
-                    }
-                }
-            }
-
-            builder.finish()
-        }
-        CoordType::Separated => {
-            let (_, dim, metadata) = typ.into_inner();
-            let mut coord_buffers = vec![x.values().clone(), y.values().clone()];
-            if let Some(z) = z {
-                coord_buffers.push(z.values().clone());
-            }
-            if let Some(m) = m {
-                coord_buffers.push(m.values().clone());
-            }
-
-            // A NULL in any coordinate makes the point NULL.
-            let nulls = [Some(x), Some(y), z, m]
-                .into_iter()
-                .flatten()
-                .fold(None, |nulls, array| {
-                    NullBuffer::union(nulls.as_ref(), array.nulls())
-                });
-
-            let coords = SeparatedCoordBuffer::from_vec(coord_buffers, dim)?;
-            PointArray::new(coords.into(), nulls, metadata)
-        }
+) -> GeoDataFusionResult<ArrayRef> {
+    let coords: Vec<_> = arrays
+        .iter()
+        .map(|array| array.as_primitive::<Float64Type>())
+        .collect();
+    let (has_z, has_m) = match dim {
+        Dimension::XY => (false, false),
+        Dimension::XYZ => (true, false),
+        Dimension::XYM => (false, true),
+        Dimension::XYZM => (true, true),
     };
+    let len = coords[0].len();
 
-    Ok(point_arr)
+    let GeoArrowType::Wkb(output_type) = GeoArrowType::from_arrow_field(return_field)? else {
+        return Err(internal_datafusion_err!("unexpected return field {return_field:?}").into());
+    };
+    // Byte order, geometry type and the ordinates.
+    let point_size = 1 + 4 + 8 * dim.size();
+    let capacity = WkbCapacity::new(point_size * len, len);
+    let mut builder = WkbBuilder::<i32>::with_capacity(output_type, capacity);
+    for row in 0..len {
+        let point = (!coords.iter().any(|array| array.is_null(row))).then(|| {
+            let mut ordinates = coords.iter().map(|array| array.value(row));
+            let coord = Coord {
+                x: ordinates.next().unwrap_or_default(),
+                y: ordinates.next().unwrap_or_default(),
+                z: has_z.then(|| ordinates.next().unwrap_or_default()),
+                m: has_m.then(|| ordinates.next().unwrap_or_default()),
+            };
+            wkt::types::Point::from_coord(coord)
+        });
+        builder.push_geometry(point.as_ref())?;
+    }
+    Ok(builder.finish().into_array_ref())
 }
 
 #[cfg(test)]
@@ -604,8 +519,10 @@ mod test {
     use arrow_array::{RecordBatch, create_array};
     use arrow_schema::Schema;
     use datafusion::prelude::SessionContext;
-    use geo_traits::{CoordTrait, PointTrait};
+    use geo_traits::{CoordTrait, GeometryTrait, GeometryType, PointTrait};
     use geoarrow_array::GeoArrowArrayAccessor;
+    use geoarrow_array::array::WkbArray;
+    use geoarrow_schema::WkbType;
 
     use super::*;
 
@@ -613,7 +530,7 @@ mod test {
     async fn test_st_point() {
         let ctx = SessionContext::new();
 
-        ctx.register_udf(Point::new(CoordType::Separated).into());
+        ctx.register_udf(Point.into());
 
         let sql_df = ctx
             .sql(r#"SELECT ST_Point(-71.104, 42.315);"#)
@@ -627,10 +544,14 @@ mod test {
         let output_field = output_schema.field(0);
 
         let output_column = output_batch.column(0);
-        let point_arr = PointArray::try_from((output_column.as_ref(), output_field)).unwrap();
+        let point_arr = WkbArray::try_from((output_column.as_ref(), output_field)).unwrap();
 
         assert_eq!(point_arr.len(), 1);
-        let (x, y) = point_arr.value(0).unwrap().coord().unwrap().x_y();
+        let geom = point_arr.value(0).unwrap();
+        let GeometryType::Point(point) = geom.as_type() else {
+            panic!("expected a point");
+        };
+        let (x, y) = point.coord().unwrap().x_y();
 
         assert!(relative_eq!(x, -71.104));
         assert!(relative_eq!(y, 42.315));
@@ -640,7 +561,7 @@ mod test {
     async fn test_st_point_from_table() {
         let ctx = SessionContext::new();
 
-        ctx.register_udf(Point::new(CoordType::Separated).into());
+        ctx.register_udf(Point.into());
 
         let x = create_array!(Float64, [-71.104]);
         let y = create_array!(Float64, [42.315]);
@@ -662,13 +583,17 @@ mod test {
         let output_field = output_schema.field(0);
 
         // This succeeds
-        assert_eq!(output_field.extension_type_name(), Some("geoarrow.point"));
+        assert_eq!(output_field.extension_type_name(), Some("geoarrow.wkb"));
 
         let output_column = output_batch.column(0);
-        let point_arr = PointArray::try_from((output_column.as_ref(), output_field)).unwrap();
+        let point_arr = WkbArray::try_from((output_column.as_ref(), output_field)).unwrap();
 
         assert_eq!(point_arr.len(), 1);
-        let (x, y) = point_arr.value(0).unwrap().coord().unwrap().x_y();
+        let geom = point_arr.value(0).unwrap();
+        let GeometryType::Point(point) = geom.as_type() else {
+            panic!("expected a point");
+        };
+        let (x, y) = point.coord().unwrap().x_y();
 
         assert!(relative_eq!(x, -71.104));
         assert!(relative_eq!(y, 42.315));
@@ -678,7 +603,7 @@ mod test {
     async fn test_st_point_srid() {
         let ctx = SessionContext::new();
 
-        ctx.register_udf(Point::new(CoordType::Separated).into());
+        ctx.register_udf(Point.into());
 
         let x = create_array!(Float64, [-71.104]);
         let y = create_array!(Float64, [42.315]);
@@ -701,9 +626,9 @@ mod test {
         let output_batch = &output_batches[0];
         let output_schema = output_batch.schema();
         let output_field = output_schema.field(0);
-        let point_type = output_field.extension_type::<PointType>();
+        let wkb_type = output_field.extension_type::<WkbType>();
         assert_eq!(
-            point_type.metadata().crs(),
+            wkb_type.metadata().crs(),
             &Crs::from_authority_code("EPSG:4326".to_string())
         );
     }

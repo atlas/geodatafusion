@@ -227,7 +227,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(MakeBox2D::new().into());
-        ctx.register_udf(Point::default().into());
+        ctx.register_udf(Point.into());
 
         let out = ctx
             .sql("SELECT ST_MakeBox2D(ST_Point(0, 5), ST_Point(10, 20));")
@@ -250,7 +250,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(MakeBox3D::new().into());
-        ctx.register_udf(PointZ::default().into());
+        ctx.register_udf(PointZ.into());
 
         let out = ctx
             .sql("SELECT ST_3DMakeBox(ST_PointZ(0, 5, 1), ST_PointZ(10, 20, 30));")
