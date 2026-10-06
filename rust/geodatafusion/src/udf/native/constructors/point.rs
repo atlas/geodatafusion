@@ -6,6 +6,7 @@ use arrow_array::cast::AsArray;
 use arrow_array::types::Float64Type;
 use arrow_array::{Array, ArrayRef};
 use arrow_schema::{DataType, Field};
+use datafusion::common::internal_err;
 use datafusion::error::{DataFusionError, Result};
 use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
@@ -62,8 +63,8 @@ impl ScalarUDFImpl for Point {
         &self.signature
     }
 
-    fn return_type(&self, _arg_types: &[DataType]) -> datafusion::error::Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
@@ -154,8 +155,8 @@ impl ScalarUDFImpl for PointZ {
         &self.signature
     }
 
-    fn return_type(&self, _arg_types: &[DataType]) -> datafusion::error::Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
@@ -247,8 +248,8 @@ impl ScalarUDFImpl for PointM {
         &self.signature
     }
 
-    fn return_type(&self, _arg_types: &[DataType]) -> datafusion::error::Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
@@ -342,8 +343,8 @@ impl ScalarUDFImpl for PointZM {
         &self.signature
     }
 
-    fn return_type(&self, _arg_types: &[DataType]) -> datafusion::error::Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
@@ -437,7 +438,7 @@ impl ScalarUDFImpl for MakePoint {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
@@ -513,7 +514,7 @@ impl ScalarUDFImpl for MakePointM {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, _args: ReturnFieldArgs) -> Result<Arc<Field>> {

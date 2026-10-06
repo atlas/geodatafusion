@@ -1,7 +1,8 @@
 use std::sync::{Arc, OnceLock};
 
 use arrow_schema::{DataType, Field};
-use datafusion::error::{DataFusionError, Result};
+use datafusion::common::internal_err;
+use datafusion::error::Result;
 use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
@@ -49,8 +50,8 @@ impl ScalarUDFImpl for AsText {
         single_geometry()
     }
 
-    fn return_type(&self, _arg_types: &[DataType]) -> datafusion::error::Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
@@ -148,8 +149,8 @@ impl ScalarUDFImpl for GeomFromText {
         &self.signature
     }
 
-    fn return_type(&self, _arg_types: &[DataType]) -> datafusion::error::Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {

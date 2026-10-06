@@ -2,7 +2,8 @@ use std::sync::{Arc, LazyLock, OnceLock};
 
 use arrow_schema::{DataType, FieldRef};
 use datafusion::arrow::buffer::NullBuffer;
-use datafusion::error::{DataFusionError, Result};
+use datafusion::common::internal_err;
+use datafusion::error::Result;
 use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
@@ -54,7 +55,7 @@ impl ScalarUDFImpl for MakeBox2D {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, _args: ReturnFieldArgs) -> Result<FieldRef> {
@@ -120,7 +121,7 @@ impl ScalarUDFImpl for MakeBox3D {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, _args: ReturnFieldArgs) -> Result<FieldRef> {
