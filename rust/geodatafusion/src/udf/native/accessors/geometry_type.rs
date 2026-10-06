@@ -1,13 +1,13 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_array::builder::StringViewBuilder;
 use arrow_array::{ArrayRef, StringViewArray};
 use arrow_schema::DataType;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geo_traits::*;
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor, downcast_geoarrow_array};
@@ -16,6 +16,12 @@ use geoarrow_schema::error::GeoArrowResult;
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Returns the type of the geometry as a string. Eg: 'LINESTRING', 'POLYGON', 'MULTIPOINT', etc.",
+    syntax_example = "GeometryType(geometry)",
+    argument(name = "g1", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct GeometryType;
 
@@ -30,8 +36,6 @@ impl Default for GeometryType {
         Self::new()
     }
 }
-
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for GeometryType {
     fn name(&self) -> &str {
@@ -51,18 +55,16 @@ impl ScalarUDFImpl for GeometryType {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns the type of the geometry as a string. Eg: 'LINESTRING', 'POLYGON', 'MULTIPOINT', etc.",
-                "GeometryType(geometry)",
-            )
-            .with_argument("g1", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Returns the type of the geometry as a string. Eg: 'LINESTRING', 'POLYGON', 'MULTIPOINT', etc.",
+    syntax_example = "ST_GeometryType(geometry)",
+    argument(name = "g1", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 #[allow(non_camel_case_types)]
 pub struct ST_GeometryType;
@@ -78,8 +80,6 @@ impl Default for ST_GeometryType {
         Self::new()
     }
 }
-
-static ST_DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for ST_GeometryType {
     fn name(&self) -> &str {
@@ -99,15 +99,7 @@ impl ScalarUDFImpl for ST_GeometryType {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(ST_DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns the type of the geometry as a string. Eg: 'LINESTRING', 'POLYGON', 'MULTIPOINT', etc.",
-                "ST_GeometryType(geometry)",
-            )
-            .with_argument("g1", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

@@ -1,13 +1,13 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_schema::{DataType, Field};
 use datafusion::common::internal_err;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
     Volatility,
 };
+use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::{LargeWkbArray, WkbArray, WkbViewArray, from_arrow_array};
 use geoarrow_array::cast::{from_wkb, to_wkb};
@@ -16,6 +16,12 @@ use geoarrow_schema::{CoordType, GeoArrowType, GeometryType, Metadata, WkbType};
 use crate::error::{GeoDataFusionError, GeoDataFusionResult};
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Geometry Output"),
+    description = "Returns the OGC/ISO Well-Known Binary (WKB) representation of the geometry.",
+    syntax_example = "ST_AsBinary(geometry)",
+    argument(name = "g1", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct AsBinary;
 
@@ -30,8 +36,6 @@ impl Default for AsBinary {
         Self::new()
     }
 }
-
-static AS_BINARY_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for AsBinary {
     fn name(&self) -> &str {
@@ -68,18 +72,16 @@ impl ScalarUDFImpl for AsBinary {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(AS_BINARY_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns the OGC/ISO Well-Known Binary (WKB) representation of the geometry.",
-                "ST_AsBinary(geometry)",
-            )
-            .with_argument("g1", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Takes a well-known binary representation of a geometry and a Spatial Reference System ID (SRID) and creates an instance of the appropriate geometry type",
+    syntax_example = "ST_GeomFromWKB(buffer)",
+    argument(name = "geom", description = "bytea")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct GeomFromWKB {
     signature: Signature,
@@ -133,8 +135,6 @@ impl Default for GeomFromWKB {
     }
 }
 
-static GEOM_FROM_WKB_DOC: OnceLock<Documentation> = OnceLock::new();
-
 impl ScalarUDFImpl for GeomFromWKB {
     fn name(&self) -> &str {
         "st_geomfromwkb"
@@ -166,11 +166,7 @@ impl ScalarUDFImpl for GeomFromWKB {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(GEOM_FROM_WKB_DOC.get_or_init(|| {
-            Documentation::builder(DOC_SECTION_OTHER, "Takes a well-known binary representation of a geometry and a Spatial Reference System ID (SRID) and creates an instance of the appropriate geometry type", "ST_GeomFromWKB(buffer)")
-                .with_argument("geom", "WKB buffers")
-                .build()
-        }))
+        self.doc()
     }
 }
 

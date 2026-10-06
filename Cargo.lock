@@ -2044,6 +2044,8 @@ dependencies = [
  "arrow-schema",
  "async-trait",
  "datafusion",
+ "datafusion-doc",
+ "datafusion-macros",
  "futures",
  "geo",
  "geo-traits",

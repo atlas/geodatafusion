@@ -1,20 +1,27 @@
-use std::sync::{Arc, LazyLock, OnceLock};
+use std::sync::{Arc, LazyLock};
 
 use arrow_schema::{DataType, FieldRef};
 use datafusion::arrow::buffer::NullBuffer;
 use datafusion::common::internal_err;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
     Volatility,
 };
+use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::{CoordBuffer, PointArray, RectArray};
 use geoarrow_schema::{BoxType, CoordType, Dimension, Metadata, PointType};
 
 use crate::error::GeoDataFusionResult;
 
+#[user_doc(
+    doc_section(label = "Bounding Box Functions"),
+    description = "Creates a box2d defined by two Point geometries. This is useful for doing range queries.",
+    syntax_example = "ST_MakeBox2D(ST_Point(-989502.1875, 528439.5625), ST_Point(-987121.375, 529933.1875))",
+    argument(name = "pointLowLeft", description = "geometry"),
+    argument(name = "pointUpRight", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct MakeBox2D;
 
@@ -43,7 +50,6 @@ static SIGNATURE_2D: LazyLock<Signature> = LazyLock::new(|| {
     debug_assert_eq!(valid_types.len(), capacity);
     Signature::uniform(2, valid_types, Volatility::Immutable)
 });
-static DOC_2D: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for MakeBox2D {
     fn name(&self) -> &str {
@@ -68,19 +74,18 @@ impl ScalarUDFImpl for MakeBox2D {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOC_2D.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Creates a box2d defined by two Point geometries. This is useful for doing range queries.",
-                "ST_MakeBox2D(ST_Point(-989502.1875, 528439.5625), ST_Point(-987121.375, 529933.1875))",
-            )
-            .with_argument("pointLowLeft", "geometry")
-            .with_argument("pointUpRight", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Bounding Box Functions"),
+    description = "Creates a box3d defined by two 3D Point geometries.",
+    syntax_example = "ST_3DMakeBox(ST_MakePoint(-989502.1875, 528439.5625, 10),
+	ST_MakePoint(-987121.375 ,529933.1875, 10))",
+    argument(name = "pointLowLeft", description = "geometry"),
+    argument(name = "pointUpRight", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct MakeBox3D;
 
@@ -109,7 +114,6 @@ static SIGNATURE_3D: LazyLock<Signature> = LazyLock::new(|| {
     debug_assert_eq!(valid_types.len(), capacity);
     Signature::uniform(2, valid_types, Volatility::Immutable)
 });
-static DOC_3D: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for MakeBox3D {
     fn name(&self) -> &str {
@@ -134,17 +138,7 @@ impl ScalarUDFImpl for MakeBox3D {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOC_3D.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Creates a box3d defined by two 3D Point geometries.",
-                "ST_3DMakeBox(ST_MakePoint(-989502.1875, 528439.5625, 10),
-	ST_MakePoint(-987121.375 ,529933.1875, 10))",
-            )
-            .with_argument("pointLowLeft", "geometry")
-            .with_argument("pointUpRight", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

@@ -1,13 +1,13 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_array::BooleanArray;
 use arrow_array::builder::BooleanBuilder;
 use arrow_schema::DataType;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geo_traits::{CoordTrait, GeometryTrait, LineStringTrait, MultiLineStringTrait};
 use geoarrow_array::{GeoArrowArrayAccessor, WrapArray, downcast_geoarrow_array};
 use geoarrow_schema::GeoArrowType;
@@ -15,6 +15,12 @@ use geoarrow_schema::GeoArrowType;
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Tests if a LineStrings's start and end points are coincident.",
+    syntax_example = "ST_IsClosed(geom)",
+    argument(name = "geom", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct IsClosed;
 
@@ -29,8 +35,6 @@ impl Default for IsClosed {
         Self::new()
     }
 }
-
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for IsClosed {
     fn name(&self) -> &str {
@@ -50,15 +54,7 @@ impl ScalarUDFImpl for IsClosed {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Tests if a LineStrings's start and end points are coincident.",
-                "ST_IsClosed(geom)",
-            )
-            .with_argument("geom", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

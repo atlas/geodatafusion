@@ -1,13 +1,13 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_schema::{DataType, Field};
 use datafusion::common::internal_err;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
     Volatility,
 };
+use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::{LargeWktArray, WktArray, WktViewArray, from_arrow_array};
 use geoarrow_array::cast::{from_wkt, to_wkt};
@@ -16,6 +16,12 @@ use geoarrow_schema::{CoordType, GeoArrowType, GeometryType, Metadata, WktType};
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Geometry Output"),
+    description = "Returns the OGC Well-Known Text (WKT) representation of the geometry/geography.",
+    syntax_example = "ST_AsText(geometry)",
+    argument(name = "g1", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct AsText;
 
@@ -38,8 +44,6 @@ impl Default for AsText {
         Self::new()
     }
 }
-
-static AS_TEXT_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for AsText {
     fn name(&self) -> &str {
@@ -72,18 +76,16 @@ impl ScalarUDFImpl for AsText {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(AS_TEXT_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns the OGC Well-Known Text (WKT) representation of the geometry/geography.",
-                "ST_AsText(geometry)",
-            )
-            .with_argument("g1", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a geometry object from the OGC Well-Known text representation.",
+    syntax_example = "ST_GeomFromText(text)",
+    argument(name = "g1", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct GeomFromText {
     signature: Signature,
@@ -134,8 +136,6 @@ impl Default for GeomFromText {
     }
 }
 
-static GEOM_FROM_TEXT_DOC: OnceLock<Documentation> = OnceLock::new();
-
 impl ScalarUDFImpl for GeomFromText {
     fn name(&self) -> &str {
         "st_geomfromtext"
@@ -167,15 +167,7 @@ impl ScalarUDFImpl for GeomFromText {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(GEOM_FROM_TEXT_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Constructs a geometry object from the OGC Well-Known text representation.",
-                "ST_GeomFromText(text)",
-            )
-            .with_argument("g1", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

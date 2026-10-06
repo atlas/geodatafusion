@@ -1,13 +1,13 @@
-use std::sync::{Arc, LazyLock, OnceLock};
+use std::sync::{Arc, LazyLock};
 
 use arrow_array::builder::UInt32Builder;
 use arrow_array::{ArrayRef, UInt32Array};
 use arrow_schema::DataType;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geo_traits::*;
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor, downcast_geoarrow_array};
@@ -16,6 +16,12 @@ use geoarrow_schema::error::GeoArrowResult;
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Return the number of points in a geometry. Works for all geometries.",
+    syntax_example = "ST_NPoints(geometry)",
+    argument(name = "g1", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct NPoints;
 
@@ -31,7 +37,6 @@ impl Default for NPoints {
     }
 }
 
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 static ALIASES: LazyLock<Vec<String>> = LazyLock::new(|| vec!["st_numpoints".to_string()]);
 
 impl ScalarUDFImpl for NPoints {
@@ -56,15 +61,7 @@ impl ScalarUDFImpl for NPoints {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Return the number of points in a geometry. Works for all geometries.",
-                "ST_NPoints(geometry)",
-            )
-            .with_argument("g1", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

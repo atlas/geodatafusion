@@ -1,15 +1,15 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_array::StringArrayType;
 use arrow_array::cast::AsArray;
 use arrow_schema::{DataType, FieldRef};
 use datafusion::common::internal_err;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
     Volatility,
 };
+use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::PointArray;
 use geoarrow_array::builder::PointBuilder;
@@ -17,6 +17,12 @@ use geoarrow_schema::{CoordType, Dimension, Metadata, PointType};
 
 use crate::error::GeoDataFusionResult;
 
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Return a point from a GeoHash string. The point represents the center point of the GeoHash.",
+    syntax_example = "ST_PointFromGeoHash(geohash)",
+    argument(name = "geohash", description = "text")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct PointFromGeoHash {
     signature: Signature,
@@ -42,8 +48,6 @@ impl Default for PointFromGeoHash {
     }
 }
 
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
-
 impl ScalarUDFImpl for PointFromGeoHash {
     fn name(&self) -> &str {
         "st_pointfromgeohash"
@@ -66,15 +70,7 @@ impl ScalarUDFImpl for PointFromGeoHash {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Return a point from a GeoHash string. The point represents the center point of the GeoHash.",
-                "ST_PointFromGeoHash(geohash)",
-            )
-            .with_argument("text", "geohash")
-            .build()
-        }))
+        self.doc()
     }
 }
 

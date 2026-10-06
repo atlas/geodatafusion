@@ -1,12 +1,12 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_schema::{DataType, FieldRef};
 use datafusion::common::internal_err;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_schema::{CoordType, Dimension, Metadata, PointType};
@@ -14,6 +14,12 @@ use geoarrow_schema::{CoordType, Dimension, Metadata, PointType};
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Geometry Processing"),
+    description = "Returns a POINT which is guaranteed to lie in the interior of a surface.",
+    syntax_example = "ST_PointOnSurface(geometry)",
+    argument(name = "g1", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct PointOnSurface {
     coord_type: CoordType,
@@ -30,8 +36,6 @@ impl Default for PointOnSurface {
         Self::new(Default::default())
     }
 }
-
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for PointOnSurface {
     fn name(&self) -> &str {
@@ -55,15 +59,7 @@ impl ScalarUDFImpl for PointOnSurface {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns a POINT which is guaranteed to lie in the interior of a surface.",
-                "ST_PointOnSurface(geometry)",
-            )
-            .with_argument("g1", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

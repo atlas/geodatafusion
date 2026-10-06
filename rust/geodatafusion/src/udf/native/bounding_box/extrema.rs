@@ -1,11 +1,11 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_schema::DataType;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geo_traits::{CoordTrait, RectTrait};
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_array::scalar::Rect;
@@ -14,6 +14,18 @@ use crate::error::GeoDataFusionResult;
 use crate::udf::native::bounding_box::util::bounds::impl_extrema;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Bounding Box Functions"),
+    description = "Returns X minima of a bounding box 2d or 3d or a geometry",
+    syntax_example = "ST_XMin(geometry)",
+    argument(name = "box", description = "geometry"),
+    related_udf(name = "st_xmin"),
+    related_udf(name = "st_ymin"),
+    related_udf(name = "st_zmin"),
+    related_udf(name = "st_xmax"),
+    related_udf(name = "st_ymax"),
+    related_udf(name = "st_zmax")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct XMin;
 
@@ -28,8 +40,6 @@ impl Default for XMin {
         Self::new()
     }
 }
-
-static XMIN_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for XMin {
     fn name(&self) -> &str {
@@ -49,24 +59,22 @@ impl ScalarUDFImpl for XMin {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(XMIN_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns X minima of a bounding box 2d or 3d or a geometry",
-                "ST_XMin(geometry)",
-            )
-            .with_argument("box", "The geometry or box input")
-            .with_related_udf("st_xmin")
-            .with_related_udf("st_ymin")
-            .with_related_udf("st_zmin")
-            .with_related_udf("st_xmax")
-            .with_related_udf("st_ymax")
-            .with_related_udf("st_zmax")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Bounding Box Functions"),
+    description = "Returns Y minima of a bounding box 2d or 3d or a geometry",
+    syntax_example = "ST_YMin(geometry)",
+    argument(name = "box", description = "geometry"),
+    related_udf(name = "st_xmin"),
+    related_udf(name = "st_ymin"),
+    related_udf(name = "st_zmin"),
+    related_udf(name = "st_xmax"),
+    related_udf(name = "st_ymax"),
+    related_udf(name = "st_zmax")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct YMin;
 
@@ -81,8 +89,6 @@ impl Default for YMin {
         Self::new()
     }
 }
-
-static YMIN_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for YMin {
     fn name(&self) -> &str {
@@ -102,24 +108,22 @@ impl ScalarUDFImpl for YMin {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(YMIN_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns Y minima of a bounding box 2d or 3d or a geometry",
-                "ST_YMin(geometry)",
-            )
-            .with_argument("box", "The geometry or box input")
-            .with_related_udf("st_xmin")
-            .with_related_udf("st_ymin")
-            .with_related_udf("st_zmin")
-            .with_related_udf("st_xmax")
-            .with_related_udf("st_ymax")
-            .with_related_udf("st_zmax")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Bounding Box Functions"),
+    description = "Returns the Z minima of a 2D or 3D bounding box or a geometry",
+    syntax_example = "ST_ZMin(geometry)",
+    argument(name = "box", description = "geometry"),
+    related_udf(name = "st_xmin"),
+    related_udf(name = "st_ymin"),
+    related_udf(name = "st_zmin"),
+    related_udf(name = "st_xmax"),
+    related_udf(name = "st_ymax"),
+    related_udf(name = "st_zmax")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct ZMin;
 
@@ -134,8 +138,6 @@ impl Default for ZMin {
         Self::new()
     }
 }
-
-static ZMIN_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for ZMin {
     fn name(&self) -> &str {
@@ -157,24 +159,22 @@ impl ScalarUDFImpl for ZMin {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(ZMIN_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns the Z minima of a 2D or 3D bounding box or a geometry",
-                "ST_ZMin(geometry)",
-            )
-            .with_argument("box", "The geometry or box input")
-            .with_related_udf("st_xmin")
-            .with_related_udf("st_ymin")
-            .with_related_udf("st_zmin")
-            .with_related_udf("st_xmax")
-            .with_related_udf("st_ymax")
-            .with_related_udf("st_zmax")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Bounding Box Functions"),
+    description = "Returns X maxima of a bounding box 2d or 3d or a geometry",
+    syntax_example = "ST_XMax(geometry)",
+    argument(name = "box", description = "geometry"),
+    related_udf(name = "st_xmin"),
+    related_udf(name = "st_ymin"),
+    related_udf(name = "st_zmin"),
+    related_udf(name = "st_xmax"),
+    related_udf(name = "st_ymax"),
+    related_udf(name = "st_zmax")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct XMax;
 
@@ -189,8 +189,6 @@ impl Default for XMax {
         Self::new()
     }
 }
-
-static XMAX_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for XMax {
     fn name(&self) -> &str {
@@ -210,24 +208,22 @@ impl ScalarUDFImpl for XMax {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(XMAX_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns X maxima of a bounding box 2d or 3d or a geometry",
-                "ST_XMax(geometry)",
-            )
-            .with_argument("box", "The geometry or box input")
-            .with_related_udf("st_xmin")
-            .with_related_udf("st_ymin")
-            .with_related_udf("st_zmin")
-            .with_related_udf("st_xmax")
-            .with_related_udf("st_ymax")
-            .with_related_udf("st_zmax")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Bounding Box Functions"),
+    description = "Returns Y maxima of a bounding box 2d or 3d or a geometry",
+    syntax_example = "ST_YMax(geometry)",
+    argument(name = "box", description = "geometry"),
+    related_udf(name = "st_xmin"),
+    related_udf(name = "st_ymin"),
+    related_udf(name = "st_zmin"),
+    related_udf(name = "st_xmax"),
+    related_udf(name = "st_ymax"),
+    related_udf(name = "st_zmax")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct YMax;
 
@@ -242,8 +238,6 @@ impl Default for YMax {
         Self::new()
     }
 }
-
-static YMAX_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for YMax {
     fn name(&self) -> &str {
@@ -263,24 +257,22 @@ impl ScalarUDFImpl for YMax {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(YMAX_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns Y maxima of a bounding box 2d or 3d or a geometry",
-                "ST_YMax(geometry)",
-            )
-            .with_argument("box", "The geometry or box input")
-            .with_related_udf("st_xmin")
-            .with_related_udf("st_ymin")
-            .with_related_udf("st_zmin")
-            .with_related_udf("st_xmax")
-            .with_related_udf("st_ymax")
-            .with_related_udf("st_zmax")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Bounding Box Functions"),
+    description = "Returns Z maxima of a bounding box 2d or 3d or a geometry",
+    syntax_example = "ST_ZMax(geometry)",
+    argument(name = "box", description = "geometry"),
+    related_udf(name = "st_xmin"),
+    related_udf(name = "st_ymin"),
+    related_udf(name = "st_zmin"),
+    related_udf(name = "st_xmax"),
+    related_udf(name = "st_ymax"),
+    related_udf(name = "st_zmax")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct ZMax;
 
@@ -295,8 +287,6 @@ impl Default for ZMax {
         Self::new()
     }
 }
-
-static ZMAX_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for ZMax {
     fn name(&self) -> &str {
@@ -318,21 +308,7 @@ impl ScalarUDFImpl for ZMax {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(ZMAX_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns Z maxima of a bounding box 2d or 3d or a geometry",
-                "ST_ZMax(geometry)",
-            )
-            .with_argument("box", "The geometry or box input")
-            .with_related_udf("st_xmin")
-            .with_related_udf("st_ymin")
-            .with_related_udf("st_zmin")
-            .with_related_udf("st_xmax")
-            .with_related_udf("st_ymax")
-            .with_related_udf("st_zmax")
-            .build()
-        }))
+        self.doc()
     }
 }
 

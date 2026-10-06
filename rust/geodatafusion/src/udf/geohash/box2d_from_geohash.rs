@@ -1,15 +1,15 @@
-use std::sync::{Arc, LazyLock, OnceLock};
+use std::sync::{Arc, LazyLock};
 
 use arrow_array::StringArrayType;
 use arrow_array::cast::AsArray;
 use arrow_schema::{DataType, FieldRef};
 use datafusion::common::internal_err;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
     Volatility,
 };
+use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::RectArray;
 use geoarrow_array::builder::RectBuilder;
@@ -17,6 +17,12 @@ use geoarrow_schema::{BoxType, Dimension, Metadata};
 
 use crate::error::GeoDataFusionResult;
 
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Return a BOX2D from a GeoHash string.",
+    syntax_example = "ST_Box2dFromGeoHash(geohash)",
+    argument(name = "geohash", description = "text")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Box2DFromGeoHash;
 
@@ -32,7 +38,6 @@ impl Default for Box2DFromGeoHash {
     }
 }
 
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
     Signature::uniform(
         1,
@@ -63,15 +68,7 @@ impl ScalarUDFImpl for Box2DFromGeoHash {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Return a BOX2D from a GeoHash string.",
-                "ST_Box2dFromGeoHash(geohash)",
-            )
-            .with_argument("text", "geohash")
-            .build()
-        }))
+        self.doc()
     }
 }
 

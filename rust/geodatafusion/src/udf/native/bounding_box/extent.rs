@@ -8,8 +8,9 @@ use datafusion::common::internal_err;
 use datafusion::common::scalar::ScalarStructBuilder;
 use datafusion::error::Result;
 use datafusion::logical_expr::function::AccumulatorArgs;
-use datafusion::logical_expr::{Accumulator, AggregateUDFImpl, Signature};
+use datafusion::logical_expr::{Accumulator, AggregateUDFImpl, Documentation, Signature};
 use datafusion::scalar::ScalarValue;
+use datafusion_macros::user_doc;
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_schema::{BoxType, Dimension, Metadata};
 
@@ -17,6 +18,13 @@ use crate::error::GeoDataFusionResult;
 use crate::udf::native::bounding_box::util::bounds::{BoundingRect, total_bounds};
 use crate::util::signature::single_geometry;
 
+/// Aggregate function that returns the bounding box of geometries.
+#[user_doc(
+    doc_section(label = "Bounding Box Functions"),
+    description = "An aggregate function that returns the bounding box that bounds a set of geometries.",
+    syntax_example = "ST_Extent(geomfield)",
+    argument(name = "geomfield", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Extent;
 
@@ -52,6 +60,10 @@ impl AggregateUDFImpl for Extent {
     fn accumulator(&self, acc_args: AccumulatorArgs) -> Result<Box<dyn Accumulator>> {
         let input_field = acc_args.exprs[0].return_field(acc_args.schema)?;
         Ok(Box::new(ExtentAccumulator::new(input_field)))
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
     }
 }
 

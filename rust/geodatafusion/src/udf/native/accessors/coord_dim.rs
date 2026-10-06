@@ -1,12 +1,12 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_array::builder::UInt8Builder;
 use arrow_schema::DataType;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geo_traits::GeometryTrait;
 use geoarrow_array::GeoArrowArrayAccessor;
 use geoarrow_array::array::from_arrow_array;
@@ -16,6 +16,12 @@ use geoarrow_schema::{Dimension, GeoArrowType};
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Return the coordinate dimension of the ST_Geometry value.",
+    syntax_example = "ST_CoordDim(geometry)",
+    argument(name = "g1", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct CoordDim;
 
@@ -30,8 +36,6 @@ impl Default for CoordDim {
         Self::new()
     }
 }
-
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for CoordDim {
     fn name(&self) -> &str {
@@ -51,15 +55,7 @@ impl ScalarUDFImpl for CoordDim {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Return the coordinate dimension of the ST_Geometry value.",
-                "ST_CoordDim(geometry)",
-            )
-            .with_argument("g1", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 
@@ -125,6 +121,12 @@ fn coord_dim_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Return the coordinate dimension of the geometry.",
+    syntax_example = "ST_NDims(geometry)",
+    argument(name = "g1", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct NDims;
 
@@ -139,8 +141,6 @@ impl Default for NDims {
         Self::new()
     }
 }
-
-static NDIMS_DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for NDims {
     fn name(&self) -> &str {
@@ -160,15 +160,7 @@ impl ScalarUDFImpl for NDims {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(NDIMS_DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Return the coordinate dimension of the geometry.",
-                "ST_NDims(geometry)",
-            )
-            .with_argument("g1", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

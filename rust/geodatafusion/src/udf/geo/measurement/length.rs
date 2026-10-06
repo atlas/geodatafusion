@@ -1,17 +1,23 @@
-use std::sync::{Arc, LazyLock, OnceLock};
+use std::sync::{Arc, LazyLock};
 
 use arrow_schema::DataType;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_expr_geo::euclidean_length;
 
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Measurement Functions"),
+    description = "Returns the 2D Cartesian length of the geometry if it is a LineString or MultiLineString. For areal geometries 0 is returned; use ST_Perimeter instead.",
+    syntax_example = "ST_Length(geom)",
+    argument(name = "geom", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Length;
 
@@ -28,7 +34,6 @@ impl Default for Length {
 }
 
 static ALIASES: LazyLock<Vec<String>> = LazyLock::new(|| vec!["st_length2d".to_string()]);
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for Length {
     fn name(&self) -> &str {
@@ -52,18 +57,7 @@ impl ScalarUDFImpl for Length {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns the 2D Cartesian length of the geometry if it is a LineString or MultiLineString. For areal geometries 0 is returned; use ST_Perimeter instead.",
-                "ST_Length(geom)",
-            )
-            .with_argument("geom", "geometry")
-            .with_sql_example(
-                "SELECT ST_Length(ST_GeomFromText('LINESTRING(0 0, 3 4)'));",
-            )
-            .build()
-        }))
+        self.doc()
     }
 }
 
