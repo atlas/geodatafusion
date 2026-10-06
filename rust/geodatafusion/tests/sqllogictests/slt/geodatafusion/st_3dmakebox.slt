@@ -1,0 +1,28 @@
+# Edge cases for ST_3DMakeBox, not covered by the PostGIS docs examples.
+
+# 2D points get Z 0
+query T
+SELECT ST_3DMakeBox('POINT(1 2)'::geometry, 'POINT(3 4)'::geometry)
+----
+BOX3D(1 2 0,3 4 0)
+
+query T
+SELECT ST_3DMakeBox('POINT(4 5 6)'::geometry, 'POINT(1 2 3)'::geometry)
+----
+BOX3D(4 5 6,1 2 3)
+
+# M is ignored
+query T
+SELECT ST_3DMakeBox('POINTM(1 2 3)'::geometry, 'POINTM(4 5 6)'::geometry)
+----
+BOX3D(1 2 0,4 5 0)
+
+# NULL
+query T
+SELECT ST_3DMakeBox('POINT(1 2 3)'::geometry, NULL::geometry)
+----
+NULL
+
+# Non-points are an error
+statement error
+SELECT ST_3DMakeBox('LINESTRING(0 0,1 1)'::geometry, 'POINT(3 4)'::geometry)

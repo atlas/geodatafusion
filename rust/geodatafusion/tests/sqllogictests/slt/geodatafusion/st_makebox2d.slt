@@ -1,0 +1,37 @@
+# Edge cases for ST_MakeBox2D, not covered by the PostGIS docs examples.
+
+# Corners in either order
+query T
+SELECT ST_MakeBox2D('POINT(1 2)'::geometry, 'POINT(3 4)'::geometry)
+----
+BOX(1 2,3 4)
+
+query T
+SELECT ST_MakeBox2D('POINT(3 4)'::geometry, 'POINT(1 2)'::geometry)
+----
+BOX(1 2,3 4)
+
+# Z is ignored
+query T
+SELECT ST_MakeBox2D('POINT(1 2 9)'::geometry, 'POINT(3 4 9)'::geometry)
+----
+BOX(1 2,3 4)
+
+# WKB input
+query T
+SELECT ST_MakeBox2D(ST_GeomFromEWKT('POINT(1 2)'), ST_GeomFromEWKT('POINT(3 4)'))
+----
+BOX(1 2,3 4)
+
+# NULL
+query T
+SELECT ST_MakeBox2D(NULL::geometry, 'POINT(3 4)'::geometry)
+----
+NULL
+
+# Non-points and EMPTY points are errors
+statement error
+SELECT ST_MakeBox2D('LINESTRING(0 0,1 1)'::geometry, 'POINT(3 4)'::geometry)
+
+statement error
+SELECT ST_MakeBox2D('POINT EMPTY'::geometry, 'POINT(3 4)'::geometry)
