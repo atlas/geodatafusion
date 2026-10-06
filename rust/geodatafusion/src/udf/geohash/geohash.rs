@@ -106,7 +106,7 @@ mod test {
     async fn test_geohash() {
         let ctx = SessionContext::new();
         ctx.register_udf(GeoHash.into());
-        ctx.register_udf(Point::default().into());
+        ctx.register_udf(Point.into());
 
         let df = ctx
             .sql("SELECT ST_GeoHash( ST_Point(-126,48) );")
