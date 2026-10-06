@@ -90,14 +90,11 @@ fn render_batch(batch: &RecordBatch) -> Result<Vec<Vec<String>>, EngineError> {
 }
 
 fn render_column(array: &dyn Array, field: &Field) -> Result<Vec<String>, EngineError> {
-    match field.extension_type_name() {
-        // WKT columns are what PostGIS returns as `text` (e.g. from ST_AsText), so they are
-        // compared verbatim: coordinate formatting is part of the behaviour under test.
-        Some("geoarrow.wkt") => {}
-        Some(name) if name.starts_with("geoarrow.") => {
-            return render_geometry_column(array, field);
-        }
-        _ => {}
+    if field
+        .extension_type_name()
+        .is_some_and(|name| name.starts_with("geoarrow."))
+    {
+        return render_geometry_column(array, field);
     }
     (0..array.len())
         .map(|i| render_value(array, field, i))

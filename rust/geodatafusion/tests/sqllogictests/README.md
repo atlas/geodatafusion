@@ -48,7 +48,7 @@ compared:
   hex EWKB on one side and GeoArrow arrays on the other.
 - **floats** (including numeric/decimal) are rounded to 12 significant digits.
 - **box2d/box3d** render as `BOX(xmin ymin,xmax ymax)` / `BOX3D(...)`.
-- **text**, including `geoarrow.wkt` columns returned by e.g. `ST_AsText`, is compared verbatim.
+- **text**, such as the output of `ST_AsText`, is compared verbatim.
   Text formatting is part of the behaviour being tested.
 - NULL renders as `NULL` and the empty string as `(empty)`.
 

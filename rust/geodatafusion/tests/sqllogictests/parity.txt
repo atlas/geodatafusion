@@ -63,7 +63,7 @@ postgis_docs/st_addpoint 0/1
 postgis_docs/st_affine 0/2
 postgis_docs/st_angle 0/3
 postgis_docs/st_area 0/3
-postgis_docs/st_asbinary 0/2
+postgis_docs/st_asbinary 1/2
 postgis_docs/st_asencodedpolyline 0/2
 postgis_docs/st_asewkb 0/2
 postgis_docs/st_asgeobuf 0/1

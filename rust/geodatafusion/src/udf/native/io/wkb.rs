@@ -8,14 +8,14 @@ use datafusion::logical_expr::{
     Volatility,
 };
 use datafusion_macros::user_doc;
-use geoarrow_array::array::{LargeWkbArray, WkbArray, WkbViewArray, from_arrow_array};
+use geoarrow_array::array::{LargeWkbArray, WkbArray, WkbViewArray};
 use geoarrow_array::builder::WkbBuilder;
 use geoarrow_array::cast::to_wkb;
 use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor};
-use geoarrow_schema::{GeoArrowType, Metadata, WkbType};
+use geoarrow_schema::GeoArrowType;
 
 use crate::error::{GeoDataFusionError, GeoDataFusionResult};
-use crate::util::field::{input_metadata, wkb_return_field};
+use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
 use crate::util::signature::single_geometry;
 
 #[user_doc(
@@ -49,28 +49,13 @@ impl ScalarUDFImpl for AsBinary {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        internal_err!("return_field_from_args should be called instead")
-    }
-
-    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
-        let input_field = &args.arg_fields[0];
-        let metadata = Arc::new(Metadata::try_from(input_field.as_ref()).unwrap_or_default());
-        let wkb_type = WkbType::new(metadata);
-        Ok(Field::new(
-            input_field.name(),
-            DataType::Binary,
-            input_field.is_nullable(),
-        )
-        .with_extension_type(wkb_type)
-        .into())
+        Ok(DataType::Binary)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        let array = &ColumnarValue::values_to_arrays(&args.args)?[0];
-        let field = &args.arg_fields[0];
-        let geo_array = from_arrow_array(&array, field).map_err(GeoDataFusionError::GeoArrow)?;
-        let wkb_arr = to_wkb::<i32>(geo_array.as_ref()).map_err(GeoDataFusionError::GeoArrow)?;
-        Ok(ColumnarValue::Array(wkb_arr.into_array_ref()))
+        let geometries = geometry_array(&args, 0)?;
+        let wkb = to_wkb::<i32>(geometries.as_ref()).map_err(GeoDataFusionError::GeoArrow)?;
+        Ok(ColumnarValue::Array(Arc::new(wkb.inner().clone())))
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -229,11 +214,11 @@ mod test {
         assert_eq!(output_batches.len(), 1);
         let output_batch = &output_batches[0];
 
+        // PostGIS returns bytea, so the CRS isn't kept.
         let output_schema = output_batch.schema();
         let output_field = output_schema.field(0);
-        let output_wkb_type = output_field.try_extension_type::<WkbType>().unwrap();
-
-        assert_eq!(&crs, output_wkb_type.metadata().crs());
+        assert_eq!(output_field.data_type(), &DataType::Binary);
+        assert_eq!(output_field.extension_type_name(), None);
 
         let sql_df2 = ctx
             .sql("SELECT ST_GeomFromWKB(ST_AsBinary(geometry)) FROM t;")
@@ -248,6 +233,7 @@ mod test {
         let output_column = output_batch.column(0);
         let wkb_arr = WkbArray::try_from((output_column.as_ref(), output_field)).unwrap();
 
-        assert_eq!(wkb_arr, to_wkb::<i32>(&point_arr).unwrap());
+        // The CRS doesn't survive ST_AsBinary, as in PostGIS.
+        assert_eq!(wkb_arr.inner(), to_wkb::<i32>(&point_arr).unwrap().inner());
     }
 }
