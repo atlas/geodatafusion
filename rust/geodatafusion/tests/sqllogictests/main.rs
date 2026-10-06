@@ -289,7 +289,8 @@ async fn complete(files: Vec<TestFile>) -> ExitCode {
                     strict_column_validator,
                 )
                 .await
-                .map_err(|e| e.to_string());
+                .map_err(|e| e.to_string())
+                .and_then(|()| drop_error_messages(&file.path));
             runner.shutdown_async().await;
             (file.name, result)
         })
@@ -310,6 +311,28 @@ async fn complete(files: Vec<TestFile>) -> ExitCode {
     } else {
         ExitCode::SUCCESS
     }
+}
+
+/// Rewrites `query error <message>` and `statement error <message>` records as plain `query
+/// error` / `statement error`.
+///
+/// The recorded message is PostGIS's, which geodatafusion's never matches, and expectations only
+/// assert that the query fails.
+fn drop_error_messages(path: &Path) -> Result<(), String> {
+    let contents = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+    let rewritten: Vec<&str> = contents
+        .lines()
+        .map(|line| {
+            if line.starts_with("query error ") {
+                "query error"
+            } else if line.starts_with("statement error ") {
+                "statement error"
+            } else {
+                line
+            }
+        })
+        .collect();
+    std::fs::write(path, rewritten.join("\n") + "\n").map_err(|e| e.to_string())
 }
 
 #[tokio::main]
