@@ -1,7 +1,7 @@
 use std::sync::{Arc, OnceLock};
 
-use arrow_array::BooleanArray;
 use arrow_array::builder::BooleanBuilder;
+use arrow_array::{Array, BooleanArray};
 use arrow_schema::{DataType, Field};
 use datafusion::error::Result;
 use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
@@ -183,30 +183,51 @@ fn relate_impl(
         (ColumnarValue::Scalar(left_scalar), ColumnarValue::Array(right_array)) => {
             let left_scalar_array = ColumnarValue::values_to_arrays(&[left_scalar.into()])?;
             let left_geo_array = from_arrow_array(&left_scalar_array[0], left_field)?;
-            let left_geo_scalar = to_geo_scalar(left_geo_array.as_ref())?
-                .expect("Null geometries not currently supported");
-
+            // SQL NULL in, SQL NULL out.
+            let Some(left_geo_scalar) = to_geo_scalar(left_geo_array.as_ref())? else {
+                return Ok(ColumnarValue::Array(Arc::new(BooleanArray::new_null(
+                    right_array.len(),
+                ))));
+            };
             let left_prepared_geometry = PreparedGeometry::from(left_geo_scalar);
 
             let right_geo_array = from_arrow_array(&right_array, right_field)?;
-            let result =
-                relate_prepared_geometry(&right_geo_array, &left_prepared_geometry, relate_cb)?;
+            let result = relate_prepared_geometry(
+                &right_geo_array,
+                &left_prepared_geometry,
+                PreparedSide::Left,
+                relate_cb,
+            )?;
             Ok(ColumnarValue::Array(Arc::new(result)))
         }
         (ColumnarValue::Array(left_array), ColumnarValue::Scalar(right_scalar)) => {
             let right_scalar_array = ColumnarValue::values_to_arrays(&[right_scalar.into()])?;
             let right_geo_array = from_arrow_array(&right_scalar_array[0], right_field)?;
-            let right_geo_scalar = to_geo_scalar(right_geo_array.as_ref())?
-                .expect("Null geometries not currently supported");
-
+            // SQL NULL in, SQL NULL out.
+            let Some(right_geo_scalar) = to_geo_scalar(right_geo_array.as_ref())? else {
+                return Ok(ColumnarValue::Array(Arc::new(BooleanArray::new_null(
+                    left_array.len(),
+                ))));
+            };
             let right_prepared_geometry = PreparedGeometry::from(right_geo_scalar);
 
             let left_geo_array = from_arrow_array(&left_array, left_field)?;
-            let result =
-                relate_prepared_geometry(&left_geo_array, &right_prepared_geometry, relate_cb)?;
+            let result = relate_prepared_geometry(
+                &left_geo_array,
+                &right_prepared_geometry,
+                PreparedSide::Right,
+                relate_cb,
+            )?;
             Ok(ColumnarValue::Array(Arc::new(result)))
         }
     }
+}
+
+/// Which argument of the predicate the prepared (constant) geometry is.
+#[derive(Debug, Clone, Copy)]
+enum PreparedSide {
+    Left,
+    Right,
 }
 
 /// Convert a length-1 GeoArrowArray to a geo::Geometry scalar.
@@ -227,14 +248,22 @@ fn _to_geo_scalar_impl<'a>(
 fn relate_prepared_geometry(
     array: &dyn GeoArrowArray,
     prepared: &PreparedGeometry<geo::Geometry>,
+    prepared_side: PreparedSide,
     relate_cb: impl Fn(IntersectionMatrix) -> bool,
 ) -> GeoDataFusionResult<BooleanArray> {
-    downcast_geoarrow_array!(array, _relate_prepared_geometry_impl, prepared, relate_cb)
+    downcast_geoarrow_array!(
+        array,
+        _relate_prepared_geometry_impl,
+        prepared,
+        prepared_side,
+        relate_cb
+    )
 }
 
 fn _relate_prepared_geometry_impl<'a>(
     arr: &'a impl GeoArrowArrayAccessor<'a>,
     prepared: &PreparedGeometry<geo::Geometry>,
+    prepared_side: PreparedSide,
     relate_cb: impl Fn(IntersectionMatrix) -> bool,
 ) -> GeoDataFusionResult<BooleanArray> {
     let mut builder = BooleanBuilder::with_capacity(arr.len());
@@ -242,7 +271,13 @@ fn _relate_prepared_geometry_impl<'a>(
     for item in arr.iter() {
         if let Some(geom) = item {
             let geo_geom = geometry_to_geo(&geom?)?;
-            builder.append_value(relate_cb(geo_geom.relate(prepared)));
+            // The matrix must always be computed as (left, right): asymmetric predicates such as
+            // ST_Contains read it in that order.
+            let matrix = match prepared_side {
+                PreparedSide::Left => prepared.relate(&geo_geom),
+                PreparedSide::Right => geo_geom.relate(prepared),
+            };
+            builder.append_value(relate_cb(matrix));
         } else {
             builder.append_null();
         }

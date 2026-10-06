@@ -1,0 +1,46 @@
+# ST_Contains with constant and column arguments in both positions, and NULL constants.
+
+# Constant first argument, column second
+query TT rowsort
+SELECT ST_AsText(g), ST_Contains('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, g)
+FROM (VALUES ('POINT(5 5)'::geometry), ('POINT(20 20)'::geometry), ('POLYGON((0 0,20 0,20 20,0 20,0 0))'::geometry)) AS t(g)
+----
+POINT(20 20) false
+POINT(5 5) true
+POLYGON((0 0,20 0,20 20,0 20,0 0)) false
+
+# Column first argument, constant second
+query TT rowsort
+SELECT ST_AsText(g), ST_Contains(g, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+FROM (VALUES ('POINT(5 5)'::geometry), ('POINT(20 20)'::geometry), ('POLYGON((0 0,20 0,20 20,0 20,0 0))'::geometry)) AS t(g)
+----
+POINT(20 20) false
+POINT(5 5) false
+POLYGON((0 0,20 0,20 20,0 20,0 0)) true
+
+# Column arguments on both sides
+query TTT rowsort
+SELECT ST_AsText(a), ST_AsText(b), ST_Contains(a, b)
+FROM (VALUES
+  ('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POINT(5 5)'::geometry),
+  ('POINT(5 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+) AS t(a, b)
+----
+POINT(5 5) POLYGON((0 0,10 0,10 10,0 10,0 0)) false
+POLYGON((0 0,10 0,10 10,0 10,0 0)) POINT(5 5) true
+
+# NULL constant first argument
+query T rowsort
+SELECT ST_Contains(NULL::geometry, g)
+FROM (VALUES ('POINT(5 5)'::geometry), ('POINT(20 20)'::geometry)) AS t(g)
+----
+NULL
+NULL
+
+# NULL constant second argument
+query T rowsort
+SELECT ST_Contains(g, NULL::geometry)
+FROM (VALUES ('POINT(5 5)'::geometry), ('POINT(20 20)'::geometry)) AS t(g)
+----
+NULL
+NULL
