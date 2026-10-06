@@ -9,76 +9,11 @@ use datafusion::logical_expr::{
 };
 use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
-use geoarrow_array::array::{LargeWktArray, WktArray, WktViewArray, from_arrow_array};
-use geoarrow_array::cast::{from_wkt, to_wkt};
-use geoarrow_schema::{CoordType, GeoArrowType, GeometryType, Metadata, WktType};
+use geoarrow_array::array::{LargeWktArray, WktArray, WktViewArray};
+use geoarrow_array::cast::from_wkt;
+use geoarrow_schema::{CoordType, GeoArrowType, GeometryType, Metadata};
 
 use crate::error::GeoDataFusionResult;
-use crate::util::signature::single_geometry;
-
-#[user_doc(
-    doc_section(label = "Geometry Output"),
-    description = "Returns the OGC Well-Known Text (WKT) representation of the geometry/geography.",
-    syntax_example = "ST_AsText(geometry)",
-    argument(name = "g1", description = "geometry")
-)]
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub struct AsText;
-
-impl AsText {
-    pub fn new() -> Self {
-        Self {}
-    }
-
-    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-        let array = &ColumnarValue::values_to_arrays(&args.args)?[0];
-        let field = &args.arg_fields[0];
-        let geo_array = from_arrow_array(&array, field.as_ref())?;
-        let wkt_arr = to_wkt::<i32>(geo_array.as_ref())?;
-        Ok(ColumnarValue::Array(wkt_arr.into_array_ref()))
-    }
-}
-
-impl Default for AsText {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ScalarUDFImpl for AsText {
-    fn name(&self) -> &str {
-        "st_astext"
-    }
-
-    fn signature(&self) -> &Signature {
-        single_geometry()
-    }
-
-    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        internal_err!("return_field_from_args should be called instead")
-    }
-
-    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
-        let input_field = &args.arg_fields[0];
-        let metadata = Arc::new(Metadata::try_from(input_field.as_ref())?);
-        let wkb_type = WktType::new(metadata);
-        Ok(Field::new(
-            input_field.name(),
-            DataType::Utf8,
-            input_field.is_nullable(),
-        )
-        .with_extension_type(wkb_type)
-        .into())
-    }
-
-    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(self.invoke_with_args(args)?)
-    }
-
-    fn documentation(&self) -> Option<&Documentation> {
-        self.doc()
-    }
-}
 
 #[user_doc(
     doc_section(label = "Geometry Input"),
@@ -173,47 +108,10 @@ impl ScalarUDFImpl for GeomFromText {
 
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
-
-    use arrow_array::RecordBatch;
-    use arrow_schema::Schema;
     use datafusion::prelude::SessionContext;
-    use geoarrow_array::test::point;
-    use geoarrow_schema::crs::Crs;
-    use geoarrow_schema::{CoordType, Dimension, Metadata};
+    use geoarrow_schema::CoordType;
 
     use super::*;
-
-    #[tokio::test]
-    async fn test_as_text() {
-        let ctx = SessionContext::new();
-
-        let crs = Crs::from_authority_code("EPSG:4326".to_string());
-        let metadata = Arc::new(Metadata::new(crs.clone(), Default::default()));
-
-        let geo_arr = point::array(CoordType::Separated, Dimension::XY).with_metadata(metadata);
-
-        let arr = geo_arr.to_array_ref();
-        let field = geo_arr.data_type().to_field("geometry", true);
-        let schema = Schema::new([Arc::new(field)]);
-        let batch = RecordBatch::try_new(Arc::new(schema), vec![arr]).unwrap();
-
-        ctx.register_batch("t", batch).unwrap();
-
-        ctx.register_udf(AsText::new().into());
-
-        let sql_df = ctx.sql("SELECT ST_AsText(geometry) FROM t;").await.unwrap();
-
-        let output_batches = sql_df.collect().await.unwrap();
-        assert_eq!(output_batches.len(), 1);
-        let output_batch = &output_batches[0];
-
-        let output_schema = output_batch.schema();
-        let output_field = output_schema.field(0);
-        let output_wkb_type = output_field.try_extension_type::<WktType>().unwrap();
-
-        assert_eq!(&crs, output_wkb_type.metadata().crs());
-    }
 
     #[tokio::test]
     async fn test_from_text() {
