@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arrow_array::builder::UInt8Builder;
+use arrow_array::builder::Int16Builder;
 use arrow_schema::DataType;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
@@ -47,7 +47,7 @@ impl ScalarUDFImpl for CoordDim {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Ok(DataType::UInt8)
+        Ok(DataType::Int16)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
@@ -59,7 +59,7 @@ impl ScalarUDFImpl for CoordDim {
     }
 }
 
-fn dimension_size(dim: Dimension) -> u8 {
+fn dimension_size(dim: Dimension) -> i16 {
     match dim {
         Dimension::XY => 2,
         Dimension::XYZ => 3,
@@ -78,7 +78,7 @@ fn coord_dim_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue
 
     macro_rules! iter_geom {
         ($cast_function:ident) => {{
-            let mut output_array = UInt8Builder::with_capacity(geo_array.len());
+            let mut output_array = Int16Builder::with_capacity(geo_array.len());
             for geom in geo_array.$cast_function().iter() {
                 if let Some(geom) = geom {
                     output_array.append_value(geom?.dim().size().try_into().unwrap());
@@ -89,7 +89,7 @@ fn coord_dim_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue
             Ok(ColumnarValue::Array(Arc::new(output_array.finish())))
         }};
         ($cast_function:ident, $param:ident) => {{
-            let mut output_array = UInt8Builder::with_capacity(geo_array.len());
+            let mut output_array = Int16Builder::with_capacity(geo_array.len());
             for geom in geo_array.$cast_function::<$param>().iter() {
                 if let Some(geom) = geom {
                     output_array.append_value(geom?.dim().size().try_into().unwrap());
@@ -152,7 +152,7 @@ impl ScalarUDFImpl for NDims {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Ok(DataType::UInt8)
+        Ok(DataType::Int16)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
@@ -167,7 +167,7 @@ impl ScalarUDFImpl for NDims {
 #[cfg(test)]
 mod test {
     use arrow_array::cast::AsArray;
-    use arrow_array::types::UInt8Type;
+    use arrow_array::types::Int16Type;
     use datafusion::prelude::SessionContext;
 
     use super::*;
@@ -186,7 +186,7 @@ mod test {
             .unwrap();
         let batch = df.collect().await.unwrap().into_iter().next().unwrap();
         let col = batch.column(0);
-        let val = col.as_primitive::<UInt8Type>().value(0);
+        let val = col.as_primitive::<Int16Type>().value(0);
         assert_eq!(val, 2);
     }
 
@@ -203,7 +203,7 @@ mod test {
             .unwrap();
         let batch = df.collect().await.unwrap().into_iter().next().unwrap();
         let col = batch.column(0);
-        let val = col.as_primitive::<UInt8Type>().value(0);
+        let val = col.as_primitive::<Int16Type>().value(0);
         assert_eq!(val, 2);
     }
 }

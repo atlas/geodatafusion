@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use arrow_array::StringViewArray;
+use arrow_array::StringArray;
 use arrow_schema::DataType;
 use datafusion::common::exec_datafusion_err;
 use datafusion::error::Result;
@@ -47,7 +47,7 @@ impl ScalarUDFImpl for GeoHash {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Ok(DataType::Utf8View)
+        Ok(DataType::Utf8)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
@@ -61,7 +61,7 @@ impl ScalarUDFImpl for GeoHash {
 
 fn geohash_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
     let geometries = geometry_array(&args, 0)?;
-    let result: StringViewArray = map_geometry(geometries.as_ref(), &GeoHashKernel)?;
+    let result: StringArray = map_geometry(geometries.as_ref(), &GeoHashKernel)?;
     Ok(ColumnarValue::Array(Arc::new(result)))
 }
 
@@ -115,7 +115,7 @@ mod test {
 
         let batches = df.collect().await.unwrap();
         let column = batches[0].column(0);
-        let string_arr = column.as_string_view();
+        let string_arr = column.as_string::<i32>();
 
         assert_eq!(string_arr.value(0), "c0w3hf1s70w3");
     }
@@ -132,7 +132,7 @@ mod test {
             .unwrap();
 
         let batches = df.collect().await.unwrap();
-        let string_arr = batches[0].column(0).as_string_view();
+        let string_arr = batches[0].column(0).as_string::<i32>();
 
         assert_eq!(string_arr.value(0), "c0w3hf1s70w3");
         assert!(string_arr.is_null(1));

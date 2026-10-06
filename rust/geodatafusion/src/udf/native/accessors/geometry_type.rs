@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use arrow_array::builder::StringViewBuilder;
-use arrow_array::{ArrayRef, StringViewArray};
+use arrow_array::builder::StringBuilder;
+use arrow_array::{ArrayRef, StringArray};
 use arrow_schema::DataType;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
@@ -47,7 +47,7 @@ impl ScalarUDFImpl for GeometryType {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Ok(DataType::Utf8View)
+        Ok(DataType::Utf8)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
@@ -91,7 +91,7 @@ impl ScalarUDFImpl for ST_GeometryType {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Ok(DataType::Utf8View)
+        Ok(DataType::Utf8)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
@@ -111,14 +111,14 @@ fn geometry_type_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarV
     Ok(ColumnarValue::Array(result))
 }
 
-fn geometry_type_array(array: &dyn GeoArrowArray) -> GeoArrowResult<StringViewArray> {
+fn geometry_type_array(array: &dyn GeoArrowArray) -> GeoArrowResult<StringArray> {
     downcast_geoarrow_array!(array, _geometry_type_impl)
 }
 
 fn _geometry_type_impl<'a>(
     array: &'a impl GeoArrowArrayAccessor<'a>,
-) -> GeoArrowResult<StringViewArray> {
-    let mut builder = StringViewBuilder::with_capacity(array.len());
+) -> GeoArrowResult<StringArray> {
+    let mut builder = StringBuilder::with_capacity(array.len(), 0);
 
     for item in array.iter() {
         if let Some(geom) = item {
@@ -161,14 +161,14 @@ fn geometry_type_impl_st(args: ScalarFunctionArgs) -> GeoDataFusionResult<Column
     Ok(ColumnarValue::Array(result))
 }
 
-fn geometry_type_array_st(array: &dyn GeoArrowArray) -> GeoArrowResult<StringViewArray> {
+fn geometry_type_array_st(array: &dyn GeoArrowArray) -> GeoArrowResult<StringArray> {
     downcast_geoarrow_array!(array, _geometry_type_impl_st)
 }
 
 fn _geometry_type_impl_st<'a>(
     array: &'a impl GeoArrowArrayAccessor<'a>,
-) -> GeoArrowResult<StringViewArray> {
-    let mut builder = StringViewBuilder::with_capacity(array.len());
+) -> GeoArrowResult<StringArray> {
+    let mut builder = StringBuilder::with_capacity(array.len(), 0);
 
     for item in array.iter() {
         if let Some(geom) = item {
@@ -231,7 +231,7 @@ mod test {
             .unwrap();
         let batch = df.collect().await.unwrap().into_iter().next().unwrap();
         let col = batch.column(0);
-        let val = col.as_string_view().value(0);
+        let val = col.as_string::<i32>().value(0);
         assert_eq!(val, "LINESTRING");
     }
 
@@ -248,7 +248,7 @@ mod test {
             .unwrap();
         let batch = df.collect().await.unwrap().into_iter().next().unwrap();
         let col = batch.column(0);
-        let val = col.as_string_view().value(0);
+        let val = col.as_string::<i32>().value(0);
         assert_eq!(val, "ST_LineString");
     }
 }

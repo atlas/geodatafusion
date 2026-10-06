@@ -1,7 +1,7 @@
 use std::sync::{Arc, LazyLock};
 
-use arrow_array::builder::UInt32Builder;
-use arrow_array::{ArrayRef, UInt32Array};
+use arrow_array::builder::Int32Builder;
+use arrow_array::{ArrayRef, Int32Array};
 use arrow_schema::DataType;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
@@ -53,7 +53,7 @@ impl ScalarUDFImpl for NPoints {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Ok(DataType::UInt32)
+        Ok(DataType::Int32)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
@@ -72,12 +72,12 @@ fn coord_dim_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue
     Ok(ColumnarValue::Array(result))
 }
 
-fn num_points(array: &dyn GeoArrowArray) -> GeoArrowResult<UInt32Array> {
+fn num_points(array: &dyn GeoArrowArray) -> GeoArrowResult<Int32Array> {
     downcast_geoarrow_array!(array, _num_points_impl)
 }
 
-fn _num_points_impl<'a>(array: &'a impl GeoArrowArrayAccessor<'a>) -> GeoArrowResult<UInt32Array> {
-    let mut builder = UInt32Builder::with_capacity(array.len());
+fn _num_points_impl<'a>(array: &'a impl GeoArrowArrayAccessor<'a>) -> GeoArrowResult<Int32Array> {
+    let mut builder = Int32Builder::with_capacity(array.len());
 
     for item in array.iter() {
         if let Some(geom) = item {
@@ -91,7 +91,7 @@ fn _num_points_impl<'a>(array: &'a impl GeoArrowArrayAccessor<'a>) -> GeoArrowRe
 }
 
 #[inline]
-fn num_coords_geometry(geom: &impl GeometryTrait) -> u32 {
+fn num_coords_geometry(geom: &impl GeometryTrait) -> i32 {
     use geo_traits::GeometryType::*;
 
     match geom.as_type() {
@@ -110,17 +110,17 @@ fn num_coords_geometry(geom: &impl GeometryTrait) -> u32 {
 }
 
 #[inline]
-fn num_coords_point(geom: &impl PointTrait) -> u32 {
+fn num_coords_point(geom: &impl PointTrait) -> i32 {
     if geom.coord().is_some() { 1 } else { 0 }
 }
 
 #[inline]
-fn num_coords_line_string(geom: &impl LineStringTrait) -> u32 {
-    geom.num_coords() as u32
+fn num_coords_line_string(geom: &impl LineStringTrait) -> i32 {
+    geom.num_coords() as i32
 }
 
 #[inline]
-fn num_coords_polygon(geom: &impl PolygonTrait) -> u32 {
+fn num_coords_polygon(geom: &impl PolygonTrait) -> i32 {
     let exterior_coords = geom
         .exterior()
         .map(|ext| num_coords_line_string(&ext))
@@ -131,26 +131,26 @@ fn num_coords_polygon(geom: &impl PolygonTrait) -> u32 {
 }
 
 #[inline]
-fn num_coords_multi_point(geom: &impl MultiPointTrait) -> u32 {
+fn num_coords_multi_point(geom: &impl MultiPointTrait) -> i32 {
     geom.points()
         .fold(0, |acc, point| acc + num_coords_point(&point))
 }
 
 #[inline]
-fn num_coords_multi_line_string(geom: &impl MultiLineStringTrait) -> u32 {
+fn num_coords_multi_line_string(geom: &impl MultiLineStringTrait) -> i32 {
     geom.line_strings().fold(0, |acc, line_string| {
         acc + num_coords_line_string(&line_string)
     })
 }
 
 #[inline]
-fn num_coords_multi_polygon(geom: &impl MultiPolygonTrait) -> u32 {
+fn num_coords_multi_polygon(geom: &impl MultiPolygonTrait) -> i32 {
     geom.polygons()
         .fold(0, |acc, polygon| acc + num_coords_polygon(&polygon))
 }
 
 #[inline]
-fn num_coords_geometry_collection(geom: &impl GeometryCollectionTrait) -> u32 {
+fn num_coords_geometry_collection(geom: &impl GeometryCollectionTrait) -> i32 {
     geom.geometries()
         .fold(0, |acc, g| acc + num_coords_geometry(&g))
 }
@@ -158,7 +158,7 @@ fn num_coords_geometry_collection(geom: &impl GeometryCollectionTrait) -> u32 {
 #[cfg(test)]
 mod test {
     use arrow_array::cast::AsArray;
-    use arrow_array::types::UInt32Type;
+    use arrow_array::types::Int32Type;
     use datafusion::prelude::SessionContext;
 
     use super::*;
@@ -179,7 +179,7 @@ mod test {
             .unwrap();
         let batch = df.collect().await.unwrap().into_iter().next().unwrap();
         let col = batch.column(0);
-        let val = col.as_primitive::<UInt32Type>().value(0);
+        let val = col.as_primitive::<Int32Type>().value(0);
         assert_eq!(val, 4);
     }
 }

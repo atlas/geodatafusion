@@ -1,7 +1,7 @@
 use std::sync::{Arc, LazyLock};
 
-use arrow_array::builder::UInt32Builder;
-use arrow_array::{ArrayRef, UInt32Array};
+use arrow_array::builder::Int32Builder;
+use arrow_array::{ArrayRef, Int32Array};
 use arrow_schema::DataType;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
@@ -55,7 +55,7 @@ impl ScalarUDFImpl for NumInteriorRings {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Ok(DataType::UInt32)
+        Ok(DataType::Int32)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
@@ -80,12 +80,12 @@ fn num_interior_rings_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<Colu
     Ok(out.into())
 }
 
-fn polygon_impl(array: &PolygonArray) -> GeoArrowResult<UInt32Array> {
-    let mut builder = UInt32Builder::with_capacity(array.len());
+fn polygon_impl(array: &PolygonArray) -> GeoArrowResult<Int32Array> {
+    let mut builder = Int32Builder::with_capacity(array.len());
 
     for item in array.iter() {
         if let Some(geom) = item {
-            builder.append_value(geom?.num_interiors() as u32);
+            builder.append_value(geom?.num_interiors() as i32);
         } else {
             builder.append_null();
         }
@@ -94,14 +94,14 @@ fn polygon_impl(array: &PolygonArray) -> GeoArrowResult<UInt32Array> {
     Ok(builder.finish())
 }
 
-fn geometry_impl<'a>(array: &'a impl GeoArrowArrayAccessor<'a>) -> GeoArrowResult<UInt32Array> {
-    let mut builder = UInt32Builder::with_capacity(array.len());
+fn geometry_impl<'a>(array: &'a impl GeoArrowArrayAccessor<'a>) -> GeoArrowResult<Int32Array> {
+    let mut builder = Int32Builder::with_capacity(array.len());
 
     for item in array.iter() {
         if let Some(geom) = item {
             match geom?.as_type() {
                 geo_traits::GeometryType::Polygon(geom) => {
-                    builder.append_value(geom.num_interiors() as u32)
+                    builder.append_value(geom.num_interiors() as i32)
                 }
                 _ => {
                     builder.append_null();
