@@ -1,4 +1,4 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::LazyLock;
 
 use arrow_array::{Array, BinaryArray};
 use arrow_schema::{DataType, FieldRef};
@@ -12,11 +12,11 @@ use datafusion::scalar::ScalarValue;
 use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::{WkbArray, from_arrow_array};
-use geoarrow_array::cast::{from_wkb, to_wkb};
-use geoarrow_schema::{CoordType, GeoArrowType, GeometryType, Metadata};
+use geoarrow_array::cast::to_wkb;
 use geos::{Geom, Geometry};
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::{input_metadata, wkb_return_field};
 use crate::util::signature::{Arg, coerce_args};
 
 /// PostGIS: ST_LineMerge(geometry amultilinestring) and
@@ -35,19 +35,17 @@ static SIGNATURE: LazyLock<Signature> =
     argument(name = "directed", description = "boolean")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct LineMerge {
-    coord_type: CoordType,
-}
+pub struct LineMerge;
 
 impl LineMerge {
-    pub fn new(coord_type: CoordType) -> Self {
-        Self { coord_type }
+    pub fn new() -> Self {
+        Self
     }
 }
 
 impl Default for LineMerge {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -65,7 +63,10 @@ impl ScalarUDFImpl for LineMerge {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        Ok(return_field_impl(args, self.coord_type)?)
+        Ok(wkb_return_field(
+            self.name(),
+            input_metadata(&args.arg_fields[0]),
+        ))
     }
 
     fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
@@ -79,15 +80,6 @@ impl ScalarUDFImpl for LineMerge {
     fn documentation(&self) -> Option<&Documentation> {
         self.doc()
     }
-}
-
-fn return_field_impl(
-    args: ReturnFieldArgs,
-    coord_type: CoordType,
-) -> GeoDataFusionResult<FieldRef> {
-    let metadata = Arc::new(Metadata::try_from(args.arg_fields[0].as_ref()).unwrap_or_default());
-    let output_type = GeometryType::new(metadata).with_coord_type(coord_type);
-    Ok(Arc::new(output_type.to_field("", true)))
 }
 
 /// Parse the optional `directed` argument.
@@ -114,7 +106,6 @@ fn line_merge_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValu
 
     let arrays = ColumnarValue::values_to_arrays(&args.args[0..1])?;
     let geo_array = from_arrow_array(&arrays[0], &args.arg_fields[0])?;
-    let metadata = geo_array.data_type().metadata().clone();
 
     // Bridge to GEOS via WKB.
     //
@@ -151,10 +142,11 @@ fn line_merge_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValu
         }
     }
 
-    let result_wkb = WkbArray::new(merged.into_iter().collect::<BinaryArray>(), metadata);
-    let to_type = GeoArrowType::from_arrow_field(args.return_field.as_ref())?;
-    let result = from_wkb(&result_wkb, to_type)?;
-    Ok(ColumnarValue::Array(result.to_array_ref()))
+    let result = WkbArray::new(
+        merged.into_iter().collect::<BinaryArray>(),
+        input_metadata(&args.return_field),
+    );
+    Ok(ColumnarValue::Array(result.into_array_ref()))
 }
 
 #[cfg(test)]
@@ -167,7 +159,7 @@ mod test {
 
     fn ctx() -> SessionContext {
         let ctx = SessionContext::new();
-        ctx.register_udf(LineMerge::default().into());
+        ctx.register_udf(LineMerge.into());
         ctx.register_udf(GeomFromText::default().into());
         ctx.register_udf(AsText.into());
         ctx

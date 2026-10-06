@@ -12,10 +12,9 @@ use datafusion::scalar::ScalarValue;
 use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_schema::error::GeoArrowResult;
-use geoarrow_schema::{CoordType, Dimension, GeoArrowType, GeometryType};
 
 use crate::error::GeoDataFusionResult;
-use crate::util::field::geometry_array;
+use crate::util::field::{geometry_array, input_metadata, wkb_result, wkb_return_field};
 use crate::util::signature::{Arg, coerce_args};
 
 /// PostGIS: ST_Simplify(geometry geom, float tolerance) and the same for ST_SimplifyVW and
@@ -37,19 +36,17 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
     argument(name = "tolerance", description = "float8")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct Simplify {
-    coord_type: CoordType,
-}
+pub struct Simplify;
 
 impl Simplify {
-    pub fn new(coord_type: CoordType) -> Self {
-        Self { coord_type }
+    pub fn new() -> Self {
+        Self
     }
 }
 
 impl Default for Simplify {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -67,7 +64,10 @@ impl ScalarUDFImpl for Simplify {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        Ok(return_field_impl(args, self.coord_type)?)
+        Ok(wkb_return_field(
+            self.name(),
+            input_metadata(&args.arg_fields[0]),
+        ))
     }
 
     fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
@@ -75,7 +75,6 @@ impl ScalarUDFImpl for Simplify {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        // TODO: pass down coord_type
         Ok(simplify_impl(
             self.name(),
             args,
@@ -97,19 +96,17 @@ impl ScalarUDFImpl for Simplify {
     argument(name = "tolerance", description = "float8")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct SimplifyVW {
-    coord_type: CoordType,
-}
+pub struct SimplifyVW;
 
 impl SimplifyVW {
-    pub fn new(coord_type: CoordType) -> Self {
-        Self { coord_type }
+    pub fn new() -> Self {
+        Self
     }
 }
 
 impl Default for SimplifyVW {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -127,7 +124,10 @@ impl ScalarUDFImpl for SimplifyVW {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        Ok(return_field_impl(args, self.coord_type)?)
+        Ok(wkb_return_field(
+            self.name(),
+            input_metadata(&args.arg_fields[0]),
+        ))
     }
 
     fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
@@ -135,7 +135,6 @@ impl ScalarUDFImpl for SimplifyVW {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        // TODO: pass down coord_type
         Ok(simplify_impl(
             self.name(),
             args,
@@ -157,19 +156,17 @@ impl ScalarUDFImpl for SimplifyVW {
     argument(name = "tolerance", description = "float8")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct SimplifyPreserveTopology {
-    coord_type: CoordType,
-}
+pub struct SimplifyPreserveTopology;
 
 impl SimplifyPreserveTopology {
-    pub fn new(coord_type: CoordType) -> Self {
-        Self { coord_type }
+    pub fn new() -> Self {
+        Self
     }
 }
 
 impl Default for SimplifyPreserveTopology {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -187,7 +184,10 @@ impl ScalarUDFImpl for SimplifyPreserveTopology {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        Ok(return_field_impl(args, self.coord_type)?)
+        Ok(wkb_return_field(
+            self.name(),
+            input_metadata(&args.arg_fields[0]),
+        ))
     }
 
     fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
@@ -195,7 +195,6 @@ impl ScalarUDFImpl for SimplifyPreserveTopology {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        // TODO: pass down coord_type
         Ok(simplify_impl(
             self.name(),
             args,
@@ -206,26 +205,6 @@ impl ScalarUDFImpl for SimplifyPreserveTopology {
     fn documentation(&self) -> Option<&Documentation> {
         self.doc()
     }
-}
-
-fn return_field_impl(
-    args: ReturnFieldArgs,
-    coord_type: CoordType,
-) -> GeoDataFusionResult<FieldRef> {
-    let geo_type = GeoArrowType::from_arrow_field(args.arg_fields[0].as_ref())?;
-    let field = match geo_type {
-        GeoArrowType::Point(_)
-        | GeoArrowType::MultiPoint(_)
-        | GeoArrowType::GeometryCollection(_) => geo_type.to_field("", true),
-        GeoArrowType::LineString(typ) => typ.with_dimension(Dimension::XY).to_field("", true),
-        GeoArrowType::MultiLineString(typ) => typ.with_dimension(Dimension::XY).to_field("", true),
-        GeoArrowType::Polygon(typ) => typ.with_dimension(Dimension::XY).to_field("", true),
-        GeoArrowType::MultiPolygon(typ) => typ.with_dimension(Dimension::XY).to_field("", true),
-        _ => GeometryType::new(geo_type.metadata().clone())
-            .with_coord_type(coord_type)
-            .to_field("", true),
-    };
-    Ok(Arc::new(field))
 }
 
 fn simplify_impl(
@@ -248,56 +227,36 @@ fn simplify_impl(
         return Ok(ColumnarValue::Array(nulls));
     };
     let geometries = geometry_array(&args, 0)?;
+    // geoarrow-expr-geo builds a native array; the result is converted to WKB.
     let result = simplify_fn(&geometries, tolerance)?;
-    Ok(result.to_array_ref().into())
+    wkb_result(result.as_ref(), &args.return_field)
 }
 
 #[cfg(test)]
 mod test {
     use arrow_array::cast::AsArray;
     use datafusion::prelude::*;
-    use geo::line_string;
-    use geoarrow_array::GeoArrowArrayAccessor;
-    use geoarrow_array::array::GeometryArray;
-    use geoarrow_expr_geo::util::to_geo::geometry_to_geo;
 
     use super::*;
     use crate::udf::native::io::{AsText, GeomFromText};
+    use crate::util::test::assert_wkb_output;
 
     #[tokio::test]
-    async fn test_simplify() {
+    async fn test_simplify_returns_wkb_with_input_crs() {
         let ctx = SessionContext::new();
-
-        ctx.register_udf(Simplify::default().into());
+        ctx.register_udf(Simplify.into());
         ctx.register_udf(GeomFromText::default().into());
 
-        let df = ctx.sql(
-            "SELECT ST_Simplify(ST_GeomFromText('LINESTRING(0.0 0.0, 5.0 4.0, 11.0 5.5, 17.3 3.2, 27.8 0.1)'), 1.0);").await.unwrap();
-
-        let batches = df.collect().await.unwrap();
-        let batch = batches.first().unwrap();
-        let column = batch.column(0);
-
-        let geom_arr =
-            GeometryArray::try_from((column.as_ref(), batch.schema_ref().field(0))).unwrap();
-        let expected = line_string![
-            (x: 0.0, y: 0.0),
-            (x: 5.0, y: 4.0),
-            (x: 11.0, y: 5.5),
-            (x: 27.8, y: 0.1),
-        ];
-        let expected = geo::Geometry::LineString(expected);
-        assert_eq!(
-            geometry_to_geo(&geom_arr.value(0).unwrap()).unwrap(),
-            expected
-        );
+        let sql =
+            "SELECT ST_Simplify(ST_GeomFromText('LINESTRING(0 0,5 4,11 5.5,27.8 0.1)', 3857), 1.0)";
+        assert_wkb_output(&ctx, sql, 3857).await;
     }
 
     #[tokio::test]
     async fn test_simplify_vw() {
         let ctx = SessionContext::new();
 
-        ctx.register_udf(SimplifyVW::default().into());
+        ctx.register_udf(SimplifyVW.into());
         ctx.register_udf(GeomFromText::default().into());
         ctx.register_udf(AsText.into());
 
