@@ -105,40 +105,6 @@ pub(crate) fn single_geometry() -> &'static Signature {
     &SINGLE_GEOMETRY
 }
 
-static ANY_POINT_TYPE: LazyLock<Vec<DataType>> = LazyLock::new(|| {
-    let expected_capacity = 2 * 5;
-    let mut valid_types = Vec::with_capacity(expected_capacity);
-
-    for coord_type in [CoordType::Separated, CoordType::Interleaved] {
-        for dim in [
-            Dimension::XY,
-            Dimension::XYZ,
-            Dimension::XYM,
-            Dimension::XYZM,
-        ] {
-            valid_types.push(
-                PointType::new(dim, Default::default())
-                    .with_coord_type(coord_type)
-                    .data_type(),
-            );
-        }
-
-        valid_types.push(
-            GeometryType::new(Default::default())
-                .with_coord_type(coord_type)
-                .data_type(),
-        );
-    }
-
-    debug_assert_eq!(valid_types.len(), expected_capacity);
-
-    valid_types
-});
-
-pub(crate) fn any_point_type_input(arg_count: usize) -> Signature {
-    Signature::uniform(arg_count, ANY_POINT_TYPE.clone(), Volatility::Immutable)
-}
-
 /// A PostGIS argument type, for [`coerce_args`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum Arg {

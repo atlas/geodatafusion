@@ -1,0 +1,54 @@
+# Edge cases for ST_Y, not covered by the PostGIS docs examples.
+
+# Every dimension
+query R
+SELECT ST_Y('POINT(1 2)'::geometry)
+----
+2
+
+query R
+SELECT ST_Y('POINT Z (1 2 3)'::geometry)
+----
+2
+
+query R
+SELECT ST_Y('POINT M (1 2 3)'::geometry)
+----
+2
+
+query R
+SELECT ST_Y('POINT ZM (1 2 3 4)'::geometry)
+----
+2
+
+# WKB input
+query R
+SELECT ST_Y(ST_GeomFromEWKT('SRID=4326;POINT ZM (1 2 3 4)'))
+----
+2
+
+# EMPTY and NULL
+query R
+SELECT ST_Y('POINT EMPTY'::geometry)
+----
+NULL
+
+query R
+SELECT ST_Y(NULL::geometry)
+----
+NULL
+
+# Other geometry types are an error
+statement error
+SELECT ST_Y('LINESTRING(0 0,1 1)'::geometry)
+
+statement error
+SELECT ST_Y('MULTIPOINT(1 2)'::geometry)
+
+# A column, including NULL
+query R rowsort
+SELECT ST_Y(g) FROM (VALUES ('POINT ZM (1 2 3 4)'::geometry), (NULL::geometry), ('POINT(5 6)'::geometry)) AS t(g)
+----
+2
+6
+NULL

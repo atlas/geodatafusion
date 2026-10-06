@@ -30,8 +30,8 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(StartPoint::default().into());
     session_context.register_udf(NPoints.into());
     session_context.register_udf(NumInteriorRings.into());
-    session_context.register_udf(M::default().into());
-    session_context.register_udf(X::default().into());
-    session_context.register_udf(Y::default().into());
-    session_context.register_udf(Z::default().into());
+    session_context.register_udf(M.into());
+    session_context.register_udf(X.into());
+    session_context.register_udf(Y.into());
+    session_context.register_udf(Z.into());
 }
