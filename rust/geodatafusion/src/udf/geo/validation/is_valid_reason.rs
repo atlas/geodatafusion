@@ -42,7 +42,7 @@ impl ScalarUDFImpl for IsValidReason {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Ok(DataType::Utf8View)
+        Ok(DataType::Utf8)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
@@ -57,6 +57,7 @@ impl ScalarUDFImpl for IsValidReason {
 fn is_valid_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
     let arrays = ColumnarValue::values_to_arrays(&args.args)?;
     let geo_array = from_arrow_array(&arrays[0], &args.arg_fields[0])?;
+    // geoarrow-expr-geo returns Utf8View; PostGIS returns text.
     let result = geoarrow_expr_geo::validation::is_valid_reason(&geo_array)?;
-    Ok(ColumnarValue::Array(Arc::new(result)))
+    Ok(ColumnarValue::Array(Arc::new(result)).cast_to(&DataType::Utf8, None)?)
 }
