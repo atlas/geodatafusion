@@ -1,0 +1,143 @@
+--- a/rust/geodatafusion/Cargo.toml
++++ b/rust/geodatafusion/Cargo.toml
+@@ -17,6 +17,8 @@
+ # (with higher version targets implying lower version ones
+ # in a chain.)
+ geos-3_11 = ["geos/v3_11_0"]
++# E3 copy only: the plan's proposed static feature.
++geos-static = ["geos-3_11", "geos/static"]
+ 
+ [dependencies]
+ arrow-arith = { workspace = true }
+--- a/python/Cargo.toml
++++ b/python/Cargo.toml
+@@ -16,15 +16,24 @@
+ crate-type = ["cdylib"]
+ 
+ [features]
++# E3 copy only.
++geos = ["geodatafusion/geos-3_11", "dep:geos"]
++geos-static = ["geos", "geodatafusion/geos-static"]
++# Also link a broad slice of the GEOS C API (approximating the G3 function set).
++geos-wide = ["geos"]
+ 
+ [dependencies]
+ datafusion = { version = "54", default-features = false }
+ datafusion-ffi = "54"
+ geoarrow-schema = "0.8.0"
+ geodatafusion = { path = "../rust/geodatafusion" }
++geos = { version = "=11.1.1", default-features = false, features = ["v3_11_0"], optional = true }
+ pyo3 = { version = "0.26", features = [
+     "hashbrown",
+     "serde",
+     "anyhow",
+     "abi3-py39",
+ ] }
++
++# E3 copy: standalone.
++[workspace]
+--- a/python/src/lib.rs
++++ b/python/src/lib.rs
+@@ -55,5 +55,14 @@
+         .getattr(intern!(py, "modules"))?
+         .set_item("geodatafusion.geo", geo_mod)?;
+ 
++    #[cfg(feature = "geos")]
++    {
++        let geos_mod = wrap_pymodule!(udf::geos::geos)(py);
++        m.add_submodule(geos_mod.bind(py))?;
++        py.import(intern!(py, "sys"))?
++            .getattr(intern!(py, "modules"))?
++            .set_item("geodatafusion.geos", geos_mod)?;
++    }
++
+     Ok(())
+ }
+--- a/python/src/udf/mod.rs
++++ b/python/src/udf/mod.rs
+@@ -1,3 +1,5 @@
+ pub(crate) mod geo;
+ pub(crate) mod geohash;
+ pub(crate) mod native;
++#[cfg(feature = "geos")]
++pub(crate) mod geos;
+--- a/python/src/udf/geos.rs
++++ b/python/src/udf/geos.rs
+@@ -0,0 +1,77 @@
++//! E3 copy only: ST_LineMerge, plus (feature geos-wide) a function touching a broad slice of GEOS.
++use geodatafusion::udf::geos::processing::LineMerge;
++use pyo3::prelude::*;
++
++use crate::impl_udf_coord_type_arg;
++
++impl_udf_coord_type_arg!(LineMerge, PyLineMerge, "LineMerge");
++
++#[cfg(feature = "geos-wide")]
++#[pyfunction]
++fn wide(wkb: &[u8], op: &str, d: f64) -> PyResult<usize> {
++    use ::geos::{BufferParams, Geom, Geometry, PreparedGeometry as _};
++    let e = |e: ::geos::Error| pyo3::exceptions::PyValueError::new_err(e.to_string());
++    let g = Geometry::new_from_wkb(wkb).map_err(e)?;
++    let h = g.buffer(d, 8).map_err(e)?;
++    let out: Geometry = match op {
++        "buffer_params" => g.buffer_with_params(d, &BufferParams::builder().build().map_err(e)?).map_err(e)?,
++        "intersection" => g.intersection(&h).map_err(e)?,
++        "union" => g.union(&h).map_err(e)?,
++        "difference" => g.difference(&h).map_err(e)?,
++        "symdifference" => g.sym_difference(&h).map_err(e)?,
++        "unaryunion" => g.unary_union().map_err(e)?,
++        "makevalid" => g.make_valid().map_err(e)?,
++        "simplify" => g.simplify(d).map_err(e)?,
++        "simplifypt" => g.topology_preserve_simplify(d).map_err(e)?,
++        "pos" => g.point_on_surface().map_err(e)?,
++        "hull" => g.convex_hull().map_err(e)?,
++        "concave" => g.concave_hull(d, false).map_err(e)?,
++        "voronoi" => g.voronoi(None::<&Geometry>, d, false).map_err(e)?,
++        "delaunay" => g.delaunay_triangulation(d, false).map_err(e)?,
++        "offset" => g.offset_curve(d, 8, ::geos::JoinStyle::Round, 5.0).map_err(e)?,
++        "node" => g.node().map_err(e)?,
++        "buildarea" => g.build_area().map_err(e)?,
++        "snap" => g.snap(&h, d).map_err(e)?,
++        "sharedpaths" => g.shared_paths(&h).map_err(e)?,
++        "linemerge" => g.line_merge_directed().map_err(e)?,
++        "mrr" => g.minimum_rotated_rectangle().map_err(e)?,
++        "clip" => g.clip_by_rect(0.0, 0.0, d, d).map_err(e)?,
++        "centroid" => g.get_centroid().map_err(e)?,
++        "boundary" => g.boundary().map_err(e)?,
++        "reverse" => g.reverse().map_err(e)?,
++        "polygonize" => Geometry::polygonize(&[Clone::clone(&g)]).map_err(e)?,
++        "mic" => g.maximum_inscribed_circle(d).map_err(e)?,
++        "minclearanceline" => g.minimum_clearance_line().map_err(e)?,
++        "densify" => g.densify(d).map_err(e)?,
++        "precision" => g.set_precision(d, ::geos::Precision::KeepCollapsed).map_err(e)?,
++        _ => {
++            let p = g.to_prepared_geom().map_err(e)?;
++            let n = [
++                p.contains(&h).map_err(e)?,
++                p.intersects(&h).map_err(e)?,
++                p.covers(&h).map_err(e)?,
++                g.relate(&h).map_err(e)?.len() > 3,
++                g.is_valid_reason().map_err(e)?.is_empty(),
++                g.is_simple().map_err(e)?,
++                g.is_ring().map_err(e)?,
++                g.frechet_distance(&h).map_err(e)? > 0.0,
++                g.hausdorff_distance(&h).map_err(e)? > 0.0,
++                g.distance(&h).map_err(e)? > 0.0,
++                g.minimum_clearance().map_err(e)? > 0.0,
++                g.project(&h).map_err(e)? > 0.0,
++                g.equals_exact(&h, d).map_err(e)?,
++            ];
++            return Ok(n.iter().filter(|x| **x).count());
++        }
++    };
++    let mut w = ::geos::WKBWriter::new().map_err(e)?;
++    Ok(w.write_wkb(&out).map_err(e)?.len())
++}
++
++#[pymodule]
++pub(crate) fn geos(m: &Bound<PyModule>) -> PyResult<()> {
++    m.add_class::<PyLineMerge>()?;
++    #[cfg(feature = "geos-wide")]
++    m.add_wrapped(wrap_pyfunction!(wide))?;
++    Ok(())
++}

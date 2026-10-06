@@ -1,0 +1,257 @@
+diff -ru -x Cargo.lock -x target repo-before/Cargo.toml repo/Cargo.toml
+--- repo-before/Cargo.toml	2026-10-05 15:16:24.329921170 +0200
++++ repo/Cargo.toml	2026-10-05 17:36:45.178317241 +0200
+@@ -25,6 +25,8 @@
+ arrow-schema = "58.1"
+ async-trait = "0.1"
+ datafusion = { version = "54", default-features = false }
++datafusion-doc = "54"
++datafusion-macros = "54"
+ datafusion-datasource = { version = "54", default-features = false }
+ datafusion-datasource-parquet = "54"
+ flatgeobuf = { version = "5.0", default-features = false }
+diff -ru -x Cargo.lock -x target repo-before/rust/geodatafusion/Cargo.toml repo/rust/geodatafusion/Cargo.toml
+--- repo-before/rust/geodatafusion/Cargo.toml	2026-10-05 15:23:39.208635814 +0200
++++ repo/rust/geodatafusion/Cargo.toml	2026-10-05 17:36:45.178617034 +0200
+@@ -24,6 +24,8 @@
+ arrow-buffer = { workspace = true }
+ arrow-schema = { workspace = true }
+ datafusion = { workspace = true }
++datafusion-doc = { workspace = true }
++datafusion-macros = { workspace = true }
+ geo = { workspace = true }
+ geo-traits = { workspace = true }
+ geoarrow-array = { workspace = true }
+diff -ru -x Cargo.lock -x target repo-before/rust/geodatafusion/src/udf/geo/measurement/area.rs repo/rust/geodatafusion/src/udf/geo/measurement/area.rs
+--- repo-before/rust/geodatafusion/src/udf/geo/measurement/area.rs	2026-10-05 14:51:07.604761664 +0200
++++ repo/rust/geodatafusion/src/udf/geo/measurement/area.rs	2026-10-05 17:37:10.586627261 +0200
+@@ -1,11 +1,11 @@
+-use std::sync::{Arc, OnceLock};
++use std::sync::Arc;
+ 
+ use arrow_schema::DataType;
+ use datafusion::error::Result;
+-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
+ use datafusion::logical_expr::{
+     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
+ };
++use datafusion_macros::user_doc;
+ use geoarrow_array::WrapArray;
+ use geoarrow_expr_geo::unsigned_area;
+ use geoarrow_schema::GeoArrowType;
+@@ -13,6 +13,12 @@
+ use crate::data_types::any_single_geometry_type_input;
+ use crate::error::GeoDataFusionResult;
+ 
++#[user_doc(
++    doc_section(label = "Measurement Functions"),
++    description = "Returns the area of a polygonal geometry.",
++    syntax_example = "ST_Area(geom)",
++    argument(name = "geom", description = "geometry")
++)]
+ #[derive(Debug, Eq, PartialEq, Hash)]
+ pub struct Area;
+ 
+@@ -28,8 +34,6 @@
+     }
+ }
+ 
+-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
+-
+ impl ScalarUDFImpl for Area {
+     fn name(&self) -> &str {
+         "st_area"
+@@ -48,15 +52,7 @@
+     }
+ 
+     fn documentation(&self) -> Option<&Documentation> {
+-        Some(DOCUMENTATION.get_or_init(|| {
+-            Documentation::builder(
+-                DOC_SECTION_OTHER,
+-                "Returns the area of a polygonal geometry.",
+-                "ST_Area(geom)",
+-            )
+-            .with_argument("geom", "geometry")
+-            .build()
+-        }))
++        self.doc()
+     }
+ }
+ 
+@@ -99,3 +95,48 @@
+         assert_eq!(val, 928.625);
+     }
+ }
++
++#[cfg(test)]
++mod user_doc_test {
++    use datafusion::logical_expr::ScalarUDF;
++    use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
++    use datafusion_doc::DocSection;
++
++    use super::*;
++
++    const SECTION: DocSection = DocSection {
++        include: true,
++        label: "Measurement Functions",
++        description: None,
++    };
++
++    /// The builder code that `#[user_doc]` replaces, parameterised by section.
++    fn builder_doc(section: DocSection) -> Documentation {
++        Documentation::builder(
++            section,
++            "Returns the area of a polygonal geometry.",
++            "ST_Area(geom)",
++        )
++        .with_argument("geom", "geometry")
++        .build()
++    }
++
++    #[test]
++    fn user_doc_equals_builder() {
++        let generated = ScalarUDF::from(Area::new()).documentation().cloned().unwrap();
++        // Whole struct: section (include, label, description), description, syntax, arguments,
++        // sql_example, alternative_syntax, related_udfs.
++        assert_eq!(generated, builder_doc(SECTION));
++        assert!(generated.doc_section.include);
++        assert_eq!(generated.doc_section.label, "Measurement Functions");
++        assert_eq!(generated.doc_section.description, None);
++        // Relative to the pre-migration builder (DOC_SECTION_OTHER), only the section differs.
++        let old = builder_doc(DOC_SECTION_OTHER);
++        assert_eq!(
++            Documentation { doc_section: old.doc_section.clone(), ..generated.clone() },
++            old
++        );
++        // The rendered doc attribute is non-empty and mentions the syntax.
++        assert!(generated.to_doc_attribute().contains("ST_Area(geom)"));
++    }
++}
+diff -ru -x Cargo.lock -x target repo-before/rust/geodatafusion/src/udf/native/constructors/point.rs repo/rust/geodatafusion/src/udf/native/constructors/point.rs
+--- repo-before/rust/geodatafusion/src/udf/native/constructors/point.rs	2026-10-05 14:51:07.606162193 +0200
++++ repo/rust/geodatafusion/src/udf/native/constructors/point.rs	2026-10-05 17:37:10.587627263 +0200
+@@ -13,6 +13,7 @@
+     TypeSignature, Volatility,
+ };
+ use datafusion::scalar::ScalarValue;
++use datafusion_macros::user_doc;
+ use geoarrow_array::GeoArrowArray;
+ use geoarrow_array::array::{PointArray, SeparatedCoordBuffer};
+ use geoarrow_array::builder::PointBuilder;
+@@ -20,6 +21,16 @@
+ 
+ use crate::error::GeoDataFusionResult;
+ 
++#[user_doc(
++    doc_section(label = "Geometry Constructors"),
++    description = "Returns a Point with the given X and Y coordinate values.",
++    syntax_example = "ST_Point(-71.104, 42.315) or ST_Point(-71.104, 42.315, 4326)",
++    argument(name = "x", description = "x value"),
++    argument(name = "y", description = "y value"),
++    argument(name = "srid", description = "integer SRID value"),
++    related_udf(name = "st_makepoint"),
++    related_udf(name = "st_pointz")
++)]
+ #[derive(Debug, Eq, PartialEq, Hash)]
+ pub struct Point {
+     signature: Signature,
+@@ -51,8 +62,6 @@
+     }
+ }
+ 
+-static POINT_DOC: OnceLock<Documentation> = OnceLock::new();
+-
+ impl ScalarUDFImpl for Point {
+     fn name(&self) -> &str {
+         "st_point"
+@@ -91,19 +100,7 @@
+     }
+ 
+     fn documentation(&self) -> Option<&Documentation> {
+-        Some(POINT_DOC.get_or_init(|| {
+-            Documentation::builder(
+-                DOC_SECTION_OTHER,
+-                "Returns a Point with the given X and Y coordinate values.",
+-                "ST_Point(-71.104, 42.315) or ST_Point(-71.104, 42.315, 4326)",
+-            )
+-            .with_argument("x", "x value")
+-            .with_argument("y", "y value")
+-            .with_argument("srid", "integer SRID value")
+-            .with_related_udf("st_makepoint")
+-            .with_related_udf("st_pointz")
+-            .build()
+-        }))
++        self.doc()
+     }
+ }
+ 
+@@ -755,3 +752,58 @@
+         );
+     }
+ }
++
++#[cfg(test)]
++mod user_doc_test {
++    use datafusion::logical_expr::ScalarUDF;
++    use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
++    use datafusion_doc::DocSection;
++
++    use super::*;
++
++    const SECTION: DocSection = DocSection {
++        include: true,
++        label: "Geometry Constructors",
++        description: None,
++    };
++
++    fn builder_doc(section: DocSection) -> Documentation {
++        Documentation::builder(
++            section,
++            "Returns a Point with the given X and Y coordinate values.",
++            "ST_Point(-71.104, 42.315) or ST_Point(-71.104, 42.315, 4326)",
++        )
++        .with_argument("x", "x value")
++        .with_argument("y", "y value")
++        .with_argument("srid", "integer SRID value")
++        .with_related_udf("st_makepoint")
++        .with_related_udf("st_pointz")
++        .build()
++    }
++
++    #[test]
++    fn user_doc_equals_builder() {
++        let generated = ScalarUDF::from(Point::default())
++            .documentation()
++            .cloned()
++            .unwrap();
++        assert_eq!(generated, builder_doc(SECTION));
++        assert_eq!(
++            generated.arguments,
++            Some(vec![
++                ("x".to_string(), "x value".to_string()),
++                ("y".to_string(), "y value".to_string()),
++                ("srid".to_string(), "integer SRID value".to_string()),
++            ])
++        );
++        assert_eq!(
++            generated.related_udfs,
++            Some(vec!["st_makepoint".to_string(), "st_pointz".to_string()])
++        );
++        let old = builder_doc(DOC_SECTION_OTHER);
++        assert_eq!(
++            Documentation { doc_section: old.doc_section.clone(), ..generated.clone() },
++            old
++        );
++    }
++}
+--- repo-before/Cargo.lock	2026-10-05 15:23:39.269340651 +0200
++++ repo/Cargo.lock	2026-10-05 17:37:17.392639716 +0200
+@@ -2032,6 +2032,8 @@
+  "arrow-schema",
+  "async-trait",
+  "datafusion",
++ "datafusion-doc",
++ "datafusion-macros",
+  "futures",
+  "geo",
+  "geo-traits",

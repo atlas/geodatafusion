@@ -1,0 +1,19 @@
+diff --git a/rust/geoarrow-array/src/builder/geometry.rs b/rust/geoarrow-array/src/builder/geometry.rs
+index c656ee5c..471b6af2 100644
+--- a/rust/geoarrow-array/src/builder/geometry.rs
++++ b/rust/geoarrow-array/src/builder/geometry.rs
+@@ -638,13 +638,7 @@ impl<'a> GeometryBuilder {
+                 MultiPoint(p) => self.push_multi_point(Some(p))?,
+                 MultiLineString(p) => self.push_multi_line_string(Some(p))?,
+                 MultiPolygon(p) => self.push_multi_polygon(Some(p))?,
+-                GeometryCollection(gc) => {
+-                    if gc.num_geometries() == 1 {
+-                        self.push_geometry(Some(&gc.geometry(0).unwrap()))?
+-                    } else {
+-                        self.push_geometry_collection(Some(gc))?
+-                    }
+-                }
++                GeometryCollection(gc) => self.push_geometry_collection(Some(gc))?,
+                 Rect(r) => self.push_polygon(Some(&RectWrapper::try_new(r)?))?,
+                 Triangle(tri) => self.push_polygon(Some(&TriangleWrapper(tri)))?,
+                 Line(l) => self.push_line_string(Some(&LineWrapper(l)))?,

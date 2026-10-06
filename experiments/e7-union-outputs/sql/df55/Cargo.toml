@@ -1,0 +1,17 @@
+[package]
+name = "e7-sql-df55"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Standalone: not part of the repository workspace.
+[workspace]
+
+[dependencies]
+arrow-array = "59"
+arrow-schema = "59"
+datafusion = { version = "55", default-features = false, features = ["sql", "nested_expressions"] }
+geoarrow-array = "0.9.0"
+geoarrow-schema = "0.9.0"
+geo-types = "0.7"
+tokio = { version = "1", features = ["rt", "macros"] }

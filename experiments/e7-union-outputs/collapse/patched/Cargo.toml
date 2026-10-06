@@ -1,0 +1,17 @@
+[package]
+name = "e7-collapse-patched"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Standalone: not part of the repository workspace.
+[workspace]
+
+[dependencies]
+geoarrow-array = { path = "../../../../target/experiments/e7/src/geoarrow-rs/rust/geoarrow-array" }
+geoarrow-schema = { path = "../../../../target/experiments/e7/src/geoarrow-rs/rust/geoarrow-schema" }
+arrow-buffer = "59"
+geo-traits = "0.3.0"
+geo-types = "0.7"
+wkt = "0.14"
+serde_json = "1"

@@ -1,0 +1,27 @@
+[package]
+name = "e4-type-model"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+geodatafusion = { path = "../../../rust/geodatafusion", features = ["geos-3_11"] }
+geodatafusion-geoparquet = { path = "../../../rust/geodatafusion-geoparquet" }
+datafusion = { version = "54.1", features = [
+    "sql", "parquet", "nested_expressions", "crypto_expressions", "encoding_expressions",
+    "string_expressions", "unicode_expressions", "regex_expressions", "math_expressions",
+] }
+arrow-array = "58.1"
+arrow-schema = "58.1"
+arrow-cast = "58.1"
+geoarrow-array = "0.8.0"
+geoarrow-schema = "0.8.0"
+geo-traits = "0.3.0"
+wkt = "0.14"
+wkb = "0.9"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+geoparquet = "0.8.0"
+parquet = "58"
+serde_json = "1"

@@ -1,0 +1,18 @@
+[package]
+name = "e3-geos-runner"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Standalone: not part of the geodatafusion workspace.
+[workspace]
+
+[features]
+# Build GEOS from source (geos-src) and link it statically. Cargo.lock pins geos-src 0.2.4 = GEOS 3.14.1.
+static = ["geos/static"]
+
+[dependencies]
+geos = { version = "=11.1.1", default-features = false, features = ["v3_11_0"] }
+# Same versions as the geodatafusion harness, which render.rs is compiled against.
+geo-traits = "0.3.0"
+wkb = "0.9"

@@ -1,0 +1,3 @@
+- geo.crs = 'EPSG:4326': geopandas -> EPSG:4326 (to_epsg=4326); duckdb -> FAIL Invalid Input Error: Geoparquet column 'geometry' has invalid CRS; GDAL -> (unknown)
+- geo.crs = 'OGC:CRS84': geopandas -> OGC:CRS84 (to_epsg=None); duckdb -> FAIL Invalid Input Error: Geoparquet column 'geometry' has invalid CRS; GDAL -> (unknown)
+- geo.crs = 'EPSG:3857': geopandas -> EPSG:3857 (to_epsg=3857); duckdb -> FAIL Invalid Input Error: Geoparquet column 'geometry' has invalid CRS; GDAL -> (unknown)
