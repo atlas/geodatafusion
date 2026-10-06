@@ -1,0 +1,187 @@
+# Edge cases for ST_AsEWKT, not covered by the PostGIS docs examples.
+
+# Every geometry type
+query T
+SELECT ST_AsEWKT('POINT(1 2)'::geometry)
+----
+POINT(1 2)
+
+query T
+SELECT ST_AsEWKT('LINESTRING(0 0,1 1,2 0)'::geometry)
+----
+LINESTRING(0 0,1 1,2 0)
+
+query T
+SELECT ST_AsEWKT('POLYGON((0 0,4 0,4 4,0 4,0 0),(1 1,2 1,2 2,1 1))'::geometry)
+----
+POLYGON((0 0,4 0,4 4,0 4,0 0),(1 1,2 1,2 2,1 1))
+
+query T
+SELECT ST_AsEWKT('MULTIPOINT((1 2),(3 4))'::geometry)
+----
+MULTIPOINT(1 2,3 4)
+
+query T
+SELECT ST_AsEWKT('MULTILINESTRING((0 0,1 1),(2 2,3 3))'::geometry)
+----
+MULTILINESTRING((0 0,1 1),(2 2,3 3))
+
+query T
+SELECT ST_AsEWKT('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((2 2,3 2,3 3,2 2)))'::geometry)
+----
+MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((2 2,3 2,3 3,2 2)))
+
+query T
+SELECT ST_AsEWKT('GEOMETRYCOLLECTION(POINT(1 2),LINESTRING(0 0,1 1))'::geometry)
+----
+GEOMETRYCOLLECTION(POINT(1 2),LINESTRING(0 0,1 1))
+
+# Z, M and ZM
+query T
+SELECT ST_AsEWKT('POINT Z (1 2 3)'::geometry)
+----
+POINT(1 2 3)
+
+query T
+SELECT ST_AsEWKT('POINT M (1 2 3)'::geometry)
+----
+POINTM(1 2 3)
+
+query T
+SELECT ST_AsEWKT('POINT ZM (1 2 3 4)'::geometry)
+----
+POINT(1 2 3 4)
+
+query T
+SELECT ST_AsEWKT('LINESTRING Z (0 0 1,1 1 2)'::geometry)
+----
+LINESTRING(0 0 1,1 1 2)
+
+query T
+SELECT ST_AsEWKT('MULTIPOINT Z ((1 2 3),(4 5 6))'::geometry)
+----
+MULTIPOINT(1 2 3,4 5 6)
+
+query T
+SELECT ST_AsEWKT('GEOMETRYCOLLECTION M (POINT M (1 2 3))'::geometry)
+----
+GEOMETRYCOLLECTIONM(POINTM(1 2 3))
+
+# EMPTY
+query T
+SELECT ST_AsEWKT('POINT EMPTY'::geometry)
+----
+POINT EMPTY
+
+query T
+SELECT ST_AsEWKT('LINESTRING EMPTY'::geometry)
+----
+LINESTRING EMPTY
+
+query T
+SELECT ST_AsEWKT('POLYGON EMPTY'::geometry)
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_AsEWKT('MULTIPOINT EMPTY'::geometry)
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsEWKT('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_AsEWKT('POINT Z EMPTY'::geometry)
+----
+POINT EMPTY
+
+# Number formatting
+query T
+SELECT ST_AsEWKT('POINT(0.1 0.30000000000000004)'::geometry)
+----
+POINT(0.1 0.3)
+
+query T
+SELECT ST_AsEWKT('POINT(2.3076923076923075 -1e-9)'::geometry)
+----
+POINT(2.307692307692308 -1e-9)
+
+query T
+SELECT ST_AsEWKT('POINT(123456789012345678 0.000000001)'::geometry)
+----
+POINT(1.234567890123457e+17 1e-9)
+
+# maxdecimaldigits
+query T
+SELECT ST_AsEWKT('POINT(1.23456789 2.5)'::geometry, 3)
+----
+POINT(1.235 2.5)
+
+query T
+SELECT ST_AsEWKT('POINT(1.23456789 2.5)'::geometry, 0)
+----
+POINT(1 2)
+
+query T
+SELECT ST_AsEWKT('LINESTRING(0.125 0.375,1.5 2.5)'::geometry, 2)
+----
+LINESTRING(0.12 0.38,1.5 2.5)
+
+# NULL
+query T
+SELECT ST_AsEWKT(NULL::geometry)
+----
+NULL
+
+query T
+SELECT ST_AsEWKT('POINT(1.23456789 2.5)'::geometry, NULL)
+----
+NULL
+
+# A column, including NULL
+query T
+SELECT ST_AsEWKT(g, 1)
+FROM (VALUES ('POINT(1.25 2.75)'::geometry), (NULL::geometry), ('LINESTRING(0 0,1.05 2)'::geometry)) AS t(g)
+----
+POINT(1.2 2.8)
+NULL
+LINESTRING(0 0,1 2)
+
+# SRIDs
+query T
+SELECT ST_AsEWKT('SRID=4326;POINT(1 2)'::geometry)
+----
+SRID=4326;POINT(1 2)
+
+query T
+SELECT ST_AsEWKT('SRID=4326;POINT Z (1 2 3)'::geometry)
+----
+SRID=4326;POINT(1 2 3)
+
+query T
+SELECT ST_AsEWKT(ST_SetSRID('POINT(1 2)'::geometry, 102003))
+----
+SRID=102003;POINT(1 2)
+
+query T
+SELECT ST_AsEWKT('SRID=3857;MULTIPOINT((1 2),EMPTY)'::geometry, 1)
+----
+SRID=3857;MULTIPOINT(1 2,EMPTY)
+
+query T
+SELECT ST_AsEWKT('SRID=4326;MULTIPOINT ZM ((1 2 3 4),EMPTY)'::geometry)
+----
+SRID=4326;MULTIPOINT(1 2 3 4,EMPTY)
+
+query T
+SELECT ST_AsEWKT('POINT ZM EMPTY'::geometry)
+----
+POINT EMPTY
+
+query T
+SELECT ST_AsEWKT('POINT M EMPTY'::geometry)
+----
+POINTM EMPTY
