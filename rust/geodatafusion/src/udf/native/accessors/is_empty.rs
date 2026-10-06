@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use arrow_array::BooleanArray;
-use arrow_array::builder::BooleanBuilder;
 use arrow_schema::DataType;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
@@ -12,10 +11,10 @@ use geo_traits::{
     GeometryCollectionTrait, GeometryTrait, LineStringTrait, MultiLineStringTrait, MultiPointTrait,
     MultiPolygonTrait, PointTrait, PolygonTrait,
 };
-use geoarrow_array::{GeoArrowArrayAccessor, WrapArray, downcast_geoarrow_array};
-use geoarrow_schema::GeoArrowType;
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::geometry_array;
+use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::signature::single_geometry;
 
 #[user_doc(
@@ -97,43 +96,25 @@ pub(crate) fn is_geometry_topologically_empty(geom: &impl GeometryTrait<T = f64>
 }
 
 fn is_empty_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-    let array = ColumnarValue::values_to_arrays(&args.args)?
-        .into_iter()
-        .next()
-        .unwrap();
-    let geo_type = GeoArrowType::from_arrow_field(&args.arg_fields[0])?;
-    let geo_array = geo_type.wrap_array(&array)?;
-    let geo_array_ref = geo_array.as_ref();
-
-    let result = downcast_geoarrow_array!(geo_array_ref, impl_is_empty)?;
-
+    let geometries = geometry_array(&args, 0)?;
+    let result: BooleanArray = map_geometry(geometries.as_ref(), &IsEmptyKernel)?;
     Ok(ColumnarValue::Array(Arc::new(result)))
 }
 
-fn impl_is_empty<'a>(
-    array: &'a impl GeoArrowArrayAccessor<'a>,
-) -> GeoDataFusionResult<BooleanArray> {
-    let mut builder = BooleanBuilder::with_capacity(array.len());
+struct IsEmptyKernel;
 
-    for item in array.iter() {
-        match item {
-            // A present geometry.
-            // Emptiness is recursive so that it's topological rather than just the structure.
-            // so a collection where every leaf is empty counts as empty itself.
-            Some(geom) => {
-                let geom = geom?;
-                builder.append_value(is_geometry_topologically_empty(&geom));
-            }
-            // SQL NULL in, SQL NULL out.
-            // This matches the PostGIS behavior,
-            // which explicitly calls out its behavior as non-conforming to SQL-MM.
-            None => {
-                builder.append_null();
-            }
-        }
+impl GeometryKernel for IsEmptyKernel {
+    type Output = bool;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        _row: usize,
+    ) -> GeoDataFusionResult<Option<bool>> {
+        // Emptiness is topological rather than structural, so a collection where every leaf is
+        // empty counts as empty itself.
+        Ok(Some(is_geometry_topologically_empty(geom)))
     }
-
-    Ok(builder.finish())
 }
 
 #[cfg(test)]
