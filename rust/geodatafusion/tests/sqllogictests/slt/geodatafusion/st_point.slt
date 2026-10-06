@@ -1,0 +1,38 @@
+# Edge cases for ST_Point, not covered by the PostGIS docs examples.
+
+# With and without an SRID
+query T
+SELECT ST_Point(1, 2)
+----
+POINT(1 2)
+
+query T
+SELECT ST_Point(1, 2, 4326)
+----
+SRID=4326;POINT(1 2)
+
+# Named SRID argument
+query T
+SELECT ST_Point(1, 2, srid => 3857)
+----
+SRID=3857;POINT(1 2)
+
+# NULL SRID
+query T
+SELECT ST_Point(1, 2, NULL)
+----
+NULL
+
+# Integer and NULL coordinates
+query T
+SELECT ST_Point(1, NULL)
+----
+NULL
+
+# Coordinates from a column
+query T rowsort
+SELECT ST_Point(x, y, 4326)
+FROM (VALUES (1.5, 2.5), (-71.104, 42.315)) AS t(x, y)
+----
+SRID=4326;POINT(-71.104 42.315)
+SRID=4326;POINT(1.5 2.5)

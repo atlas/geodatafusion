@@ -1,18 +1,18 @@
 //! Point constructors
 
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use arrow_array::cast::AsArray;
 use arrow_array::types::Float64Type;
-use arrow_array::{Array, ArrayRef};
-use arrow_schema::{DataType, Field};
+use arrow_array::{Array, ArrayRef, new_null_array};
+use arrow_buffer::NullBuffer;
+use arrow_schema::{DataType, Field, FieldRef};
 use datafusion::common::internal_err;
-use datafusion::error::{DataFusionError, Result};
+use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
     TypeSignature, Volatility,
 };
-use datafusion::scalar::ScalarValue;
 use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::{PointArray, SeparatedCoordBuffer};
@@ -20,10 +20,26 @@ use geoarrow_array::builder::PointBuilder;
 use geoarrow_schema::{CoordType, Crs, Dimension, Metadata, PointType};
 
 use crate::error::GeoDataFusionResult;
+use crate::util::args::scalar_srid;
+use crate::util::signature::{Arg, coerce_args};
+use crate::util::srid::srid_to_crs;
 
+/// PostGIS: ST_Point(float8 x, float8 y, integer srid = unknown).
+static POINT_ARGUMENTS: &[&[Arg]] = &[
+    &[Arg::Float, Arg::Float],
+    &[Arg::Float, Arg::Float, Arg::Srid],
+];
+
+static POINT_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
+    Signature::user_defined(Volatility::Immutable)
+        .with_parameter_names(vec!["x", "y", "srid"])
+        .expect("parameter names are valid for a user-defined signature")
+});
+
+/// Creates a Point with X, Y and SRID values.
 #[user_doc(
     doc_section(label = "Geometry Constructors"),
-    description = "Returns a Point with the given X and Y coordinate values.",
+    description = "Creates a Point with X, Y and SRID values. The SRID must be a constant, because geodatafusion stores one CRS per column.",
     syntax_example = "ST_Point(x, y, srid)",
     argument(name = "x", description = "float8"),
     argument(name = "y", description = "float8"),
@@ -33,26 +49,12 @@ use crate::error::GeoDataFusionResult;
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Point {
-    signature: Signature,
     coord_type: CoordType,
 }
 
 impl Point {
     pub fn new(coord_type: CoordType) -> Self {
-        Self {
-            signature: Signature::one_of(
-                vec![
-                    TypeSignature::Exact(vec![DataType::Float64, DataType::Float64]),
-                    TypeSignature::Exact(vec![
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Int64,
-                    ]),
-                ],
-                Volatility::Immutable,
-            ),
-            coord_type,
-        }
+        Self { coord_type }
     }
 }
 
@@ -68,35 +70,23 @@ impl ScalarUDFImpl for Point {
     }
 
     fn signature(&self) -> &Signature {
-        &self.signature
+        &POINT_SIGNATURE
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
         internal_err!("return_field_from_args should be called instead")
     }
 
-    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
-        let mut typ =
-            PointType::new(Dimension::XY, Default::default()).with_coord_type(self.coord_type);
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        point_return_field(self.name(), &args, Dimension::XY, self.coord_type, 2)
+    }
 
-        if let Some(srid) = args.scalar_arguments.get(2) {
-            if let Some(ScalarValue::Int64(srid_val)) = srid {
-                let crs = Crs::from_authority_code(format!("EPSG:{}", srid_val.unwrap()));
-                typ = typ.with_metadata(Arc::new(Metadata::new(crs, None)));
-            } else {
-                return Err(DataFusionError::Internal(
-                    "ST_Point only supports SRID as a scalar integer".to_string(),
-                ));
-            }
-        };
-
-        Ok(typ.to_field("", true).into())
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, POINT_ARGUMENTS)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        let arrays = ColumnarValue::values_to_arrays(&args.args[..2])?;
-        let point_arr = create_point_array(arrays, &args.return_field)?;
-        Ok(point_arr.into_array_ref().into())
+        Ok(point_impl(&args, 2)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -104,44 +94,38 @@ impl ScalarUDFImpl for Point {
     }
 }
 
+/// PostGIS: ST_PointZ(float8 x, float8 y, float8 z, integer srid = unknown).
+static POINTZ_ARGUMENTS: &[&[Arg]] = &[
+    &[Arg::Float, Arg::Float, Arg::Float],
+    &[Arg::Float, Arg::Float, Arg::Float, Arg::Srid],
+];
+
+static POINTZ_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
+    Signature::user_defined(Volatility::Immutable)
+        .with_parameter_names(vec!["x", "y", "z", "srid"])
+        .expect("parameter names are valid for a user-defined signature")
+});
+
+/// Creates a Point with X, Y, Z and SRID values.
 #[user_doc(
     doc_section(label = "Geometry Constructors"),
-    description = "Returns an Point with the given X, Y and Z coordinate values, and optionally an SRID number.",
+    description = "Creates a Point with X, Y, Z and SRID values. The SRID must be a constant, because geodatafusion stores one CRS per column.",
     syntax_example = "ST_PointZ(x, y, z, srid)",
     argument(name = "x", description = "float8"),
     argument(name = "y", description = "float8"),
     argument(name = "z", description = "float8"),
     argument(name = "srid", description = "integer"),
-    related_udf(name = "st_makepoint"),
-    related_udf(name = "st_pointz")
+    related_udf(name = "st_point"),
+    related_udf(name = "st_makepoint")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct PointZ {
-    signature: Signature,
     coord_type: CoordType,
 }
 
 impl PointZ {
     pub fn new(coord_type: CoordType) -> Self {
-        Self {
-            signature: Signature::one_of(
-                vec![
-                    TypeSignature::Exact(vec![
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Int64,
-                    ]),
-                ],
-                Volatility::Immutable,
-            ),
-            coord_type,
-        }
+        Self { coord_type }
     }
 }
 
@@ -157,35 +141,23 @@ impl ScalarUDFImpl for PointZ {
     }
 
     fn signature(&self) -> &Signature {
-        &self.signature
+        &POINTZ_SIGNATURE
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
         internal_err!("return_field_from_args should be called instead")
     }
 
-    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
-        let mut typ =
-            PointType::new(Dimension::XYZ, Default::default()).with_coord_type(self.coord_type);
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        point_return_field(self.name(), &args, Dimension::XYZ, self.coord_type, 3)
+    }
 
-        if let Some(srid) = args.scalar_arguments.get(3) {
-            if let Some(ScalarValue::Int64(srid_val)) = srid {
-                let crs = Crs::from_authority_code(format!("EPSG:{}", srid_val.unwrap()));
-                typ = typ.with_metadata(Arc::new(Metadata::new(crs, None)));
-            } else {
-                return Err(DataFusionError::Internal(
-                    "ST_Point only supports SRID as a scalar integer".to_string(),
-                ));
-            }
-        };
-
-        Ok(typ.to_field("", true).into())
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, POINTZ_ARGUMENTS)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        let arrays = ColumnarValue::values_to_arrays(&args.args[..3])?;
-        let point_arr = create_point_array(arrays, &args.return_field)?;
-        Ok(point_arr.into_array_ref().into())
+        Ok(point_impl(&args, 3)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -193,44 +165,38 @@ impl ScalarUDFImpl for PointZ {
     }
 }
 
+/// PostGIS: ST_PointM(float8 x, float8 y, float8 m, integer srid = unknown).
+static POINTM_ARGUMENTS: &[&[Arg]] = &[
+    &[Arg::Float, Arg::Float, Arg::Float],
+    &[Arg::Float, Arg::Float, Arg::Float, Arg::Srid],
+];
+
+static POINTM_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
+    Signature::user_defined(Volatility::Immutable)
+        .with_parameter_names(vec!["x", "y", "m", "srid"])
+        .expect("parameter names are valid for a user-defined signature")
+});
+
+/// Creates a Point with X, Y, M and SRID values.
 #[user_doc(
     doc_section(label = "Geometry Constructors"),
-    description = "Returns an Point with the given X, Y and M coordinate values, and optionally an SRID number.",
+    description = "Creates a Point with X, Y, M and SRID values. The SRID must be a constant, because geodatafusion stores one CRS per column.",
     syntax_example = "ST_PointM(x, y, m, srid)",
     argument(name = "x", description = "float8"),
     argument(name = "y", description = "float8"),
     argument(name = "m", description = "float8"),
     argument(name = "srid", description = "integer"),
-    related_udf(name = "st_makepoint"),
-    related_udf(name = "st_pointz")
+    related_udf(name = "st_point"),
+    related_udf(name = "st_makepointm")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct PointM {
-    signature: Signature,
     coord_type: CoordType,
 }
 
 impl PointM {
     pub fn new(coord_type: CoordType) -> Self {
-        Self {
-            signature: Signature::one_of(
-                vec![
-                    TypeSignature::Exact(vec![
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Int64,
-                    ]),
-                ],
-                Volatility::Immutable,
-            ),
-            coord_type,
-        }
+        Self { coord_type }
     }
 }
 
@@ -246,35 +212,23 @@ impl ScalarUDFImpl for PointM {
     }
 
     fn signature(&self) -> &Signature {
-        &self.signature
+        &POINTM_SIGNATURE
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
         internal_err!("return_field_from_args should be called instead")
     }
 
-    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
-        let mut typ =
-            PointType::new(Dimension::XYM, Default::default()).with_coord_type(self.coord_type);
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        point_return_field(self.name(), &args, Dimension::XYM, self.coord_type, 3)
+    }
 
-        if let Some(srid) = args.scalar_arguments.get(3) {
-            if let Some(ScalarValue::Int64(srid_val)) = srid {
-                let crs = Crs::from_authority_code(format!("EPSG:{}", srid_val.unwrap()));
-                typ = typ.with_metadata(Arc::new(Metadata::new(crs, None)));
-            } else {
-                return Err(DataFusionError::Internal(
-                    "ST_Point only supports SRID as a scalar integer".to_string(),
-                ));
-            }
-        };
-
-        Ok(typ.to_field("", true).into())
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, POINTM_ARGUMENTS)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        let arrays = ColumnarValue::values_to_arrays(&args.args[..3])?;
-        let point_arr = create_point_array(arrays, &args.return_field)?;
-        Ok(point_arr.into_array_ref().into())
+        Ok(point_impl(&args, 3)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -282,47 +236,39 @@ impl ScalarUDFImpl for PointM {
     }
 }
 
+/// PostGIS: ST_PointZM(float8 x, float8 y, float8 z, float8 m, integer srid = unknown).
+static POINTZM_ARGUMENTS: &[&[Arg]] = &[
+    &[Arg::Float, Arg::Float, Arg::Float, Arg::Float],
+    &[Arg::Float, Arg::Float, Arg::Float, Arg::Float, Arg::Srid],
+];
+
+static POINTZM_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
+    Signature::user_defined(Volatility::Immutable)
+        .with_parameter_names(vec!["x", "y", "z", "m", "srid"])
+        .expect("parameter names are valid for a user-defined signature")
+});
+
+/// Creates a Point with X, Y, Z, M and SRID values.
 #[user_doc(
     doc_section(label = "Geometry Constructors"),
-    description = "Returns an Point with the given X, Y, Z and M coordinate values, and optionally an SRID number.",
+    description = "Creates a Point with X, Y, Z, M and SRID values. The SRID must be a constant, because geodatafusion stores one CRS per column.",
     syntax_example = "ST_PointZM(x, y, z, m, srid)",
     argument(name = "x", description = "float8"),
     argument(name = "y", description = "float8"),
     argument(name = "z", description = "float8"),
     argument(name = "m", description = "float8"),
     argument(name = "srid", description = "integer"),
-    related_udf(name = "st_makepoint"),
-    related_udf(name = "st_pointz")
+    related_udf(name = "st_point"),
+    related_udf(name = "st_makepoint")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct PointZM {
-    signature: Signature,
     coord_type: CoordType,
 }
 
 impl PointZM {
     pub fn new(coord_type: CoordType) -> Self {
-        Self {
-            signature: Signature::one_of(
-                vec![
-                    TypeSignature::Exact(vec![
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Int64,
-                    ]),
-                ],
-                Volatility::Immutable,
-            ),
-            coord_type,
-        }
+        Self { coord_type }
     }
 }
 
@@ -338,41 +284,63 @@ impl ScalarUDFImpl for PointZM {
     }
 
     fn signature(&self) -> &Signature {
-        &self.signature
+        &POINTZM_SIGNATURE
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
         internal_err!("return_field_from_args should be called instead")
     }
 
-    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
-        let mut typ =
-            PointType::new(Dimension::XYZM, Default::default()).with_coord_type(self.coord_type);
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        point_return_field(self.name(), &args, Dimension::XYZM, self.coord_type, 4)
+    }
 
-        if let Some(srid) = args.scalar_arguments.get(4) {
-            if let Some(ScalarValue::Int64(srid_val)) = srid {
-                let crs = Crs::from_authority_code(format!("EPSG:{}", srid_val.unwrap()));
-                typ = typ.with_metadata(Arc::new(Metadata::new(crs, None)));
-            } else {
-                return Err(DataFusionError::Internal(
-                    "ST_Point only supports SRID as a scalar integer".to_string(),
-                ));
-            }
-        };
-
-        Ok(typ.to_field("", true).into())
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, POINTZM_ARGUMENTS)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        let arrays = ColumnarValue::values_to_arrays(&args.args[..4])?;
-        let point_arr = create_point_array(arrays, &args.return_field)?;
-        Ok(point_arr.into_array_ref().into())
+        Ok(point_impl(&args, 4)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
         self.doc()
     }
 }
+
+/// The return field of a point constructor whose coordinates are followed by an optional
+/// constant SRID at `srid_index`.
+fn point_return_field(
+    name: &str,
+    args: &ReturnFieldArgs,
+    dim: Dimension,
+    coord_type: CoordType,
+    srid_index: usize,
+) -> Result<FieldRef> {
+    let crs = if args.arg_fields.len() > srid_index {
+        scalar_srid(name, args, srid_index)?
+            .map(srid_to_crs)
+            .unwrap_or_default()
+    } else {
+        Crs::default()
+    };
+    let typ = PointType::new(dim, Arc::new(Metadata::new(crs, None))).with_coord_type(coord_type);
+    Ok(Arc::new(typ.to_field(name, true)))
+}
+
+/// Builds the points of a point constructor from its first `coord_count` arguments. A NULL SRID
+/// gives NULL in every row.
+fn point_impl(args: &ScalarFunctionArgs, coord_count: usize) -> GeoDataFusionResult<ColumnarValue> {
+    // SQL NULL in, SQL NULL out.
+    if matches!(args.args.get(coord_count), Some(ColumnarValue::Scalar(srid)) if srid.is_null()) {
+        let nulls = new_null_array(args.return_field.data_type(), args.number_rows);
+        return Ok(ColumnarValue::Array(nulls));
+    }
+    let arrays = ColumnarValue::values_to_arrays(&args.args[..coord_count])?;
+    let point_arr = create_point_array(arrays, &args.return_field)?;
+    Ok(point_arr.into_array_ref().into())
+}
+
 #[user_doc(
     doc_section(label = "Geometry Constructors"),
     description = "Creates a 2D XY or 3D XYZ or 4D XYZM Point geometry. Use ST_MakePointM to make points with XYM coordinates",
@@ -612,8 +580,16 @@ fn create_point_array(
                 coord_buffers.push(m.values().clone());
             }
 
+            // A NULL in any coordinate makes the point NULL.
+            let nulls = [Some(x), Some(y), z, m]
+                .into_iter()
+                .flatten()
+                .fold(None, |nulls, array| {
+                    NullBuffer::union(nulls.as_ref(), array.nulls())
+                });
+
             let coords = SeparatedCoordBuffer::from_vec(coord_buffers, dim)?;
-            PointArray::new(coords.into(), x.nulls().cloned(), metadata)
+            PointArray::new(coords.into(), nulls, metadata)
         }
     };
 
