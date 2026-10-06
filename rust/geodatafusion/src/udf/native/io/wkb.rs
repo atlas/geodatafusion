@@ -1,19 +1,21 @@
 use std::sync::Arc;
 
 use arrow_schema::{DataType, Field};
-use datafusion::common::internal_err;
+use datafusion::common::{internal_datafusion_err, internal_err};
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
     Volatility,
 };
 use datafusion_macros::user_doc;
-use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::{LargeWkbArray, WkbArray, WkbViewArray, from_arrow_array};
-use geoarrow_array::cast::{from_wkb, to_wkb};
-use geoarrow_schema::{CoordType, GeoArrowType, GeometryType, Metadata, WkbType};
+use geoarrow_array::builder::WkbBuilder;
+use geoarrow_array::cast::to_wkb;
+use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor};
+use geoarrow_schema::{GeoArrowType, Metadata, WkbType};
 
 use crate::error::{GeoDataFusionError, GeoDataFusionResult};
+use crate::util::field::{input_metadata, wkb_return_field};
 use crate::util::signature::single_geometry;
 
 #[user_doc(
@@ -85,12 +87,11 @@ impl ScalarUDFImpl for AsBinary {
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct GeomFromWKB {
     signature: Signature,
-    coord_type: CoordType,
     aliases: Vec<String>,
 }
 
 impl GeomFromWKB {
-    pub fn new(coord_type: CoordType) -> Self {
+    pub fn new() -> Self {
         Self {
             signature: Signature::uniform(
                 1,
@@ -101,7 +102,6 @@ impl GeomFromWKB {
                 ],
                 Volatility::Immutable,
             ),
-            coord_type,
             aliases: vec!["st_wkbtosql".to_string()],
         }
     }
@@ -109,29 +109,50 @@ impl GeomFromWKB {
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
         let array = &ColumnarValue::values_to_arrays(&args.args)?[0];
         let field = &args.arg_fields[0];
-        let to_type = GeoArrowType::from_arrow_field(args.return_field.as_ref())?;
-        let geom_arr = match field.data_type() {
-            DataType::Binary => from_wkb(
+        let GeoArrowType::Wkb(output_type) = GeoArrowType::from_arrow_field(&args.return_field)?
+        else {
+            return Err(internal_datafusion_err!("st_geomfromwkb: unexpected return field").into());
+        };
+        // Parsing validates the input, and writing gives little-endian ISO WKB whatever the input
+        // byte order or flavor.
+        let mut builder = WkbBuilder::<i32>::new(output_type);
+        match field.data_type() {
+            DataType::Binary => rewrite_wkb(
                 &WkbArray::try_from((array.as_ref(), field.as_ref()))?,
-                to_type,
+                &mut builder,
             ),
-            DataType::LargeBinary => from_wkb(
+            DataType::LargeBinary => rewrite_wkb(
                 &LargeWkbArray::try_from((array.as_ref(), field.as_ref()))?,
-                to_type,
+                &mut builder,
             ),
-            DataType::BinaryView => from_wkb(
+            DataType::BinaryView => rewrite_wkb(
                 &WkbViewArray::try_from((array.as_ref(), field.as_ref()))?,
-                to_type,
+                &mut builder,
             ),
-            _ => unreachable!(),
+            data_type => {
+                return Err(internal_datafusion_err!(
+                    "st_geomfromwkb: unexpected argument type {data_type}"
+                )
+                .into());
+            }
         }?;
-        Ok(ColumnarValue::Array(geom_arr.to_array_ref()))
+        Ok(ColumnarValue::Array(builder.finish().into_array_ref()))
     }
+}
+
+fn rewrite_wkb<'a>(
+    array: &'a impl GeoArrowArrayAccessor<'a>,
+    builder: &mut WkbBuilder<i32>,
+) -> GeoDataFusionResult<()> {
+    for geometry in array.iter() {
+        builder.push_geometry(geometry.transpose()?.as_ref())?;
+    }
+    Ok(())
 }
 
 impl Default for GeomFromWKB {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -153,12 +174,10 @@ impl ScalarUDFImpl for GeomFromWKB {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<Arc<Field>> {
-        let input_field = &args.arg_fields[0];
-        let metadata = Arc::new(Metadata::try_from(input_field.as_ref())?);
-        let geom_type = GeometryType::new(metadata).with_coord_type(self.coord_type);
-        Ok(geom_type
-            .to_field(input_field.name(), input_field.is_nullable())
-            .into())
+        Ok(wkb_return_field(
+            self.name(),
+            input_metadata(&args.arg_fields[0]),
+        ))
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
@@ -177,7 +196,6 @@ mod test {
     use arrow_array::RecordBatch;
     use arrow_schema::Schema;
     use datafusion::prelude::SessionContext;
-    use geoarrow_array::array::GeometryArray;
     use geoarrow_array::test::point;
     use geoarrow_schema::{CoordType, Crs, Dimension, Metadata};
 
@@ -200,7 +218,7 @@ mod test {
         ctx.register_batch("t", batch).unwrap();
 
         ctx.register_udf(AsBinary::new().into());
-        ctx.register_udf(GeomFromWKB::new(CoordType::Separated).into());
+        ctx.register_udf(GeomFromWKB::new().into());
 
         let sql_df = ctx
             .sql("SELECT ST_AsBinary(geometry) FROM t;")
@@ -228,8 +246,8 @@ mod test {
         let output_schema = output_batch.schema();
         let output_field = output_schema.field(0);
         let output_column = output_batch.column(0);
-        let geom_arr = GeometryArray::try_from((output_column.as_ref(), output_field)).unwrap();
+        let wkb_arr = WkbArray::try_from((output_column.as_ref(), output_field)).unwrap();
 
-        assert_eq!(geom_arr, GeometryArray::from(point_arr));
+        assert_eq!(wkb_arr, to_wkb::<i32>(&point_arr).unwrap());
     }
 }

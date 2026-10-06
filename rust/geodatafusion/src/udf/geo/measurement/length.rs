@@ -86,7 +86,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(Length::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql("SELECT ST_Length(ST_GeomFromText('LINESTRING(0 0, 3 4)'));")
@@ -103,7 +103,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(Length::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql("SELECT ST_Length(ST_GeomFromText('POINT(1 2)'));")
@@ -120,7 +120,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(Length::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql("SELECT ST_Length(ST_GeomFromText('MULTILINESTRING((0 0, 3 4), (0 0, 4 3))'));")
@@ -137,7 +137,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(Length::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql("SELECT ST_Length(ST_GeomFromText('POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))'));")

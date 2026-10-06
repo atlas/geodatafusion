@@ -13,9 +13,8 @@ use datafusion::logical_expr::{
 };
 use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
-use geoarrow_array::builder::{GeometryBuilder, WkbBuilder};
-use geoarrow_array::capacity::GeometryCapacity;
-use geoarrow_schema::{CoordType, GeoArrowType, GeometryType, Metadata};
+use geoarrow_array::builder::WkbBuilder;
+use geoarrow_schema::{GeoArrowType, Metadata};
 use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
@@ -46,14 +45,12 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct GeomFromText {
-    coord_type: CoordType,
     aliases: Vec<String>,
 }
 
 impl GeomFromText {
-    pub fn new(coord_type: CoordType) -> Self {
+    pub fn new() -> Self {
         Self {
-            coord_type,
             aliases: vec!["st_geometryfromtext".to_string(), "st_wkttosql".to_string()],
         }
     }
@@ -61,7 +58,7 @@ impl GeomFromText {
 
 impl Default for GeomFromText {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -85,8 +82,7 @@ impl ScalarUDFImpl for GeomFromText {
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
         let srid = output_srid(self.name(), &args)?;
         let metadata = Arc::new(Metadata::new(srid_to_crs(srid), None));
-        let output_type = GeometryType::new(metadata).with_coord_type(self.coord_type);
-        Ok(Arc::new(output_type.to_field(self.name(), true)))
+        Ok(wkb_return_field(self.name(), metadata))
     }
 
     fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
@@ -190,18 +186,7 @@ fn geom_from_text_impl(name: &str, args: ScalarFunctionArgs) -> GeoDataFusionRes
         let nulls = new_null_array(args.return_field.data_type(), args.number_rows);
         return Ok(ColumnarValue::Array(nulls));
     }
-    let geometries = parse_rows(name, &args)?;
-
-    let GeoArrowType::Geometry(output_type) = GeoArrowType::from_arrow_field(&args.return_field)?
-    else {
-        return Err(internal_datafusion_err!("{name}: unexpected return field").into());
-    };
-    let capacity = GeometryCapacity::from_geometries(geometries.iter().map(Option::as_ref))?;
-    let mut builder = GeometryBuilder::with_capacity(output_type, capacity);
-    for geometry in &geometries {
-        builder.push_geometry(geometry.as_ref())?;
-    }
-    Ok(ColumnarValue::Array(builder.finish().into_array_ref()))
+    geom_from_ewkt_impl(name, args)
 }
 
 fn geom_from_ewkt_impl(name: &str, args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
@@ -249,6 +234,7 @@ fn parse_rows(name: &str, args: &ScalarFunctionArgs) -> Result<Vec<Option<Wkt<f6
 #[cfg(test)]
 mod test {
     use datafusion::prelude::SessionContext;
+    use geoarrow_schema::WkbType;
     use geoarrow_schema::crs::Crs;
 
     use super::*;
@@ -264,7 +250,7 @@ mod test {
         ] {
             let batch = ctx.sql(sql).await.unwrap().collect().await.unwrap();
             let field = batch[0].schema().field(0).clone();
-            let output_type = field.try_extension_type::<GeometryType>().unwrap();
+            let output_type = field.try_extension_type::<WkbType>().unwrap();
             assert_eq!(
                 output_type.metadata().crs(),
                 &Crs::from_authority_code("EPSG:4326".to_string()),

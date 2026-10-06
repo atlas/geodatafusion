@@ -13,13 +13,13 @@ use geo_traits::{
     GeometryCollectionTrait, GeometryTrait, MultiLineStringTrait, MultiPointTrait,
     MultiPolygonTrait,
 };
-use geoarrow_array::array::from_arrow_array;
-use geoarrow_array::builder::GeometryBuilder;
+use geoarrow_array::builder::WkbBuilder;
 use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor, downcast_geoarrow_array};
-use geoarrow_schema::{CoordType, GeometryType, Metadata};
+use geoarrow_schema::WkbType;
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
+use crate::util::field::{geometry_array, input_metadata};
 use crate::util::signature::single_geometry;
 
 /// Decomposes a geometry into its atomic components (POINT, LINESTRING, POLYGON).
@@ -36,19 +36,17 @@ use crate::util::signature::single_geometry;
     argument(name = "geom", description = "geometry")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct Dump {
-    coord_type: CoordType,
-}
+pub struct Dump;
 
 impl Dump {
-    pub fn new(coord_type: CoordType) -> Self {
-        Self { coord_type }
+    pub fn new() -> Self {
+        Self
     }
 }
 
 impl Default for Dump {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -68,14 +66,12 @@ impl ScalarUDFImpl for Dump {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        let metadata =
-            Arc::new(Metadata::try_from(args.arg_fields[0].as_ref()).unwrap_or_default());
-        let output_type = GeometryType::new(metadata).with_coord_type(self.coord_type);
+        let output_type = WkbType::new(input_metadata(&args.arg_fields[0]));
         Ok(output_field(&output_type))
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(dump_impl(args, self.coord_type)?)
+        Ok(dump_impl(args)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -91,7 +87,7 @@ fn path_field() -> Field {
     Field::new("path", DataType::List(path_values_field()), false)
 }
 
-fn item_field(geom_type: &GeometryType) -> FieldRef {
+fn item_field(geom_type: &WkbType) -> FieldRef {
     Arc::new(Field::new(
         "item",
         DataType::Struct(item_struct_fields(geom_type)),
@@ -99,25 +95,19 @@ fn item_field(geom_type: &GeometryType) -> FieldRef {
     ))
 }
 
-fn item_struct_fields(geom_type: &GeometryType) -> Fields {
-    Fields::from(vec![path_field(), geom_type.to_field("geom", true)])
+fn item_struct_fields(geom_type: &WkbType) -> Fields {
+    let geom_field =
+        Field::new("geom", DataType::Binary, true).with_extension_type(geom_type.clone());
+    Fields::from(vec![path_field(), geom_field])
 }
 
-fn output_field(geom_type: &GeometryType) -> FieldRef {
+fn output_field(geom_type: &WkbType) -> FieldRef {
     Arc::new(Field::new("", DataType::List(item_field(geom_type)), true))
 }
 
-fn dump_impl(
-    args: ScalarFunctionArgs,
-    coord_type: CoordType,
-) -> GeoDataFusionResult<ColumnarValue> {
-    let array = ColumnarValue::values_to_arrays(&args.args)?
-        .into_iter()
-        .next()
-        .expect("should have one input argument or else planning will fail");
-    let geo_array = from_arrow_array(&array, &args.arg_fields[0])?;
-    let geom_type =
-        GeometryType::new(geo_array.data_type().metadata().clone()).with_coord_type(coord_type);
+fn dump_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+    let geo_array = geometry_array(&args, 0)?;
+    let geom_type = WkbType::new(input_metadata(&args.arg_fields[0]));
 
     let geo_array_ref = geo_array.as_ref();
     let list_array = downcast_geoarrow_array!(geo_array_ref, dump_array, &geom_type)?;
@@ -128,9 +118,9 @@ fn dump_impl(
 /// The main decomposition loop.
 fn dump_array<'a>(
     array: &'a impl GeoArrowArrayAccessor<'a>,
-    geom_type: &GeometryType,
+    geom_type: &WkbType,
 ) -> GeoDataFusionResult<ListArray> {
-    let mut geom_builder = GeometryBuilder::new(geom_type.clone());
+    let mut geom_builder = WkbBuilder::<i32>::new(geom_type.clone());
     let mut path_builder = ListBuilder::new(Int32Builder::new()).with_field(path_values_field());
     let mut path_stack = Vec::new();
     let mut row_lengths = Vec::with_capacity(array.len());
@@ -170,7 +160,7 @@ fn dump_array<'a>(
 /// which emits atomic geoms directly, and recursively dumps children in containers.
 fn dump_geometry(
     geom: &impl GeometryTrait<T = f64>,
-    geom_builder: &mut GeometryBuilder,
+    geom_builder: &mut WkbBuilder<i32>,
     path_builder: &mut ListBuilder<Int32Builder>,
     path_stack: &mut Vec<i32>,
 ) -> GeoDataFusionResult<()> {
@@ -198,7 +188,7 @@ fn dump_geometry(
 /// Process children of a multi-geometry container.
 fn dump_multi_children(
     children: impl Iterator<Item = impl GeometryTrait<T = f64>>,
-    geom_builder: &mut GeometryBuilder,
+    geom_builder: &mut WkbBuilder<i32>,
     path_builder: &mut ListBuilder<Int32Builder>,
     path_stack: &mut Vec<i32>,
 ) -> GeoDataFusionResult<()> {
@@ -217,6 +207,7 @@ mod test {
     use arrow_array::types::Int32Type;
     use arrow_schema::DataType;
     use datafusion::prelude::SessionContext;
+    use geoarrow_array::array::from_arrow_array;
     use geoarrow_array::cast::to_wkt;
 
     use super::*;
@@ -224,7 +215,7 @@ mod test {
 
     fn ctx() -> SessionContext {
         let ctx = SessionContext::new();
-        ctx.register_udf(Dump::default().into());
+        ctx.register_udf(Dump.into());
         ctx.register_udf(GeomFromText::default().into());
         ctx.register_udf(AsText.into());
         ctx

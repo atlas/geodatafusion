@@ -130,7 +130,7 @@ mod test {
     async fn test_st_isempty_wkt() {
         let ctx = SessionContext::new();
         ctx.register_udf(IsEmpty::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         // Explicitly noted examples come from the PostGIS documentation (CC-BY-SA-3.0).
         let cases = vec![
@@ -197,8 +197,8 @@ mod test {
     async fn test_structural_emptiness() {
         let ctx = SessionContext::new();
         ctx.register_udf(IsEmpty::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
-        ctx.register_udf(GeomFromWKB::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
+        ctx.register_udf(GeomFromWKB::new().into());
 
         // Recursive emptiness (PostGIS / JTS topological semantics).
         // A collection whose every leaf is empty is itself reported as empty,
@@ -294,7 +294,7 @@ mod test {
     async fn test_st_isempty_null() {
         let ctx = SessionContext::new();
         ctx.register_udf(IsEmpty::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         // PostGIS explicitly calls out ST_IsEmpty(NULL) as NULL in the docs.
         let df = ctx

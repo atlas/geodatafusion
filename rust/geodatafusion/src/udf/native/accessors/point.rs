@@ -262,7 +262,7 @@ mod test {
         ctx.register_udf(Y.into());
         ctx.register_udf(Z.into());
         ctx.register_udf(M.into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         for function in ["ST_X", "ST_Y", "ST_Z", "ST_M"] {
             // A column, so the call isn't constant-folded.
