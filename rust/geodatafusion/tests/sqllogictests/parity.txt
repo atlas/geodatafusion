@@ -7,6 +7,7 @@ geodatafusion/st_contains 5/5
 geodatafusion/st_coveredby 5/5
 geodatafusion/st_covers 5/5
 geodatafusion/st_distance 5/5
+geodatafusion/st_geomfromewkt 13/13
 geodatafusion/st_geomfromtext 57/59
 geodatafusion/st_intersects 5/5
 geodatafusion/st_point 6/6
@@ -15,7 +16,7 @@ geodatafusion/st_simplify 3/3
 geodatafusion/st_srid 5/5
 geodatafusion/st_within 5/5
 postgis_docs/box2d 1/2
-postgis_docs/box3d 0/2
+postgis_docs/box3d 1/2
 postgis_docs/contains_box2df_box2df 0/1
 postgis_docs/contains_box2df_geometry 0/1
 postgis_docs/contains_geometry_box2df 0/1
@@ -102,7 +103,7 @@ postgis_docs/st_dfullywithin 0/1
 postgis_docs/st_difference 0/2
 postgis_docs/st_dimension 0/1
 postgis_docs/st_disjoint 2/2
-postgis_docs/st_distance 0/6
+postgis_docs/st_distance 1/6
 postgis_docs/st_distance_spheroid 0/1
 postgis_docs/st_distancecpa 0/1
 postgis_docs/st_distancesphere 0/1
@@ -144,7 +145,7 @@ postgis_docs/st_geometry_same 0/1
 postgis_docs/st_geometryn 0/2
 postgis_docs/st_geometrytype 1/4
 postgis_docs/st_geomfromewkb 0/1
-postgis_docs/st_geomfromewkt 0/7
+postgis_docs/st_geomfromewkt 5/7
 postgis_docs/st_geomfromgeohash 0/3
 postgis_docs/st_geomfromgeojson 0/2
 postgis_docs/st_geomfromgml 0/3
@@ -206,7 +207,7 @@ postgis_docs/st_mlinefromtext 0/1
 postgis_docs/st_mpointfromtext 0/2
 postgis_docs/st_mpolyfromtext 0/2
 postgis_docs/st_multi 0/1
-postgis_docs/st_ndims 0/1
+postgis_docs/st_ndims 1/1
 postgis_docs/st_node 0/2
 postgis_docs/st_normalize 0/1
 postgis_docs/st_nrings 0/1
@@ -278,8 +279,8 @@ postgis_docs/st_union 0/1
 postgis_docs/st_voronoilines 0/1
 postgis_docs/st_voronoipolygons 0/2
 postgis_docs/st_within 0/1
-postgis_docs/st_x 0/2
-postgis_docs/st_y 0/2
+postgis_docs/st_x 1/2
+postgis_docs/st_y 1/2
 postgis_docs/st_z 0/1
 postgis_docs/st_zmflag 0/4
 smoke/basic 5/5

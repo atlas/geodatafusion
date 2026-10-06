@@ -1,0 +1,71 @@
+# Edge cases for ST_GeomFromEWKT, not covered by the PostGIS docs examples.
+
+# With and without an SRID prefix
+query T
+SELECT ST_GeomFromEWKT('SRID=4326;POINT(1 2)')
+----
+SRID=4326;POINT(1 2)
+
+query T
+SELECT ST_GeomFromEWKT('POINT(1 2)')
+----
+POINT(1 2)
+
+query I
+SELECT ST_SRID(ST_GeomFromEWKT('SRID=3857;LINESTRING(0 0,1 1)'))
+----
+3857
+
+# Case and spacing of the prefix
+query T
+SELECT ST_GeomFromEWKT('srid=4326 ; POINT(1 2)')
+----
+SRID=4326;POINT(1 2)
+
+# SRIDs PostGIS clamps
+query I
+SELECT ST_SRID(ST_GeomFromEWKT('SRID=-1;POINT(1 2)'))
+----
+0
+
+# Z, M and EMPTY
+query T
+SELECT ST_GeomFromEWKT('SRID=4326;POINT(1 2 3)')
+----
+SRID=4326;POINT Z (1 2 3)
+
+query T
+SELECT ST_GeomFromEWKT('SRID=4326;POINTM(1 2 3)')
+----
+SRID=4326;POINT M (1 2 3)
+
+query T
+SELECT ST_GeomFromEWKT('SRID=4326;GEOMETRYCOLLECTION(POINT(1 2),LINESTRING(0 0,1 1))')
+----
+SRID=4326;GEOMETRYCOLLECTION(POINT(1 2),LINESTRING(0 0,1 1))
+
+query T
+SELECT ST_GeomFromEWKT('SRID=4326;POLYGON EMPTY')
+----
+SRID=4326;POLYGON EMPTY
+
+# Invalid input is an error
+statement error
+SELECT ST_GeomFromEWKT('SRID=4326;POINT(1)')
+
+statement error
+SELECT ST_GeomFromEWKT('SRID=abc;POINT(1 2)')
+
+# NULL
+query T
+SELECT ST_GeomFromEWKT(NULL)
+----
+NULL
+
+# A column with one SRID
+query T rowsort
+SELECT ST_AsText(ST_GeomFromEWKT(t)) FROM (VALUES ('POINT(1 2)'), (NULL), ('LINESTRING(0 0,1 1)')) AS v(t)
+----
+LINESTRING(0 0,1 1)
+NULL
+POINT(1 2)

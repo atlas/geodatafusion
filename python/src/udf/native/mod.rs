@@ -47,6 +47,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     // io
     m.add_class::<io::PyAsBinary>()?;
     m.add_class::<io::PyAsText>()?;
+    m.add_class::<io::PyGeomFromEWKT>()?;
     m.add_class::<io::PyGeomFromText>()?;
     m.add_class::<io::PyGeomFromWKB>()?;
 

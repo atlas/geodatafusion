@@ -6,7 +6,7 @@ mod util;
 mod wkb;
 
 pub use as_text::AsText;
-pub use geom_from_text::GeomFromText;
+pub use geom_from_text::{GeomFromEWKT, GeomFromText};
 pub use wkb::{AsBinary, GeomFromWKB};
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
@@ -14,4 +14,5 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(GeomFromWKB::default().into());
     session_context.register_udf(AsText.into());
     session_context.register_udf(GeomFromText::default().into());
+    session_context.register_udf(GeomFromEWKT.into());
 }
