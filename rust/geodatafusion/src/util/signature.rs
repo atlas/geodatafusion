@@ -152,6 +152,8 @@ pub(crate) enum Arg {
     /// An `integer` SRID. Integer types and `Null` are kept as is, so that a constant stays a
     /// literal for `return_field_from_args`: coercing it would wrap it in a cast.
     Srid,
+    /// `text`: string types are kept as is. `Null` becomes `Utf8`.
+    Text,
     /// `boolean`: `Boolean` and `Null` become `Boolean`.
     #[cfg_attr(
         all(not(feature = "geos-3_11"), not(test)),
@@ -172,6 +174,8 @@ impl Arg {
             (Arg::Integer, t) if t.is_integer() || t.is_null() => Some(Int32),
             (Arg::Srid, Null) => Some(Null),
             (Arg::Srid, t) if t.is_integer() => Some(t.clone()),
+            (Arg::Text, Null) => Some(Utf8),
+            (Arg::Text, Utf8 | LargeUtf8 | Utf8View) => Some(data_type.clone()),
             (Arg::Boolean, Boolean | Null) => Some(Boolean),
             _ => None,
         }
@@ -184,6 +188,7 @@ impl Arg {
             Arg::Float => "float8",
             Arg::Integer => "integer",
             Arg::Srid => "integer",
+            Arg::Text => "text",
             Arg::Boolean => "boolean",
         }
     }
