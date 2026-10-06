@@ -7,6 +7,7 @@ geodatafusion/st_coveredby 5/5
 geodatafusion/st_covers 5/5
 geodatafusion/st_distance 5/5
 geodatafusion/st_intersects 5/5
+geodatafusion/st_point 6/6
 geodatafusion/st_setsrid 11/11
 geodatafusion/st_simplify 3/3
 geodatafusion/st_srid 5/5
@@ -222,11 +223,11 @@ postgis_docs/st_pointfromgeohash 0/3
 postgis_docs/st_pointfromtext 0/2
 postgis_docs/st_pointfromwkb 0/2
 postgis_docs/st_pointinsidecircle 0/1
-postgis_docs/st_pointm 2/3
+postgis_docs/st_pointm 3/3
 postgis_docs/st_pointn 0/3
 postgis_docs/st_pointonsurface 3/5
-postgis_docs/st_pointz 2/3
-postgis_docs/st_pointzm 2/3
+postgis_docs/st_pointz 3/3
+postgis_docs/st_pointzm 3/3
 postgis_docs/st_polygon 0/2
 postgis_docs/st_polygonfromtext 0/2
 postgis_docs/st_polygonize 0/1
