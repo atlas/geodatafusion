@@ -18,9 +18,9 @@ use geoarrow_array::builder::GeometryBuilder;
 use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor, downcast_geoarrow_array};
 use geoarrow_schema::{CoordType, GeometryType, Metadata};
 
-use crate::data_types::any_single_geometry_type_input;
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
+use crate::util::signature::single_geometry;
 
 /// Decomposes a geometry into its atomic components (POINT, LINESTRING, POLYGON).
 #[derive(Debug, Eq, PartialEq, Hash)]
@@ -48,7 +48,7 @@ impl ScalarUDFImpl for Dump {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {

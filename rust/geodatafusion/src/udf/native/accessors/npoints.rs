@@ -13,8 +13,8 @@ use geoarrow_array::array::from_arrow_array;
 use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor, downcast_geoarrow_array};
 use geoarrow_schema::error::GeoArrowResult;
 
-use crate::data_types::any_single_geometry_type_input;
 use crate::error::GeoDataFusionResult;
+use crate::util::signature::single_geometry;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct NPoints;
@@ -40,7 +40,7 @@ impl ScalarUDFImpl for NPoints {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn aliases(&self) -> &[String] {

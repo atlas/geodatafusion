@@ -6,9 +6,9 @@
     html_favicon_url = "https://github.com/geoarrow.png?size=32"
 )]
 
-pub(crate) mod data_types;
 pub(crate) mod error;
 pub mod udf;
+pub(crate) mod util;
 
 /// Register all UDFs defined in geodatafusion
 pub fn register(session_context: &datafusion::prelude::SessionContext) {

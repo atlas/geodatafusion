@@ -1,3 +1,5 @@
+//! Signatures for geodatafusion UDFs.
+
 use std::sync::LazyLock;
 
 use arrow_schema::DataType;
@@ -7,7 +9,12 @@ use geoarrow_schema::{
     MultiLineStringType, MultiPointType, MultiPolygonType, PointType, PolygonType,
 };
 
-pub(crate) fn any_geometry_type() -> Vec<DataType> {
+/// Every Arrow type a geometry argument accepts: native GeoArrow types, boxes, WKB and WKT.
+pub(crate) fn any_geometry_type() -> &'static [DataType] {
+    &ANY_GEOMETRY_TYPE
+}
+
+static ANY_GEOMETRY_TYPE: LazyLock<Vec<DataType>> = LazyLock::new(|| {
     let expected_capacity = (2 * 4 * 7) + 2 + 4 + 3 + 3;
     let mut valid_types = Vec::with_capacity(expected_capacity);
 
@@ -86,13 +93,14 @@ pub(crate) fn any_geometry_type() -> Vec<DataType> {
     debug_assert_eq!(valid_types.len(), expected_capacity);
 
     valid_types
-}
+});
 
-static ANY_SINGLE_GEOMETRY_TYPE_INPUT: LazyLock<Signature> =
-    LazyLock::new(|| Signature::uniform(1, any_geometry_type(), Volatility::Immutable));
+static SINGLE_GEOMETRY: LazyLock<Signature> =
+    LazyLock::new(|| Signature::uniform(1, any_geometry_type().to_vec(), Volatility::Immutable));
 
-pub(crate) fn any_single_geometry_type_input() -> &'static Signature {
-    &ANY_SINGLE_GEOMETRY_TYPE_INPUT
+/// The signature of a function whose only argument is a geometry.
+pub(crate) fn single_geometry() -> &'static Signature {
+    &SINGLE_GEOMETRY
 }
 
 static ANY_POINT_TYPE: LazyLock<Vec<DataType>> = LazyLock::new(|| {

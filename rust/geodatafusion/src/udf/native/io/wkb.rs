@@ -12,8 +12,8 @@ use geoarrow_array::array::{LargeWkbArray, WkbArray, WkbViewArray, from_arrow_ar
 use geoarrow_array::cast::{from_wkb, to_wkb};
 use geoarrow_schema::{CoordType, GeoArrowType, GeometryType, Metadata, WkbType};
 
-use crate::data_types::any_single_geometry_type_input;
 use crate::error::{GeoDataFusionError, GeoDataFusionResult};
+use crate::util::signature::single_geometry;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct AsBinary;
@@ -38,7 +38,7 @@ impl ScalarUDFImpl for AsBinary {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {

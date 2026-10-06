@@ -12,9 +12,9 @@ use datafusion::scalar::ScalarValue;
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_schema::{BoxType, Dimension, Metadata};
 
-use crate::data_types::any_single_geometry_type_input;
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::bounding_box::util::bounds::{BoundingRect, total_bounds};
+use crate::util::signature::single_geometry;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Extent;
@@ -37,7 +37,7 @@ impl AggregateUDFImpl for Extent {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {

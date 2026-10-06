@@ -8,8 +8,8 @@ use datafusion::logical_expr::{
 };
 use geoarrow_array::array::from_arrow_array;
 
-use crate::data_types::any_single_geometry_type_input;
 use crate::error::GeoDataFusionResult;
+use crate::util::signature::single_geometry;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct IsValidReason;
@@ -34,7 +34,7 @@ impl ScalarUDFImpl for IsValidReason {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
