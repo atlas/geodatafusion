@@ -267,7 +267,9 @@ def validate(conn: psycopg.Connection, fn: Function) -> list[list[ValidRecord]]:
                             raise ValueError("unsupported statement kind")
             except (psycopg.Error, ValueError):
                 ok = False
-            if ok and any(r.is_query for r in records):
+            # Keep setup-only blocks too: their effects persist in this transaction, so later
+            # blocks may depend on them.
+            if ok and records:
                 kept.append(records)
     return kept
 
