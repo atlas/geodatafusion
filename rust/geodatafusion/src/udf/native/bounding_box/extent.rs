@@ -4,8 +4,9 @@ use arrow_array::ArrayRef;
 use arrow_array::cast::AsArray;
 use arrow_array::types::Float64Type;
 use arrow_schema::{DataType, Field, FieldRef};
+use datafusion::common::internal_err;
 use datafusion::common::scalar::ScalarStructBuilder;
-use datafusion::error::{DataFusionError, Result};
+use datafusion::error::Result;
 use datafusion::logical_expr::function::AccumulatorArgs;
 use datafusion::logical_expr::{Accumulator, AggregateUDFImpl, Signature};
 use datafusion::scalar::ScalarValue;
@@ -41,7 +42,7 @@ impl AggregateUDFImpl for Extent {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+        internal_err!("return_field should be called instead")
     }
 
     fn return_field(&self, arg_fields: &[FieldRef]) -> Result<FieldRef> {

@@ -3,7 +3,8 @@ use std::sync::{Arc, OnceLock};
 use arrow_array::Float64Array;
 use arrow_array::builder::Float64Builder;
 use arrow_schema::{DataType, Field};
-use datafusion::error::{DataFusionError, Result};
+use datafusion::common::internal_err;
+use datafusion::error::Result;
 use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
@@ -46,7 +47,7 @@ impl ScalarUDFImpl for X {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, _args: ReturnFieldArgs) -> Result<arrow_schema::FieldRef> {
@@ -101,7 +102,7 @@ impl ScalarUDFImpl for Y {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, _args: ReturnFieldArgs) -> Result<arrow_schema::FieldRef> {
@@ -189,7 +190,7 @@ impl ScalarUDFImpl for Z {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, _args: ReturnFieldArgs) -> Result<arrow_schema::FieldRef> {
@@ -244,7 +245,7 @@ impl ScalarUDFImpl for M {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
+        internal_err!("return_field_from_args should be called instead")
     }
 
     fn return_field_from_args(&self, _args: ReturnFieldArgs) -> Result<arrow_schema::FieldRef> {
