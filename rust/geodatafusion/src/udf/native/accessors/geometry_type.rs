@@ -223,7 +223,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(GeometryType::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql("SELECT GeometryType(ST_GeomFromText('LINESTRING(77.29 29.07,77.42 29.26,77.27 29.31,77.29 29.07)'));")
@@ -240,7 +240,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(ST_GeometryType::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql("SELECT ST_GeometryType(ST_GeomFromText('LINESTRING(77.29 29.07,77.42 29.26,77.27 29.31,77.29 29.07)'));")

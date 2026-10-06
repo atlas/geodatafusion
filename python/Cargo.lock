@@ -1547,7 +1547,6 @@ version = "0.3.1"
 dependencies = [
  "datafusion",
  "datafusion-ffi",
- "geoarrow-schema",
  "geodatafusion",
  "pyo3",
 ]

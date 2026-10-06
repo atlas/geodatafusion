@@ -92,7 +92,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(Distance::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql("SELECT ST_Distance(ST_GeomFromText('POINT(-72.1235 42.3521)'), ST_GeomFromText('LINESTRING(-72.1260 42.45, -72.123 42.1546)'));")

@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use arrow_array::StringArrayType;
 use arrow_array::cast::AsArray;
 use arrow_schema::{DataType, FieldRef};
-use datafusion::common::internal_err;
+use datafusion::common::{internal_datafusion_err, internal_err};
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
@@ -11,11 +9,12 @@ use datafusion::logical_expr::{
 };
 use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
-use geoarrow_array::array::PointArray;
-use geoarrow_array::builder::PointBuilder;
-use geoarrow_schema::{CoordType, Dimension, Metadata, PointType};
+use geoarrow_array::array::WkbArray;
+use geoarrow_array::builder::WkbBuilder;
+use geoarrow_schema::{GeoArrowType, WkbType};
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::wkb_return_field;
 
 #[user_doc(
     doc_section(label = "Geometry Input"),
@@ -26,25 +25,23 @@ use crate::error::GeoDataFusionResult;
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct PointFromGeoHash {
     signature: Signature,
-    coord_type: CoordType,
 }
 
 impl PointFromGeoHash {
-    pub fn new(coord_type: CoordType) -> Self {
+    pub fn new() -> Self {
         Self {
             signature: Signature::uniform(
                 1,
                 vec![DataType::Utf8, DataType::LargeUtf8, DataType::Utf8View],
                 Volatility::Immutable,
             ),
-            coord_type,
         }
     }
 }
 
 impl Default for PointFromGeoHash {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -61,8 +58,8 @@ impl ScalarUDFImpl for PointFromGeoHash {
         internal_err!("return_field_from_args should be called instead")
     }
 
-    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        Ok(return_field_impl(args, self.coord_type)?)
+    fn return_field_from_args(&self, _args: ReturnFieldArgs) -> Result<FieldRef> {
+        Ok(wkb_return_field(self.name(), Default::default()))
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
@@ -74,44 +71,37 @@ impl ScalarUDFImpl for PointFromGeoHash {
     }
 }
 
-fn return_field_impl(
-    args: ReturnFieldArgs,
-    coord_type: CoordType,
-) -> GeoDataFusionResult<FieldRef> {
-    let metadata = Arc::new(Metadata::try_from(args.arg_fields[0].as_ref()).unwrap_or_default());
-    let output_type = PointType::new(Dimension::XY, metadata).with_coord_type(coord_type);
-    Ok(Arc::new(output_type.to_field("", true)))
-}
-
 fn point_from_geohash_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
     let array = ColumnarValue::values_to_arrays(&args.args)?
         .into_iter()
         .next()
         .unwrap();
 
-    let typ = args.return_field.extension_type::<PointType>();
-    let rect_arr = match array.data_type() {
+    let GeoArrowType::Wkb(typ) = GeoArrowType::from_arrow_field(&args.return_field)? else {
+        return Err(
+            internal_datafusion_err!("st_pointfromgeohash: unexpected return field").into(),
+        );
+    };
+    let point_arr = match array.data_type() {
         DataType::Utf8 => build_point_arr(typ, &array.as_string::<i32>()),
         DataType::LargeUtf8 => build_point_arr(typ, &array.as_string::<i64>()),
         DataType::Utf8View => build_point_arr(typ, &array.as_string_view()),
         _ => unreachable!(),
     }?;
 
-    Ok(ColumnarValue::Array(rect_arr.into_array_ref()))
+    Ok(ColumnarValue::Array(point_arr.into_array_ref()))
 }
 
 fn build_point_arr<'a>(
-    typ: PointType,
+    typ: WkbType,
     array: &impl StringArrayType<'a>,
-) -> GeoDataFusionResult<PointArray> {
-    let mut builder = PointBuilder::with_capacity(typ, array.len());
+) -> GeoDataFusionResult<WkbArray> {
+    let mut builder = WkbBuilder::<i32>::new(typ);
     for s in array.iter() {
-        if let Some(s) = s {
-            let (coord, _, _) = geohash::decode(s)?;
-            builder.push_coord(Some(&coord));
-        } else {
-            builder.push_null();
-        }
+        let point = s
+            .map(|s| geohash::decode(s).map(|(coord, _, _)| geo::Point(coord)))
+            .transpose()?;
+        builder.push_geometry(point.as_ref())?;
     }
     Ok(builder.finish())
 }
@@ -120,9 +110,8 @@ fn build_point_arr<'a>(
 mod tests {
     use approx::relative_eq;
     use datafusion::prelude::SessionContext;
-    use geo_traits::{CoordTrait, PointTrait};
+    use geo_traits::{CoordTrait, GeometryTrait, GeometryType, PointTrait};
     use geoarrow_array::GeoArrowArrayAccessor;
-    use geoarrow_array::array::PointArray;
 
     use super::*;
 
@@ -140,9 +129,11 @@ mod tests {
         let batches = df.collect().await.unwrap();
         let column = batches[0].column(0);
 
-        let point_array =
-            PointArray::try_from((column.as_ref(), schema.field(0).as_ref())).unwrap();
-        let point = point_array.value(0).unwrap();
+        let wkb_array = WkbArray::try_from((column.as_ref(), schema.field(0).as_ref())).unwrap();
+        let geom = wkb_array.value(0).unwrap();
+        let GeometryType::Point(point) = geom.as_type() else {
+            panic!("expected a point");
+        };
 
         assert!(relative_eq!(point.coord().unwrap().x(), -115.13671875));
         assert!(relative_eq!(point.coord().unwrap().y(), 36.123046875));

@@ -128,7 +128,7 @@ mod test {
     async fn test_st_isclosed() {
         let ctx = SessionContext::new();
         ctx.register_udf(IsClosed::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let cases = vec![
             ("LINESTRING(0 0, 1 1, 0 1, 0 0)", true, "closed linestring"),

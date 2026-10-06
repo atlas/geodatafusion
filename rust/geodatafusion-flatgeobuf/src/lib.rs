@@ -212,7 +212,7 @@ mod tests {
         ctx.register_table("countries", Arc::new(table)).unwrap();
 
         ctx.register_udf(Intersects::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
         ctx.register_udf(Box2D::new().into());
 
         // Test with box2d input

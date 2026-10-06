@@ -321,7 +321,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(Intersects::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql("SELECT ST_Intersects(ST_GeomFromText('POINT(0 0)'), ST_GeomFromText('LINESTRING ( 0 0, 0 2 )'));")
@@ -337,7 +337,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(Intersects::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql("SELECT ST_Intersects(ST_GeomFromText('POINT(0 0)'), ST_GeomFromText('LINESTRING ( 2 0, 0 2 )'));")
@@ -366,7 +366,7 @@ mod test {
         ctx.register_batch("t", batch).unwrap();
 
         ctx.register_udf(Intersects::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql("SELECT ST_Intersects(ST_GeomFromText('LINESTRING ( 0 0, 0 2 )'), geometry) FROM t;")
@@ -385,7 +385,7 @@ mod test {
 
         ctx.register_udf(Contains::new().into());
         ctx.register_udf(Crosses::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
         ctx.register_udf(Intersects::new().into());
         ctx.register_udf(Overlaps::new().into());
 
@@ -436,7 +436,7 @@ mod test {
 
         ctx.register_udf(Contains::new().into());
         ctx.register_udf(Crosses::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
         ctx.register_udf(Intersects::new().into());
         ctx.register_udf(Overlaps::new().into());
 
@@ -487,7 +487,7 @@ mod test {
 
         ctx.register_udf(Contains::new().into());
         ctx.register_udf(Crosses::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
         ctx.register_udf(Intersects::new().into());
         ctx.register_udf(Overlaps::new().into());
 

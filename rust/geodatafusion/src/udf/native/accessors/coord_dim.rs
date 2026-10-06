@@ -178,7 +178,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(CoordDim::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql("SELECT ST_CoordDim(ST_GeomFromText('POINT(1 1)'));")
@@ -195,7 +195,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(NDims::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql("SELECT ST_NDims(ST_GeomFromText('POINT(1 1)'));")

@@ -80,7 +80,7 @@ mod test {
         let ctx = SessionContext::new();
 
         ctx.register_udf(Area::new().into());
-        ctx.register_udf(GeomFromText::new(Default::default()).into());
+        ctx.register_udf(GeomFromText::new().into());
 
         let df = ctx
             .sql(
