@@ -131,6 +131,20 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_IsValidReason | ✅          | Returns text stating if a geometry is valid, or a reason for invalidity.                     |
 | ST_MakeValid     |             | Attempts to make an invalid geometry valid without losing vertices.                          |
 
+### Spatial Reference System Functions
+
+| Name                        | Implemented | Description                                                                                                                                                   |
+| --------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| postgis_srs                 |             | Return a metadata record for the requested authority and srid.                                                                                                |
+| postgis_srs_all             |             | Return metadata records for every spatial reference system in the underlying Proj database.                                                                   |
+| postgis_srs_codes           |             | Return the list of SRS codes associated with the given authority.                                                                                             |
+| postgis_srs_search          |             | Return metadata records for projected coordinate systems that have areas of usage that fully contain the bounds parameter.                                    |
+| ST_InverseTransformPipeline |             | Return a new geometry with coordinates transformed to a different spatial reference system using the inverse of a defined coordinate transformation pipeline. |
+| ST_SetSRID                  | ✅          | Set the SRID on a geometry.                                                                                                                                   |
+| ST_SRID                     | ✅          | Returns the spatial reference identifier for a geometry.                                                                                                      |
+| ST_Transform                |             | Return a new geometry with coordinates transformed to a different spatial reference system.                                                                   |
+| ST_TransformPipeline        |             | Return a new geometry with coordinates transformed to a different spatial reference system using a defined coordinate transformation pipeline.                |
+
 ### Geometry Input
 
 #### Well-Known Text (WKT)

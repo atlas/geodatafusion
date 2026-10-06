@@ -2,6 +2,7 @@ mod accessors;
 mod bounding_box;
 mod constructors;
 mod io;
+mod srs;
 
 use pyo3::prelude::*;
 
@@ -48,6 +49,10 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<io::PyAsText>()?;
     m.add_class::<io::PyGeomFromText>()?;
     m.add_class::<io::PyGeomFromWKB>()?;
+
+    // srs
+    m.add_class::<srs::PySetSRID>()?;
+    m.add_class::<srs::PySRID>()?;
 
     Ok(())
 }

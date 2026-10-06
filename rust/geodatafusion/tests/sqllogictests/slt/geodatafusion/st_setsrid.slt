@@ -1,0 +1,65 @@
+# Edge cases for ST_SetSRID, not covered by the PostGIS docs examples.
+
+# EPSG, ESRI and unknown SRIDs
+query T
+SELECT ST_SetSRID('POINT(1 2)'::geometry, 4326)
+----
+SRID=4326;POINT(1 2)
+
+query T
+SELECT ST_SetSRID('POINT(1 2)'::geometry, 102003)
+----
+SRID=102003;POINT(1 2)
+
+query T
+SELECT ST_SetSRID('POINT(1 2)'::geometry, 123456)
+----
+SRID=123456;POINT(1 2)
+
+# SRIDs PostGIS clamps
+query I
+SELECT ST_SRID(ST_SetSRID('POINT(1 2)'::geometry, -1))
+----
+0
+
+query I
+SELECT ST_SRID(ST_SetSRID('POINT(1 2)'::geometry, 0))
+----
+0
+
+query I
+SELECT ST_SRID(ST_SetSRID('POINT(1 2)'::geometry, 1000000))
+----
+999001
+
+# NULL geometry or SRID
+query T
+SELECT ST_SetSRID(NULL::geometry, 4326)
+----
+NULL
+
+query T
+SELECT ST_SetSRID('POINT(1 2)'::geometry, NULL)
+----
+NULL
+
+# Replacing an SRID
+query I
+SELECT ST_SRID(ST_SetSRID(ST_SetSRID('POINT(1 2)'::geometry, 4326), 3857))
+----
+3857
+
+# Z and M survive
+query T
+SELECT ST_SetSRID('POINT ZM (1 2 3 4)'::geometry, 4326)
+----
+SRID=4326;POINT ZM (1 2 3 4)
+
+# A column of geometries, including NULL and EMPTY
+query T rowsort
+SELECT ST_SetSRID(g, 4326)
+FROM (VALUES ('POINT(1 2)'::geometry), (NULL::geometry), ('LINESTRING EMPTY'::geometry)) AS t(g)
+----
+NULL
+SRID=4326;LINESTRING EMPTY
+SRID=4326;POINT(1 2)

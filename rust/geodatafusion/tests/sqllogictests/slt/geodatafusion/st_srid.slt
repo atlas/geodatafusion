@@ -1,0 +1,33 @@
+# Edge cases for ST_SRID, not covered by the PostGIS docs examples.
+
+# No SRID
+query I
+SELECT ST_SRID('POINT(1 2)'::geometry)
+----
+0
+
+# SRID set with ST_SetSRID
+query I
+SELECT ST_SRID(ST_SetSRID('POINT(1 2)'::geometry, 4326))
+----
+4326
+
+# NULL input
+query I
+SELECT ST_SRID(NULL::geometry)
+----
+NULL
+
+# EMPTY input keeps the SRID
+query I
+SELECT ST_SRID(ST_SetSRID('POLYGON EMPTY'::geometry, 3857))
+----
+3857
+
+# A column of geometries
+query I rowsort
+SELECT ST_SRID(ST_SetSRID(g, 2263))
+FROM (VALUES ('POINT(1 2)'::geometry), ('LINESTRING(0 0,1 1)'::geometry)) AS t(g)
+----
+2263
+2263
