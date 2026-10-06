@@ -36,11 +36,33 @@ wkt = { workspace = true }
 
 [dev-dependencies]
 approx = { workspace = true }
-datafusion = { workspace = true, features = ["sql"] }
+async-trait = { workspace = true }
+# The sqllogictests run arbitrary PostGIS-flavoured SQL, so enable the full built-in function set.
+datafusion = { workspace = true, features = [
+    "sql",
+    "nested_expressions",
+    "crypto_expressions",
+    "datetime_expressions",
+    "encoding_expressions",
+    "math_expressions",
+    "regex_expressions",
+    "string_expressions",
+    "unicode_expressions",
+] }
+futures = { workspace = true }
 geo-traits = { workspace = true }
 geoarrow-array = { workspace = true, features = ["test-data"] }
+geoarrow-schema = { workspace = true }
 object_store = { workspace = true, features = ["http"] }
+sqllogictest = { workspace = true }
 tokio = { workspace = true, features = ["macros", "fs", "rt-multi-thread"] }
+tokio-postgres = { workspace = true }
+wkb = { workspace = true }
+
+[[test]]
+name = "sqllogictests"
+path = "tests/sqllogictests/main.rs"
+harness = false
 
 [package.metadata.docs.rs]
 all-features = true
