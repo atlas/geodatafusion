@@ -6,23 +6,34 @@ use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature, Volatility,
 };
 use datafusion_macros::user_doc;
-use geoarrow_array::array::from_arrow_array;
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::{common_metadata, geometry_array};
+use crate::util::signature::{Arg, coerce_args};
 
+/// PostGIS: ST_Distance(geometry g1, geometry g2).
+static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry, Arg::Geometry]];
+
+static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
+    Signature::user_defined(Volatility::Immutable)
+        .with_parameter_names(vec!["g1", "g2"])
+        .expect("parameter names are valid for a user-defined signature")
+});
+
+/// Returns the distance between two geometries.
 #[user_doc(
     doc_section(label = "Measurement Functions"),
     description = "For geometry types returns the minimum 2D Cartesian (planar) distance between two geometries, in projected units (spatial ref units).",
-    syntax_example = "ST_Distance(geomA, geomB)",
-    argument(name = "geomA", description = "geometry"),
-    argument(name = "geomB", description = "geometry")
+    syntax_example = "ST_Distance(g1, g2)",
+    argument(name = "g1", description = "geometry"),
+    argument(name = "g2", description = "geometry")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Distance;
 
 impl Distance {
     pub fn new() -> Self {
-        Self {}
+        Self
     }
 }
 
@@ -31,8 +42,6 @@ impl Default for Distance {
         Self::new()
     }
 }
-
-static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| Signature::any(2, Volatility::Immutable));
 
 impl ScalarUDFImpl for Distance {
     fn name(&self) -> &str {
@@ -47,8 +56,12 @@ impl ScalarUDFImpl for Distance {
         Ok(DataType::Float64)
     }
 
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(distance_impl(args)?)
+        Ok(distance_impl(self.name(), args)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -56,11 +69,11 @@ impl ScalarUDFImpl for Distance {
     }
 }
 
-fn distance_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-    let arrays = ColumnarValue::values_to_arrays(&args.args)?;
-    let left_arr = from_arrow_array(&arrays[0], &args.arg_fields[0])?;
-    let right_arr = from_arrow_array(&arrays[1], &args.arg_fields[1])?;
-    let result = geoarrow_expr_geo::euclidean_distance(&left_arr, &right_arr)?;
+fn distance_impl(name: &str, args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+    common_metadata(name, &args, &[0, 1])?;
+    let left = geometry_array(&args, 0)?;
+    let right = geometry_array(&args, 1)?;
+    let result = geoarrow_expr_geo::euclidean_distance(&left, &right)?;
     Ok(ColumnarValue::Array(Arc::new(result)))
 }
 

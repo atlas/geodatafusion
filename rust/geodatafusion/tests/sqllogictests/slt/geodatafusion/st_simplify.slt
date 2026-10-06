@@ -1,0 +1,19 @@
+# Edge cases for ST_Simplify, not covered by the PostGIS docs examples.
+
+# NULL tolerance
+query T
+SELECT ST_Simplify('LINESTRING(0 0,1 0.1,2 0)'::geometry, NULL)
+----
+NULL
+
+# NULL geometry
+query T
+SELECT ST_Simplify(NULL::geometry, 1)
+----
+NULL
+
+# Integer tolerance
+query T
+SELECT ST_AsText(ST_Simplify('LINESTRING(0 0,1 0.1,2 0)'::geometry, 1))
+----
+LINESTRING(0 0,2 0)

@@ -1,0 +1,26 @@
+# Edge cases for ST_Distance, not covered by the PostGIS docs examples.
+
+# NULL arguments
+query R
+SELECT ST_Distance(NULL::geometry, 'POINT(0 0)'::geometry)
+----
+NULL
+
+query R
+SELECT ST_Distance('POINT(0 0)'::geometry, NULL::geometry)
+----
+NULL
+
+# Same SRID
+query R
+SELECT ST_Distance(ST_SetSRID('POINT(0 0)'::geometry, 4326), ST_SetSRID('POINT(3 4)'::geometry, 4326))
+----
+5
+
+# Mixed SRIDs are an error
+statement error
+SELECT ST_Distance(ST_SetSRID('POINT(0 0)'::geometry, 4326), ST_SetSRID('POINT(3 4)'::geometry, 3857))
+
+# Wrong argument types are an error
+statement error
+SELECT ST_Distance('POINT(0 0)'::geometry, 1)

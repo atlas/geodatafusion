@@ -145,9 +145,17 @@ pub(crate) enum Arg {
     /// `geometry` (or `box2d`/`box3d`): any of [`any_geometry_type`], kept as is so the field
     /// metadata survives. `Null` becomes `Binary`, a NULL WKB value.
     Geometry,
+    /// `float8`: numeric types and `Null` become `Float64`.
+    Float,
     /// An `integer` SRID. Integer types and `Null` are kept as is, so that a constant stays a
     /// literal for `return_field_from_args`: coercing it would wrap it in a cast.
     Srid,
+    /// `boolean`: `Boolean` and `Null` become `Boolean`.
+    #[cfg_attr(
+        all(not(feature = "geos-3_11"), not(test)),
+        expect(dead_code, reason = "only GEOS-backed UDFs take a boolean so far")
+    )]
+    Boolean,
 }
 
 impl Arg {
@@ -158,8 +166,10 @@ impl Arg {
         match (self, data_type) {
             (Arg::Geometry, Null) => Some(Binary),
             (Arg::Geometry, t) if any_geometry_type().contains(t) => Some(t.clone()),
+            (Arg::Float, t) if t.is_numeric() || t.is_null() => Some(Float64),
             (Arg::Srid, Null) => Some(Null),
             (Arg::Srid, t) if t.is_integer() => Some(t.clone()),
+            (Arg::Boolean, Boolean | Null) => Some(Boolean),
             _ => None,
         }
     }
@@ -168,7 +178,9 @@ impl Arg {
     fn sql_name(self) -> &'static str {
         match self {
             Arg::Geometry => "geometry",
+            Arg::Float => "float8",
             Arg::Srid => "integer",
+            Arg::Boolean => "boolean",
         }
     }
 }
@@ -215,34 +227,65 @@ pub(crate) fn coerce_args(
 mod test {
     use super::*;
 
-    const OVERLOADS: &[&[Arg]] = &[&[Arg::Geometry], &[Arg::Geometry, Arg::Srid]];
+    const OVERLOADS: &[&[Arg]] = &[
+        &[Arg::Geometry, Arg::Float],
+        &[Arg::Geometry, Arg::Float, Arg::Boolean],
+    ];
 
     #[test]
     fn test_coerce_args_picks_matching_overload() {
-        let coerced = coerce_args("st_setsrid", &[DataType::Binary], OVERLOADS).unwrap();
-        assert_eq!(coerced, vec![DataType::Binary]);
-
+        let wkb = DataType::Binary;
         let coerced =
-            coerce_args("st_setsrid", &[DataType::Null, DataType::Int64], OVERLOADS).unwrap();
-        assert_eq!(coerced, vec![DataType::Binary, DataType::Int64]);
+            coerce_args("st_simplify", &[wkb.clone(), DataType::Int64], OVERLOADS).unwrap();
+        assert_eq!(coerced, vec![wkb.clone(), DataType::Float64]);
+
+        let coerced = coerce_args(
+            "st_simplify",
+            &[DataType::Null, DataType::Float32, DataType::Null],
+            OVERLOADS,
+        )
+        .unwrap();
+        assert_eq!(
+            coerced,
+            vec![DataType::Binary, DataType::Float64, DataType::Boolean]
+        );
     }
 
     #[test]
-    fn test_coerce_args_keeps_srid_literal_types() {
-        let coerced =
-            coerce_args("st_setsrid", &[DataType::Binary, DataType::Null], OVERLOADS).unwrap();
+    fn test_coerce_args_keeps_srid_integer_type() {
+        let coerced = coerce_args(
+            "st_setsrid",
+            &[DataType::Binary, DataType::Int64],
+            &[&[Arg::Geometry, Arg::Srid]],
+        )
+        .unwrap();
+        assert_eq!(coerced, vec![DataType::Binary, DataType::Int64]);
+
+        let coerced = coerce_args(
+            "st_setsrid",
+            &[DataType::Binary, DataType::Null],
+            &[&[Arg::Geometry, Arg::Srid]],
+        )
+        .unwrap();
         assert_eq!(coerced, vec![DataType::Binary, DataType::Null]);
     }
 
     #[test]
     fn test_coerce_args_rejects_unsupported_types() {
-        let err = coerce_args("st_setsrid", &[DataType::Binary, DataType::Utf8], OVERLOADS)
-            .unwrap_err()
-            .to_string();
+        let err = coerce_args(
+            "st_simplify",
+            &[DataType::Binary, DataType::Utf8],
+            OVERLOADS,
+        )
+        .unwrap_err()
+        .to_string();
         assert!(
-            err.contains("st_setsrid does not support arguments (Binary, Utf8)"),
+            err.contains("st_simplify does not support arguments (Binary, Utf8)"),
             "{err}"
         );
-        assert!(err.contains("st_setsrid(geometry, integer)"), "{err}");
+        assert!(
+            err.contains("st_simplify(geometry, float8, boolean)"),
+            "{err}"
+        );
     }
 }

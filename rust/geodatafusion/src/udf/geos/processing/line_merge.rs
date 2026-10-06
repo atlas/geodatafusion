@@ -6,7 +6,7 @@ use datafusion::common::internal_err;
 use datafusion::error::{DataFusionError, Result};
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
-    TypeSignature, Volatility,
+    Volatility,
 };
 use datafusion::scalar::ScalarValue;
 use datafusion_macros::user_doc;
@@ -17,21 +17,14 @@ use geoarrow_schema::{CoordType, GeoArrowType, GeometryType, Metadata};
 use geos::{Geom, Geometry};
 
 use crate::error::GeoDataFusionResult;
-use crate::util::signature::any_geometry_type;
+use crate::util::signature::{Arg, coerce_args};
 
-/// A single geometry argument, optionally followed by the `directed` boolean.
-static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
-    let geometry_types = any_geometry_type();
-    let mut variants = Vec::with_capacity(geometry_types.len() * 2);
-    for geometry_type in geometry_types {
-        variants.push(TypeSignature::Exact(vec![geometry_type.clone()]));
-        variants.push(TypeSignature::Exact(vec![
-            geometry_type.clone(),
-            DataType::Boolean,
-        ]));
-    }
-    Signature::one_of(variants, Volatility::Immutable)
-});
+/// PostGIS: ST_LineMerge(geometry amultilinestring) and
+/// ST_LineMerge(geometry amultilinestring, boolean directed).
+static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry], &[Arg::Geometry, Arg::Boolean]];
+
+static SIGNATURE: LazyLock<Signature> =
+    LazyLock::new(|| Signature::user_defined(Volatility::Immutable));
 
 /// Sews together the component lines of a (multi)linestring.
 #[user_doc(
@@ -73,6 +66,10 @@ impl ScalarUDFImpl for LineMerge {
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
         Ok(return_field_impl(args, self.coord_type)?)
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
