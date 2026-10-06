@@ -1,0 +1,87 @@
+# Edge cases for ST_EndPoint, not covered by the PostGIS docs examples.
+
+# Every dimension, keeping the SRID
+query T
+SELECT ST_AsEWKT(ST_EndPoint('SRID=4326;LINESTRING(1 2,5 6)'::geometry))
+----
+SRID=4326;POINT(5 6)
+
+query T
+SELECT ST_AsEWKT(ST_EndPoint('LINESTRING Z (1 2 3,5 6 7)'::geometry))
+----
+POINT(5 6 7)
+
+query T
+SELECT ST_AsEWKT(ST_EndPoint('LINESTRING M (1 2 3,5 6 7)'::geometry))
+----
+POINTM(5 6 7)
+
+query T
+SELECT ST_AsEWKT(ST_EndPoint('LINESTRING ZM (1 2 3 4,5 6 7 8)'::geometry))
+----
+POINT(5 6 7 8)
+
+# Other geometry types
+query T
+SELECT ST_AsEWKT(ST_EndPoint('POINT(1 2)'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_EndPoint('POLYGON((0 0,1 0,1 1,0 0))'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_EndPoint('MULTIPOINT(1 2,3 4)'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_EndPoint('MULTILINESTRING((1 2,3 4),(5 6,7 8))'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_EndPoint('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_EndPoint('GEOMETRYCOLLECTION(POLYGON((0 0,1 0,1 1,0 0)),LINESTRING(1 2,3 4))'::geometry))
+----
+NULL
+
+# EMPTY and NULL
+query T
+SELECT ST_AsEWKT(ST_EndPoint('LINESTRING EMPTY'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_EndPoint('POINT EMPTY'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_EndPoint('MULTILINESTRING(EMPTY,(1 2,3 4))'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_EndPoint('GEOMETRYCOLLECTION EMPTY'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_EndPoint(NULL::geometry))
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_AsEWKT(ST_EndPoint(g)) FROM (VALUES ('LINESTRING(1 2,5 6)'::geometry), (NULL::geometry), ('POINT(3 4)'::geometry)) AS t(g)
+----
+NULL
+NULL
+POINT(5 6)
