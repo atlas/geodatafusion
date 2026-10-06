@@ -139,6 +139,11 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    `scalar_srid`, and `util::ordinates`/`util::owned`, are added with their first user.
 2. **The biggest unlock:** G4's ST_GeomFromEWKT/ST_AsEWKT and PostGIS number formatting. EWKT
    is the first failure in about 100 records.
+   *Status:* done: PostGIS number formatting and ISO/extended WKT writing, a PostGIS-compatible
+   (E)WKT parser behind ST_GeomFromText, ST_GeomFromEWKT and ST_AsEWKT. Parity 116/637 ->
+   265/773. Most records that used EWKT now fail on functions from other groups instead. Left
+   for later G4 batches: EWKB, the type-checked `*FromText` constructors, and routing plain
+   text geometry arguments through the new parser.
 3. **Migrations:** each group moves its existing functions to its template and output encoding,
    in one breaking release (E6 H3a: no public user breaks). The functions changing backend move
    (E2).

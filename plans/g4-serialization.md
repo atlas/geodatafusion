@@ -367,6 +367,11 @@ pub(crate) fn write_number(out: &mut String, value: f64, max_decimal_digits: i64
 pub(crate) fn write_fixed(out: &mut String, value: f64, decimals: usize);
 ```
 
+> **Correction (phase 2):** the rule below misses two cases. A carry out of the mantissa in
+> exponential notation keeps the exponent (`9.99e-9` with 0 decimals is `10e-9`), and of several
+> shortest round-trip digit strings PostGIS picks the closest, ties to even. The implementation
+> (`native/io/util/number.rs`) is checked against 3,471 cases recorded from PostGIS.
+
 The `write_number` rule was reverse-engineered and checked: a prototype matched PostGIS on all
 5,514 cases tried (random magnitudes 1e-12 to 1e17, ties, `maxdecimaldigits` -1 to 20). Notable
 cases: `0.45` at 1 decimal is `0.4` and `2.675` at 2 is `2.68` (rounding the *shortest* digits,
