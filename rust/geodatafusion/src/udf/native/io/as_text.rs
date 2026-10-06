@@ -3,16 +3,13 @@
 use std::sync::{Arc, LazyLock};
 
 use arrow_array::{Array, Int32Array, StringArray};
-use arrow_schema::{DataType, Field, FieldRef};
-use datafusion::common::internal_err;
+use arrow_schema::DataType;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
-    ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
-    Volatility,
+    ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature, Volatility,
 };
 use datafusion_macros::user_doc;
 use geo_traits::GeometryTrait;
-use geoarrow_schema::WktType;
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::io::util::number::DEFAULT_MAX_DECIMAL_DIGITS;
@@ -67,15 +64,7 @@ impl ScalarUDFImpl for AsText {
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        internal_err!("return_field_from_args should be called instead")
-    }
-
-    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        // TODO: return plain Utf8 with the other breaking output changes (plans/README.md, D3).
-        let wkt_type = WktType::new(input_metadata(&args.arg_fields[0]));
-        Ok(Arc::new(
-            Field::new(self.name(), DataType::Utf8, true).with_extension_type(wkt_type),
-        ))
+        Ok(DataType::Utf8)
     }
 
     fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
@@ -263,10 +252,10 @@ mod test {
         assert_eq!(output_batches.len(), 1);
         let output_batch = &output_batches[0];
 
+        // PostGIS returns text, so the CRS isn't kept.
         let output_schema = output_batch.schema();
         let output_field = output_schema.field(0);
-        let output_wkb_type = output_field.try_extension_type::<WktType>().unwrap();
-
-        assert_eq!(&crs, output_wkb_type.metadata().crs());
+        assert_eq!(output_field.data_type(), &DataType::Utf8);
+        assert_eq!(output_field.extension_type_name(), None);
     }
 }
