@@ -9,6 +9,7 @@ geodatafusion/st_contains 5/5
 geodatafusion/st_coveredby 5/5
 geodatafusion/st_covers 5/5
 geodatafusion/st_distance 5/5
+geodatafusion/st_geohash 2/8
 geodatafusion/st_geomfromewkt 13/13
 geodatafusion/st_geomfromtext 57/59
 geodatafusion/st_intersects 5/5
