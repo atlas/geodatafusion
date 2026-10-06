@@ -133,6 +133,10 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
 1. **Foundations:** G6 batch 1 (`src/util/` including the kernel drivers and WKB output, errors,
    `#[user_doc]`, SRID helpers, ST_SRID, ST_SetSRID). In parallel: the predicate
    argument-order bug and the panics, which give wrong answers or crash today.
+   *Status:* done, except the remaining panics (ST_EndPoint on `LINESTRING EMPTY`,
+   ST_MakePointM with interleaved coordinates), ST_Extent's partial aggregation, and
+   GeoParquet's PROJJSON expansion and missing-`crs` default. `util::args` readers beyond
+   `scalar_srid`, and `util::ordinates`/`util::owned`, are added with their first user.
 2. **The biggest unlock:** G4's ST_GeomFromEWKT/ST_AsEWKT and PostGIS number formatting. EWKT
    is the first failure in about 100 records.
 3. **Migrations:** each group moves its existing functions to its template and output encoding,
