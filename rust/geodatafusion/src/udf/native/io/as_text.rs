@@ -1,3 +1,5 @@
+//! Well-Known Text output: ST_AsText and ST_AsEWKT.
+
 use std::sync::{Arc, LazyLock};
 
 use arrow_array::{Array, Int32Array, StringArray};
@@ -14,13 +16,14 @@ use geoarrow_schema::WktType;
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::io::util::number::DEFAULT_MAX_DECIMAL_DIGITS;
-use crate::udf::native::io::util::wkt::write_wkt;
+use crate::udf::native::io::util::wkt::{WktFlavor, write_wkt};
 use crate::util::args::optional_int_arg;
 use crate::util::field::{geometry_array, input_metadata};
 use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::signature::{Arg, coerce_args};
+use crate::util::srid::{SRID_UNKNOWN, crs_to_srid};
 
-/// PostGIS: ST_AsText(geometry g1, integer maxdecimaldigits = 15).
+/// PostGIS: ST_AsText(geometry g1, integer maxdecimaldigits = 15), and the same for ST_AsEWKT.
 static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry], &[Arg::Geometry, Arg::Integer]];
 
 static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
@@ -114,8 +117,113 @@ impl GeometryKernel for AsTextKernel {
             return Ok(None);
         }
         let mut wkt = String::new();
-        write_wkt(&mut wkt, geom, self.max_decimal_digits.value(row));
+        write_wkt(
+            &mut wkt,
+            geom,
+            WktFlavor::Iso,
+            self.max_decimal_digits.value(row),
+        );
         Ok(Some(wkt))
+    }
+}
+
+static EWKT_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
+    Signature::user_defined(Volatility::Immutable)
+        .with_parameter_names(vec!["g1", "maxdecimaldigits"])
+        .expect("parameter names are valid for a user-defined signature")
+});
+
+/// Returns the Well-Known Text (WKT) representation of the geometry with SRID metadata.
+#[user_doc(
+    doc_section(label = "Geometry Output"),
+    description = "Returns the Extended Well-Known Text (EWKT) representation of the geometry: WKT prefixed with SRID=n; when the SRID isn't 0. Coordinates are written with at most maxdecimaldigits decimals (default 15), as PostGIS writes them. A CRS that doesn't name an SRID is written without a prefix.",
+    syntax_example = "ST_AsEWKT(g1, maxdecimaldigits)",
+    argument(name = "g1", description = "geometry"),
+    argument(name = "maxdecimaldigits", description = "integer"),
+    related_udf(name = "st_astext"),
+    related_udf(name = "st_geomfromewkt")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct AsEWKT;
+
+impl AsEWKT {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for AsEWKT {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for AsEWKT {
+    fn name(&self) -> &str {
+        "st_asewkt"
+    }
+
+    fn signature(&self) -> &Signature {
+        &EWKT_SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        Ok(DataType::Utf8)
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(as_ewkt_impl(args)?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+fn as_ewkt_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+    // The SRID is the column's, so the prefix is the same for every row.
+    let prefix = match crs_to_srid(input_metadata(&args.arg_fields[0]).crs()) {
+        Some(srid) if srid != SRID_UNKNOWN => format!("SRID={srid};"),
+        _ => String::new(),
+    };
+    let geometries = geometry_array(&args, 0)?;
+    let kernel = AsEWKTKernel {
+        prefix,
+        max_decimal_digits: optional_int_arg(&args, 1, DEFAULT_MAX_DECIMAL_DIGITS)?,
+    };
+    let result: StringArray = map_geometry(geometries.as_ref(), &kernel)?;
+    Ok(ColumnarValue::Array(Arc::new(result)))
+}
+
+struct AsEWKTKernel {
+    prefix: String,
+    max_decimal_digits: Int32Array,
+}
+
+impl GeometryKernel for AsEWKTKernel {
+    type Output = String;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<String>> {
+        // SQL NULL in, SQL NULL out.
+        if self.max_decimal_digits.is_null(row) {
+            return Ok(None);
+        }
+        let mut ewkt = self.prefix.clone();
+        write_wkt(
+            &mut ewkt,
+            geom,
+            WktFlavor::Extended,
+            self.max_decimal_digits.value(row),
+        );
+        Ok(Some(ewkt))
     }
 }
 

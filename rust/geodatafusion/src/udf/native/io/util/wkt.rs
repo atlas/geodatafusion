@@ -16,18 +16,34 @@ use wkt::types::{
 use crate::udf::native::io::util::number::write_number;
 use crate::util::srid::clamp_srid;
 
-/// Writes ISO WKT as PostGIS's ST_AsText does: `POINT Z (1 2 3)`, `MULTIPOINT((1 2),(3 4))`,
-/// `POINT Z EMPTY`, with every collection member tagged with its dimension.
+/// The WKT dialects PostGIS writes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum WktFlavor {
+    /// ISO WKT, as ST_AsText writes it: `POINT Z (1 2 3)`, `MULTIPOINT((1 2),(3 4))`,
+    /// `POINT Z EMPTY`, with every collection member tagged with its dimension.
+    Iso,
+    /// PostGIS's extended WKT, as ST_AsEWKT writes it (without the `SRID=n;` prefix): no Z tag,
+    /// an M tag glued to the keyword (`POINTM(1 2 3)`), `MULTIPOINT(1 2,EMPTY)`, and
+    /// `POINT EMPTY` for XYZ and XYZM.
+    Extended,
+}
+
+/// Writes a geometry as WKT in the given flavour.
 pub(crate) fn write_wkt(
     out: &mut String,
     geom: &impl GeometryTrait<T = f64>,
+    flavor: WktFlavor,
     max_decimal_digits: i32,
 ) {
-    let writer = WktWriter { max_decimal_digits };
+    let writer = WktWriter {
+        flavor,
+        max_decimal_digits,
+    };
     writer.geometry(out, geom);
 }
 
 struct WktWriter {
+    flavor: WktFlavor,
     max_decimal_digits: i32,
 }
 
@@ -65,6 +81,10 @@ impl WktWriter {
                             out.push(',');
                         }
                         match point.coord().filter(|_| !is_empty_point(&point)) {
+                            // Extended WKT writes multipoint members without parentheses.
+                            Some(coord) if self.flavor == WktFlavor::Extended => {
+                                self.coord(out, &coord);
+                            }
                             Some(coord) => {
                                 out.push('(');
                                 self.coord(out, &coord);
@@ -157,10 +177,20 @@ impl WktWriter {
         }
     }
 
-    /// Writes the type keyword, the dimension tag and, for an empty geometry, `EMPTY`. A
-    /// non-empty geometry with a tag gets a space before its coordinates (`POINT Z (`).
+    /// Writes the type keyword, the dimension tag and, for an empty geometry, `EMPTY`. In ISO
+    /// WKT a non-empty geometry with a tag gets a space before its coordinates (`POINT Z (`).
     fn header(&self, out: &mut String, keyword: &str, dim: Dimensions, empty: bool) {
         out.push_str(keyword);
+        if self.flavor == WktFlavor::Extended {
+            // Extended WKT only tags M, glued to the keyword, since the coordinate count shows Z.
+            if dim == Dimensions::Xym {
+                out.push('M');
+            }
+            if empty {
+                out.push_str(" EMPTY");
+            }
+            return;
+        }
         let tag = match dim {
             Dimensions::Xyz | Dimensions::Unknown(3) => " Z",
             Dimensions::Xym => " M",
