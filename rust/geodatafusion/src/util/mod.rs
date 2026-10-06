@@ -7,3 +7,5 @@ pub(crate) mod ordinates;
 pub(crate) mod signature;
 pub(crate) mod srid;
 mod srid_authorities;
+#[cfg(test)]
+pub(crate) mod test;

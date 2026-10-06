@@ -11,11 +11,11 @@ pub use point_on_surface::PointOnSurface;
 pub use simplify::{Simplify, SimplifyPreserveTopology, SimplifyVW};
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
-    session_context.register_udf(Centroid::default().into());
-    session_context.register_udf(ConvexHull::default().into());
-    session_context.register_udf(OrientedEnvelope::default().into());
-    session_context.register_udf(PointOnSurface::default().into());
-    session_context.register_udf(Simplify::default().into());
-    session_context.register_udf(SimplifyPreserveTopology::default().into());
-    session_context.register_udf(SimplifyVW::default().into());
+    session_context.register_udf(Centroid.into());
+    session_context.register_udf(ConvexHull.into());
+    session_context.register_udf(OrientedEnvelope.into());
+    session_context.register_udf(PointOnSurface.into());
+    session_context.register_udf(Simplify.into());
+    session_context.register_udf(SimplifyPreserveTopology.into());
+    session_context.register_udf(SimplifyVW.into());
 }

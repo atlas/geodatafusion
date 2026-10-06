@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use arrow_schema::{DataType, FieldRef};
 use datafusion::common::internal_err;
 use datafusion::error::Result;
@@ -7,11 +5,10 @@ use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
 use datafusion_macros::user_doc;
-use geoarrow_array::GeoArrowArray;
-use geoarrow_array::array::from_arrow_array;
-use geoarrow_schema::{CoordType, Dimension, Metadata, PolygonType};
+use geoarrow_schema::CoordType;
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::{geometry_array, input_metadata, wkb_result, wkb_return_field};
 use crate::util::signature::single_geometry;
 
 #[user_doc(
@@ -21,19 +18,17 @@ use crate::util::signature::single_geometry;
     argument(name = "g1", description = "geometry")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct OrientedEnvelope {
-    coord_type: CoordType,
-}
+pub struct OrientedEnvelope;
 
 impl OrientedEnvelope {
-    pub fn new(coord_type: CoordType) -> Self {
-        Self { coord_type }
+    pub fn new() -> Self {
+        Self
     }
 }
 
 impl Default for OrientedEnvelope {
     fn default() -> Self {
-        Self::new(Default::default())
+        Self::new()
     }
 }
 
@@ -51,11 +46,14 @@ impl ScalarUDFImpl for OrientedEnvelope {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        Ok(return_field_impl(args, self.coord_type)?)
+        Ok(wkb_return_field(
+            self.name(),
+            input_metadata(&args.arg_fields[0]),
+        ))
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(convex_hull_impl(args, self.coord_type)?)
+        Ok(oriented_envelope_impl(args)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -63,21 +61,9 @@ impl ScalarUDFImpl for OrientedEnvelope {
     }
 }
 
-fn return_field_impl(
-    args: ReturnFieldArgs,
-    coord_type: CoordType,
-) -> GeoDataFusionResult<FieldRef> {
-    let metadata = Arc::new(Metadata::try_from(args.arg_fields[0].as_ref()).unwrap_or_default());
-    let output_type = PolygonType::new(Dimension::XY, metadata).with_coord_type(coord_type);
-    Ok(Arc::new(output_type.to_field("", true)))
-}
-
-fn convex_hull_impl(
-    args: ScalarFunctionArgs,
-    coord_type: CoordType,
-) -> GeoDataFusionResult<ColumnarValue> {
-    let arrays = ColumnarValue::values_to_arrays(&args.args)?;
-    let geo_array = from_arrow_array(&arrays[0], &args.arg_fields[0])?;
-    let result = geoarrow_expr_geo::minimum_rotated_rect(&geo_array, coord_type)?;
-    Ok(ColumnarValue::Array(result.into_array_ref()))
+fn oriented_envelope_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+    let geometries = geometry_array(&args, 0)?;
+    // geoarrow-expr-geo builds a native array; the result is converted to WKB.
+    let result = geoarrow_expr_geo::minimum_rotated_rect(&geometries, CoordType::default())?;
+    wkb_result(&result, &args.return_field)
 }

@@ -27,7 +27,7 @@ mod tests {
             .with_file_formats(vec![file_format])
             .build();
         let ctx = SessionContext::new_with_state(state).enable_url_table();
-        ctx.register_udf(Centroid::new(Default::default()).into());
+        ctx.register_udf(Centroid.into());
 
         let df = ctx
             .sql("SELECT ST_Centroid(geometry) FROM '../../fixtures/geoparquet/nybb_wkb.parquet' as table")

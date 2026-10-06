@@ -74,7 +74,7 @@ mod tests {
         // Register under a name
         ctx.register_table("countries", Arc::new(table)).unwrap();
 
-        ctx.register_udf(Centroid::new(Default::default()).into());
+        ctx.register_udf(Centroid.into());
 
         let df = ctx
             .sql("SELECT ST_Centroid(geometry) as centroid, * FROM countries WHERE name = 'Zambia'")
