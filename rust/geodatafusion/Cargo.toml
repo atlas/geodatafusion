@@ -16,7 +16,7 @@ rust-version = { workspace = true }
 # and the structure should be recursive
 # (with higher version targets implying lower version ones
 # in a chain.)
-geos-3_11 = ["geos/v3_11_0"]
+geos-3_11 = ["dep:geos", "geos/v3_11_0"]
 
 [dependencies]
 arrow-arith = { workspace = true }
