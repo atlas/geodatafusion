@@ -77,7 +77,7 @@ postgis_docs/st_closestpoint 0/2
 postgis_docs/st_closestpointofapproach 0/1
 postgis_docs/st_clusterintersecting 0/1
 postgis_docs/st_clusterintersectingwin 0/1
-postgis_docs/st_clusterkmeans 0/2
+postgis_docs/st_clusterkmeans 0/3
 postgis_docs/st_clusterwithin 0/1
 postgis_docs/st_clusterwithinwin 0/1
 postgis_docs/st_collect 0/4
