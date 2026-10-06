@@ -44,8 +44,10 @@ geos = { version = "11.1", default-features = false }
 http-range-client = { version = "0.9", default-features = false }
 object_store = "0.13.2"
 serde_json = "1"
+sqllogictest = "0.29"
 tempfile = "3"
 thiserror = "1"
 tokio = { version = "1.9", default-features = false }
+tokio-postgres = "0.7"
 wkb = "0.9"
 wkt = "0.14"

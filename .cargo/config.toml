@@ -1,0 +1,4 @@
+[alias]
+# Run the PostGIS parity sqllogictests, e.g. `cargo slt st_area` or `cargo slt -- --complete st_area`.
+# Always with --all-features, which is what parity.txt and CI use.
+slt = "test -p geodatafusion --all-features --test sqllogictests --"
