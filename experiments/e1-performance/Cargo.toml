@@ -1,0 +1,36 @@
+[package]
+name = "e1-performance"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Standalone: not part of the repository workspace.
+[workspace]
+
+[dependencies]
+arrow-array = "58.1"
+arrow-buffer = "58.1"
+arrow-data = "58.1"
+arrow-schema = "58.1"
+datafusion = { version = "54", default-features = false, features = ["sql"] }
+geo = "0.31.0"
+geo-traits = "0.3.0"
+geoarrow-array = "0.8.0"
+geoarrow-expr-geo = "0.8.0"
+geoarrow-schema = "0.8.0"
+geodatafusion = { path = "../../rust/geodatafusion", features = ["geos-3_11"] }
+geos = { version = "11.1", default-features = false, features = ["v3_11_0"] }
+tokio = { version = "1.9", default-features = false, features = ["rt"] }
+wkb = "0.9"
+wkt = "0.14"
+
+# Same as Cargo's default release profile (the workspace doesn't override it), spelled out so
+# the comparison's build settings are explicit.
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+overflow-checks = false
+lto = false
+codegen-units = 16
+incremental = false

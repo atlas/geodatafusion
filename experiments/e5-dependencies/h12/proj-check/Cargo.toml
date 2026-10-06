@@ -1,0 +1,24 @@
+[package]
+name = "proj-check"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+# Standalone: not part of the geodatafusion workspace.
+[workspace]
+
+[features]
+default = ["bundled"]
+# Build PROJ 9.6.2 from the source tarball shipped in proj-sys (cmake + sqlite3).
+bundled = ["proj/bundled_proj", "proj-sys/bundled_proj"]
+
+[dependencies]
+proj = { version = "0.31", default-features = false }
+proj-sys = "0.27"
+
+[[bin]]
+name = "proj-check"
+path = "src/main.rs"
+
+[profile.release]
+debug = false

@@ -1,0 +1,4 @@
+- GeoArrow tag, abbreviated PROJJSON EPSG:4326: geopandas -> FAIL Invalid projection: {"$schema": "https://proj.org/schemas/v0.7/projjson.schema.json", "type": "GeographicCRS", "name": "; duckdb -> GEOMETRY('EPSG:4326'); GDAL IPC -> (unknown)
+- GeoParquet crs, abbreviated PROJJSON EPSG:4326: geopandas -> FAIL Invalid projection: {"$schema": "https://proj.org/schemas/v0.7/projjson.schema.json", "type": "GeographicCRS", "name": "; duckdb -> GEOMETRY('EPSG:4326'); GDAL -> (unknown)
+- GeoArrow tag, abbreviated PROJJSON EPSG:3857: geopandas -> FAIL Invalid projection: {"$schema": "https://proj.org/schemas/v0.7/projjson.schema.json", "type": "ProjectedCRS", "name": "W; duckdb -> GEOMETRY('EPSG:3857'); GDAL IPC -> (unknown)
+- GeoParquet crs, abbreviated PROJJSON EPSG:3857: geopandas -> FAIL Invalid projection: {"$schema": "https://proj.org/schemas/v0.7/projjson.schema.json", "type": "ProjectedCRS", "name": "W; duckdb -> GEOMETRY('EPSG:3857'); GDAL -> (unknown)
