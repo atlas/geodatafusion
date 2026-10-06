@@ -26,8 +26,8 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(IsClosed.into());
     session_context.register_udf(IsEmpty.into());
     session_context.register_udf(Dump::default().into());
-    session_context.register_udf(EndPoint::default().into());
-    session_context.register_udf(StartPoint::default().into());
+    session_context.register_udf(EndPoint.into());
+    session_context.register_udf(StartPoint.into());
     session_context.register_udf(NPoints.into());
     session_context.register_udf(NumInteriorRings.into());
     session_context.register_udf(M.into());

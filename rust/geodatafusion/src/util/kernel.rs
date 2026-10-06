@@ -60,13 +60,6 @@ where
 
 /// Applies a geometry-returning `kernel` to every geometry of `array` and writes the results as
 /// WKB, with the type (and so the CRS) of `return_field`.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "used by the geometry-returning UDFs once they move to WKB outputs"
-    )
-)]
 pub(crate) fn map_geometry_to_wkb<K>(
     array: &dyn GeoArrowArray,
     kernel: &K,
@@ -87,13 +80,6 @@ where
     Ok(Arc::new(builder.finish()))
 }
 
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "used by the geometry-returning UDFs once they move to WKB outputs"
-    )
-)]
 fn map_geometry_to_wkb_impl<'a, K>(
     array: &'a impl GeoArrowArrayAccessor<'a>,
     kernel: &K,
