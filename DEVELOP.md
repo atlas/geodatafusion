@@ -85,7 +85,10 @@ cargo doc --all-features --open
 
 ### Adding New Functions
 
-We follow the [PostGIS API](https://postgis.net/docs/reference.html) as closely as possible. When implementing a new function:
+We follow the [PostGIS API](https://postgis.net/docs/reference.html) as closely as possible. The
+[parity plan](plans/README.md) groups every PostGIS function by how it's implemented; find the
+function in [plans/inventory.md](plans/inventory.md) and follow its group's plan. When
+implementing a new function:
 
 1. **Check the README** - See if the function is listed in the function table
 2. **Find similar implementations** - Look at existing functions in the same category
@@ -132,6 +135,8 @@ the crates using geodatafusion directly reference `geos`.
 
 ### Code Style
 
+See [STYLE_GUIDE.md](STYLE_GUIDE.md) for the full conventions. In short:
+
 - Use meaningful variable and function names
 - Add doc comments for public APIs
 - Follow Rust naming conventions (snake_case for functions, PascalCase for types)
@@ -146,16 +151,46 @@ the crates using geodatafusion directly reference `geos`.
 - Add SQL integration tests when appropriate
 - Test against PostGIS behavior when possible
 
-Example test structure:
+#### PostGIS parity tests
+
+`rust/geodatafusion/tests/sqllogictests/` holds sqllogictest files whose expected output is
+recorded from a real PostGIS. Every example from the PostGIS reference docs is included, plus
+hand-written edge cases. See its [README](rust/geodatafusion/tests/sqllogictests/README.md).
+
+```bash
+cargo slt st_area                            # run the tests for one function
+cargo slt                                    # run everything (also part of `cargo test --all-features`)
+dev/postgis.sh start                         # start PostGIS in docker/podman
+cargo slt --complete geodatafusion/st_area   # record expected output from PostGIS
+cargo slt --update-parity                    # record improved pass counts in parity.txt
+```
+
+Unit tests cover the Rust API (return types, metadata, CRS propagation) rather than behaviour,
+which the parity tests cover. Example unit test structure:
 
 ```rust
-#[test]
-fn test_st_area_polygon() {
-    // Test case description
-    let input = /* ... */;
-    let expected = /* ... */;
-    let result = st_area(input);
-    assert_eq!(result, expected);
+#[cfg(test)]
+mod test {
+    use arrow_array::cast::AsArray;
+    use arrow_array::types::Float64Type;
+    use datafusion::prelude::SessionContext;
+
+    use super::*;
+    use crate::udf::native::io::GeomFromText;
+
+    #[tokio::test]
+    async fn test_area_returns_float64() {
+        let ctx = SessionContext::new();
+        ctx.register_udf(Area::default().into());
+        ctx.register_udf(GeomFromText::default().into());
+
+        let df = ctx
+            .sql("SELECT ST_Area(ST_GeomFromText('POLYGON((0 0,0 1,1 1,1 0,0 0))'))")
+            .await
+            .unwrap();
+        let batch = df.collect().await.unwrap().into_iter().next().unwrap();
+        assert_eq!(batch.column(0).as_primitive::<Float64Type>().value(0), 1.0);
+    }
 }
 ```
 
