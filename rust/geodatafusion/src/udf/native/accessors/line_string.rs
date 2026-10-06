@@ -116,61 +116,6 @@ impl ScalarUDFImpl for EndPoint {
     }
 }
 
-// Not yet exported because we don't handle the nth point second argument yet
-#[derive(Debug, Eq, PartialEq, Hash)]
-#[expect(dead_code)]
-struct PointN {
-    coord_type: CoordType,
-}
-
-impl PointN {
-    // Not yet exported because we don't handle the nth point second argument yet
-    #[expect(dead_code)]
-    pub fn new(coord_type: CoordType) -> Self {
-        Self { coord_type }
-    }
-}
-
-impl Default for PointN {
-    fn default() -> Self {
-        Self::new(Default::default())
-    }
-}
-
-// Not yet exported because we don't handle the nth point second argument yet
-#[expect(dead_code)]
-static POINT_N_DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
-
-impl ScalarUDFImpl for PointN {
-    fn name(&self) -> &str {
-        "st_pointn"
-    }
-
-    fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
-    }
-
-    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Err(DataFusionError::Internal("return_type".to_string()))
-    }
-
-    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        Ok(return_field_impl(args, self.coord_type)?)
-    }
-
-    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(point_impl(args, self.coord_type, Mode::Start)?)
-    }
-
-    fn documentation(&self) -> Option<&Documentation> {
-        Some(POINT_N_DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(DOC_SECTION_OTHER, "Return the Nth point in a single linestring or circular linestring in the geometry. Negative values are counted backwards from the end of the LineString, so that -1 is the last point. Returns NULL if there is no linestring in the geometry.", "ST_PointN(line_string, 1)" )
-                .with_argument("g1", "geometry")
-                .build()
-        }))
-    }
-}
-
 /// For LineString input, return fixed-dim Point output
 /// For other geometry input, return variable-dim Geometry output
 fn return_field_impl(
@@ -196,8 +141,6 @@ fn return_field_impl(
 enum Mode {
     Start,
     End,
-    #[allow(dead_code)]
-    N(usize),
 }
 
 fn point_impl(
@@ -287,15 +230,6 @@ fn get_linestring_coord(
     match mode {
         Mode::Start => geom.coord(0),
         Mode::End => geom.coord(geom.num_coords() - 1),
-        Mode::N(n) => {
-            if n < geom.num_coords() {
-                // Index is 1-based as for OGC specs since version 0.8.0
-                // https://postgis.net/docs/ST_PointN.html
-                geom.coord(n - 1)
-            } else {
-                None
-            }
-        }
     }
 }
 
