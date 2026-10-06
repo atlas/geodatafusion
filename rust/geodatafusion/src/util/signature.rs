@@ -147,6 +147,8 @@ pub(crate) enum Arg {
     Geometry,
     /// `float8`: numeric types and `Null` become `Float64`.
     Float,
+    /// `integer`: integer types and `Null` become `Int32`.
+    Integer,
     /// An `integer` SRID. Integer types and `Null` are kept as is, so that a constant stays a
     /// literal for `return_field_from_args`: coercing it would wrap it in a cast.
     Srid,
@@ -167,6 +169,7 @@ impl Arg {
             (Arg::Geometry, Null) => Some(Binary),
             (Arg::Geometry, t) if any_geometry_type().contains(t) => Some(t.clone()),
             (Arg::Float, t) if t.is_numeric() || t.is_null() => Some(Float64),
+            (Arg::Integer, t) if t.is_integer() || t.is_null() => Some(Int32),
             (Arg::Srid, Null) => Some(Null),
             (Arg::Srid, t) if t.is_integer() => Some(t.clone()),
             (Arg::Boolean, Boolean | Null) => Some(Boolean),
@@ -179,6 +182,7 @@ impl Arg {
         match self {
             Arg::Geometry => "geometry",
             Arg::Float => "float8",
+            Arg::Integer => "integer",
             Arg::Srid => "integer",
             Arg::Boolean => "boolean",
         }
