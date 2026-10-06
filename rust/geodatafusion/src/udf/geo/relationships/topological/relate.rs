@@ -1,8 +1,9 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use arrow_array::builder::BooleanBuilder;
 use arrow_array::{Array, BooleanArray};
 use arrow_schema::{DataType, Field};
+use datafusion::common::utils::take_function_args;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature, Volatility,
@@ -16,6 +17,17 @@ use geoarrow_expr_geo::util::to_geo::geometry_to_geo;
 use geoarrow_schema::error::GeoArrowResult;
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::common_metadata;
+use crate::util::signature::{Arg, coerce_args};
+
+/// PostGIS: ST_Contains(geometry geomA, geometry geomB), and the same for every predicate.
+static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry, Arg::Geometry]];
+
+static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
+    Signature::user_defined(Volatility::Immutable)
+        .with_parameter_names(vec!["geomA", "geomB"])
+        .expect("parameter names are valid for a user-defined signature")
+});
 
 /// Declares a spatial predicate UDF: the standard UDF anatomy, with `$callback` reading the
 /// DE-9IM matrix of `(geomA, geomB)`.
@@ -32,15 +44,11 @@ macro_rules! impl_relate_udf {
             argument(name = "geomB", description = "geometry")
         )]
         #[derive(Debug, Eq, PartialEq, Hash)]
-        pub struct $struct_name {
-            signature: Signature,
-        }
+        pub struct $struct_name;
 
         impl $struct_name {
             pub fn new() -> Self {
-                Self {
-                    signature: Signature::any(2, Volatility::Immutable),
-                }
+                Self
             }
         }
 
@@ -56,19 +64,24 @@ macro_rules! impl_relate_udf {
             }
 
             fn signature(&self) -> &Signature {
-                &self.signature
+                &SIGNATURE
             }
 
             fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
                 Ok(DataType::Boolean)
             }
 
+            fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+                coerce_args(self.name(), arg_types, ARGUMENTS)
+            }
+
             fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-                let mut arrays = args.args.into_iter();
+                common_metadata(self.name(), &args, &[0, 1])?;
+                let [left, right] = take_function_args(self.name(), args.args)?;
                 Ok(relate_impl(
-                    arrays.next().unwrap(),
+                    left,
                     &args.arg_fields[0],
-                    arrays.next().unwrap(),
+                    right,
                     &args.arg_fields[1],
                     $callback,
                 )?)

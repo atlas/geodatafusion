@@ -5,8 +5,10 @@
 geodatafusion/st_contains 5/5
 geodatafusion/st_coveredby 5/5
 geodatafusion/st_covers 5/5
+geodatafusion/st_distance 5/5
 geodatafusion/st_intersects 5/5
 geodatafusion/st_setsrid 11/11
+geodatafusion/st_simplify 3/3
 geodatafusion/st_srid 5/5
 geodatafusion/st_within 5/5
 postgis_docs/box2d 1/2

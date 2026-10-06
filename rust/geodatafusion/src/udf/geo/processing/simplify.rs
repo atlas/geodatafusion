@@ -1,8 +1,9 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
+use arrow_array::new_null_array;
 use arrow_schema::{DataType, FieldRef};
-use datafusion::common::internal_err;
-use datafusion::error::{DataFusionError, Result};
+use datafusion::common::{internal_err, not_impl_datafusion_err};
+use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
     Volatility,
@@ -10,31 +11,39 @@ use datafusion::logical_expr::{
 use datafusion::scalar::ScalarValue;
 use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
-use geoarrow_array::array::from_arrow_array;
 use geoarrow_schema::error::GeoArrowResult;
 use geoarrow_schema::{CoordType, Dimension, GeoArrowType, GeometryType};
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::geometry_array;
+use crate::util::signature::{Arg, coerce_args};
 
+/// PostGIS: ST_Simplify(geometry geom, float tolerance) and the same for ST_SimplifyVW and
+/// ST_SimplifyPreserveTopology.
+static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry, Arg::Float]];
+
+static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
+    Signature::user_defined(Volatility::Immutable)
+        .with_parameter_names(vec!["geom", "tolerance"])
+        .expect("parameter names are valid for a user-defined signature")
+});
+
+/// Returns a simplified representation of a geometry, using the Douglas-Peucker algorithm.
 #[user_doc(
     doc_section(label = "Geometry Processing"),
-    description = "Computes a simplified representation of a geometry using the Douglas-Peucker algorithm. The simplification tolerance is a distance value, in the units of the input SRS. Simplification removes vertices which are within the tolerance distance of the simplified linework. The result may not be valid even if the input is.",
-    syntax_example = "ST_Simplify(geometry, epsilon)",
+    description = "Computes a simplified representation of a geometry using the Douglas-Peucker algorithm. The simplification tolerance is a distance value, in the units of the input SRS. Simplification removes vertices which are within the tolerance distance of the simplified linework. The result may not be valid even if the input is. Unlike PostGIS, the tolerance must be a constant.",
+    syntax_example = "ST_Simplify(geom, tolerance)",
     argument(name = "geom", description = "geometry"),
     argument(name = "tolerance", description = "float8")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Simplify {
-    signature: Signature,
     coord_type: CoordType,
 }
 
 impl Simplify {
     pub fn new(coord_type: CoordType) -> Self {
-        Self {
-            signature: Signature::any(2, Volatility::Immutable),
-            coord_type,
-        }
+        Self { coord_type }
     }
 }
 
@@ -50,7 +59,7 @@ impl ScalarUDFImpl for Simplify {
     }
 
     fn signature(&self) -> &Signature {
-        &self.signature
+        &SIGNATURE
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
@@ -61,9 +70,17 @@ impl ScalarUDFImpl for Simplify {
         Ok(return_field_impl(args, self.coord_type)?)
     }
 
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
         // TODO: pass down coord_type
-        Ok(simplify_impl(args, geoarrow_expr_geo::simplify)?)
+        Ok(simplify_impl(
+            self.name(),
+            args,
+            geoarrow_expr_geo::simplify,
+        )?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -71,25 +88,22 @@ impl ScalarUDFImpl for Simplify {
     }
 }
 
+/// Returns a simplified representation of a geometry, using the Visvalingam-Whyatt algorithm.
 #[user_doc(
     doc_section(label = "Geometry Processing"),
-    description = "Returns a simplified representation of a geometry using the Visvalingam-Whyatt algorithm. The simplification tolerance is an area value, in the units of the input SRS. Simplification removes vertices which form \"corners\" with area less than the tolerance. The result may not be valid even if the input is.",
-    syntax_example = "ST_SimplifyVW(geometry, epsilon)",
+    description = "Returns a simplified representation of a geometry using the Visvalingam-Whyatt algorithm. The simplification tolerance is an area value, in the units of the input SRS. Simplification removes vertices which form \"corners\" with area less than the tolerance. The result may not be valid even if the input is. Unlike PostGIS, the tolerance must be a constant.",
+    syntax_example = "ST_SimplifyVW(geom, tolerance)",
     argument(name = "geom", description = "geometry"),
     argument(name = "tolerance", description = "float8")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct SimplifyVW {
-    signature: Signature,
     coord_type: CoordType,
 }
 
 impl SimplifyVW {
     pub fn new(coord_type: CoordType) -> Self {
-        Self {
-            signature: Signature::any(2, Volatility::Immutable),
-            coord_type,
-        }
+        Self { coord_type }
     }
 }
 
@@ -105,7 +119,7 @@ impl ScalarUDFImpl for SimplifyVW {
     }
 
     fn signature(&self) -> &Signature {
-        &self.signature
+        &SIGNATURE
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
@@ -116,9 +130,17 @@ impl ScalarUDFImpl for SimplifyVW {
         Ok(return_field_impl(args, self.coord_type)?)
     }
 
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
         // TODO: pass down coord_type
-        Ok(simplify_impl(args, geoarrow_expr_geo::simplify_vw)?)
+        Ok(simplify_impl(
+            self.name(),
+            args,
+            geoarrow_expr_geo::simplify_vw,
+        )?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -126,25 +148,22 @@ impl ScalarUDFImpl for SimplifyVW {
     }
 }
 
+/// Returns a simplified and valid representation of a geometry.
 #[user_doc(
     doc_section(label = "Geometry Processing"),
-    description = "Computes a simplified representation of a geometry using a variant of the Douglas-Peucker algorithm which limits simplification to ensure the result has the same topology as the input. The simplification tolerance is a distance value, in the units of the input SRS. Simplification removes vertices which are within the tolerance distance of the simplified linework, as long as topology is preserved. The result will be valid and simple if the input is.",
-    syntax_example = "ST_SimplifyPreserveTopology(geometry, epsilon)",
+    description = "Computes a simplified representation of a geometry, limiting simplification to ensure the result has the same topology as the input. The simplification tolerance is a distance value, in the units of the input SRS. Unlike PostGIS, which uses a variant of Douglas-Peucker, this uses a topology-preserving Visvalingam-Whyatt algorithm, and the tolerance must be a constant.",
+    syntax_example = "ST_SimplifyPreserveTopology(geom, tolerance)",
     argument(name = "geom", description = "geometry"),
     argument(name = "tolerance", description = "float8")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct SimplifyPreserveTopology {
-    signature: Signature,
     coord_type: CoordType,
 }
 
 impl SimplifyPreserveTopology {
     pub fn new(coord_type: CoordType) -> Self {
-        Self {
-            signature: Signature::any(2, Volatility::Immutable),
-            coord_type,
-        }
+        Self { coord_type }
     }
 }
 
@@ -160,7 +179,7 @@ impl ScalarUDFImpl for SimplifyPreserveTopology {
     }
 
     fn signature(&self) -> &Signature {
-        &self.signature
+        &SIGNATURE
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
@@ -171,9 +190,14 @@ impl ScalarUDFImpl for SimplifyPreserveTopology {
         Ok(return_field_impl(args, self.coord_type)?)
     }
 
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
         // TODO: pass down coord_type
         Ok(simplify_impl(
+            self.name(),
             args,
             geoarrow_expr_geo::simplify_vw_preserve,
         )?)
@@ -205,26 +229,26 @@ fn return_field_impl(
 }
 
 fn simplify_impl(
+    name: &str,
     args: ScalarFunctionArgs,
     simplify_fn: impl Fn(&dyn GeoArrowArray, f64) -> GeoArrowResult<Arc<dyn GeoArrowArray>>,
 ) -> GeoDataFusionResult<ColumnarValue> {
-    let arrays = ColumnarValue::values_to_arrays(&args.args[0..1])?;
-    let geo_array = from_arrow_array(&arrays[0], &args.arg_fields[0])?;
-    let epsilon = args.args[1].cast_to(&DataType::Float64, None)?;
-    let epsilon = match epsilon {
-        ColumnarValue::Scalar(scalar) => match scalar {
-            ScalarValue::Float64(val) => val.expect("Non-null epsilon"),
-            _ => unreachable!(),
-        },
-        ColumnarValue::Array(_) => {
-            return Err(DataFusionError::NotImplemented(
-                "Vectorized epsilon not yet implemented".to_string(),
-            )
-            .into());
+    let tolerance = match &args.args[1] {
+        ColumnarValue::Scalar(ScalarValue::Float64(tolerance)) => *tolerance,
+        // The geoarrow-expr-geo kernels take one tolerance for the whole array.
+        _ => {
+            return Err(
+                not_impl_datafusion_err!("{name} only supports a constant tolerance").into(),
+            );
         }
     };
-
-    let result = simplify_fn(&geo_array, epsilon)?;
+    // SQL NULL in, SQL NULL out.
+    let Some(tolerance) = tolerance else {
+        let nulls = new_null_array(args.return_field.data_type(), args.number_rows);
+        return Ok(ColumnarValue::Array(nulls));
+    };
+    let geometries = geometry_array(&args, 0)?;
+    let result = simplify_fn(&geometries, tolerance)?;
     Ok(result.to_array_ref().into())
 }
 
