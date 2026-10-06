@@ -1,14 +1,14 @@
 //! Accessors from LineString geometries
 
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_schema::{DataType, FieldRef};
 use datafusion::common::internal_err;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geo_traits::{CoordTrait, GeometryTrait, LineStringTrait, PointTrait};
 use geoarrow_array::array::{GeometryArray, LineStringArray, PointArray, from_arrow_array};
 use geoarrow_array::builder::{GeometryBuilder, PointBuilder};
@@ -19,6 +19,12 @@ use geoarrow_schema::{CoordType, GeoArrowType, GeometryType, PointType};
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Returns the first point of a LINESTRING geometry as a POINT. Returns NULL if the input is not a LINESTRING",
+    syntax_example = "ST_StartPoint(line_string)",
+    argument(name = "g1", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct StartPoint {
     coord_type: CoordType,
@@ -35,8 +41,6 @@ impl Default for StartPoint {
         Self::new(Default::default())
     }
 }
-
-static START_POINT_DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for StartPoint {
     fn name(&self) -> &str {
@@ -60,14 +64,16 @@ impl ScalarUDFImpl for StartPoint {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(START_POINT_DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(DOC_SECTION_OTHER, "Returns the first point of a LINESTRING geometry as a POINT. Returns NULL if the input is not a LINESTRING", "ST_StartPoint(line_string)" )
-                .with_argument("g1", "geometry")
-                .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Returns the last point of a LINESTRING geometry as a POINT. Returns NULL if the input is not a LINESTRING.",
+    syntax_example = "ST_EndPoint(line_string)",
+    argument(name = "g1", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct EndPoint {
     coord_type: CoordType,
@@ -84,8 +90,6 @@ impl Default for EndPoint {
         Self::new(Default::default())
     }
 }
-
-static END_POINT_DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for EndPoint {
     fn name(&self) -> &str {
@@ -109,11 +113,7 @@ impl ScalarUDFImpl for EndPoint {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(END_POINT_DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(DOC_SECTION_OTHER, "Returns the last point of a LINESTRING geometry as a POINT. Returns NULL if the input is not a LINESTRING.", "ST_EndPoint(line_string)" )
-                .with_argument("g1", "geometry")
-                .build()
-        }))
+        self.doc()
     }
 }
 

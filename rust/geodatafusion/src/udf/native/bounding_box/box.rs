@@ -1,12 +1,12 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_schema::{DataType, FieldRef};
 use datafusion::common::internal_err;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_schema::{BoxType, Dimension, Metadata};
@@ -15,6 +15,12 @@ use crate::error::GeoDataFusionResult;
 use crate::udf::native::bounding_box::util::bounds::bounding_rect;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Data Types"),
+    description = "Returns a box2d representing the 2D extent of the geometry.",
+    syntax_example = "Box2D(geometry)",
+    argument(name = "geom", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Box2D;
 
@@ -29,8 +35,6 @@ impl Default for Box2D {
         Self::new()
     }
 }
-
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for Box2D {
     fn name(&self) -> &str {
@@ -54,18 +58,16 @@ impl ScalarUDFImpl for Box2D {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns a box2d representing the 2D extent of the geometry.",
-                "Box2D(geometry)",
-            )
-            .with_argument("geom", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Data Types"),
+    description = "Returns a box3d representing the 3D extent of the geometry.",
+    syntax_example = "Box3D(geometry)",
+    argument(name = "geom", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Box3D;
 
@@ -80,8 +82,6 @@ impl Default for Box3D {
         Self::new()
     }
 }
-
-static DOC_3D: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for Box3D {
     fn name(&self) -> &str {
@@ -105,15 +105,7 @@ impl ScalarUDFImpl for Box3D {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOC_3D.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns a box3d representing the 3D extent of the geometry.",
-                "Box3D(geometry)",
-            )
-            .with_argument("geom", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

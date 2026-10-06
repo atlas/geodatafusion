@@ -1528,6 +1528,8 @@ dependencies = [
  "arrow-buffer",
  "arrow-schema",
  "datafusion",
+ "datafusion-doc",
+ "datafusion-macros",
  "geo",
  "geo-traits",
  "geoarrow-array",

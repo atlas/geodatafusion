@@ -1,12 +1,12 @@
-use std::sync::{Arc, LazyLock, OnceLock};
+use std::sync::{Arc, LazyLock};
 
 use arrow_array::builder::StringViewBuilder;
 use arrow_schema::DataType;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature, Volatility,
 };
+use datafusion_macros::user_doc;
 use geo_traits::PointTrait;
 use geo_traits::to_geo::ToGeoCoord;
 use geoarrow_array::GeoArrowArrayAccessor;
@@ -15,6 +15,12 @@ use geoarrow_schema::{CoordType, Dimension, PointType};
 
 use crate::error::GeoDataFusionResult;
 
+#[user_doc(
+    doc_section(label = "Geometry Output"),
+    description = "Computes a GeoHash representation of a geometry. A GeoHash encodes a geographic Point into a text form that is sortable and searchable based on prefixing. A shorter GeoHash is a less precise representation of a point. It can be thought of as a box that contains the point.",
+    syntax_example = "ST_GeoHash(point)",
+    argument(name = "geom", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct GeoHash;
 
@@ -30,7 +36,6 @@ impl Default for GeoHash {
     }
 }
 
-static GEOHASH_DOC: OnceLock<Documentation> = OnceLock::new();
 static GEOHASH_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
     let valid_types = vec![
         PointType::new(Dimension::XY, Default::default())
@@ -61,15 +66,7 @@ impl ScalarUDFImpl for GeoHash {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(GEOHASH_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Computes a GeoHash representation of a geometry. A GeoHash encodes a geographic Point into a text form that is sortable and searchable based on prefixing. A shorter GeoHash is a less precise representation of a point. It can be thought of as a box that contains the point.",
-                "ST_GeoHash(point)",
-            )
-            .with_argument("geom", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

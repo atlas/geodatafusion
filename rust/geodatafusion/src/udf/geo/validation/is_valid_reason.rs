@@ -1,16 +1,22 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_schema::DataType;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geoarrow_array::array::from_arrow_array;
 
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Geometry Validation"),
+    description = "Returns text stating if a geometry is valid, or if invalid a reason why.",
+    syntax_example = "ST_IsValidReason(geomA)",
+    argument(name = "geomA", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct IsValidReason;
 
@@ -25,8 +31,6 @@ impl Default for IsValidReason {
         Self::new()
     }
 }
-
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for IsValidReason {
     fn name(&self) -> &str {
@@ -46,15 +50,7 @@ impl ScalarUDFImpl for IsValidReason {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns text stating if a geometry is valid, or if invalid a reason why.",
-                "ST_IsValidReason(geomA)",
-            )
-            .with_argument("geomA", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

@@ -1,15 +1,22 @@
-use std::sync::{Arc, LazyLock, OnceLock};
+use std::sync::{Arc, LazyLock};
 
 use arrow_schema::DataType;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature, Volatility,
 };
+use datafusion_macros::user_doc;
 use geoarrow_array::array::from_arrow_array;
 
 use crate::error::GeoDataFusionResult;
 
+#[user_doc(
+    doc_section(label = "Measurement Functions"),
+    description = "For geometry types returns the minimum 2D Cartesian (planar) distance between two geometries, in projected units (spatial ref units).",
+    syntax_example = "ST_Distance(geomA, geomB)",
+    argument(name = "geomA", description = "geometry"),
+    argument(name = "geomB", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Distance;
 
@@ -26,7 +33,6 @@ impl Default for Distance {
 }
 
 static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| Signature::any(2, Volatility::Immutable));
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for Distance {
     fn name(&self) -> &str {
@@ -46,12 +52,7 @@ impl ScalarUDFImpl for Distance {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-                    Documentation::builder(DOC_SECTION_OTHER, "For geometry types returns the minimum 2D Cartesian (planar) distance between two geometries, in projected units (spatial ref units).", "ST_Distance(geomA, geomB)")
-                        .with_argument("geomA", "geometry")
-                        .with_argument("geomB", "geometry")
-                        .build()
-                }))
+        self.doc()
     }
 }
 

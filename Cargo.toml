@@ -27,6 +27,8 @@ async-trait = "0.1"
 datafusion = { version = "55.1", default-features = false }
 datafusion-datasource = { version = "55.1", default-features = false }
 datafusion-datasource-parquet = "55.1"
+datafusion-doc = "55.1"
+datafusion-macros = "55.1"
 flatgeobuf = { version = "5.0", default-features = false }
 futures = "0.3"
 geo = "0.33.1"

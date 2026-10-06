@@ -1,14 +1,14 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_array::Float64Array;
 use arrow_array::builder::Float64Builder;
 use arrow_schema::{DataType, Field};
 use datafusion::common::internal_err;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geo_traits::{CoordTrait, GeometryTrait, PointTrait};
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_array::{GeoArrowArrayAccessor, downcast_geoarrow_array};
@@ -16,6 +16,12 @@ use geoarrow_array::{GeoArrowArrayAccessor, downcast_geoarrow_array};
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::any_point_type_input;
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Return the X coordinate of the point, or NULL if not available. Input must be a point.",
+    syntax_example = "ST_X(geometry)",
+    argument(name = "a_point", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct X {
     signature: Signature,
@@ -34,8 +40,6 @@ impl Default for X {
         Self::new()
     }
 }
-
-static X_DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for X {
     fn name(&self) -> &str {
@@ -59,18 +63,16 @@ impl ScalarUDFImpl for X {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(X_DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Return the X coordinate of the point, or NULL if not available. Input must be a point.",
-                "ST_X(geometry)",
-            )
-            .with_argument("a_point", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Return the Y coordinate of the point, or NULL if not available. Input must be a point.",
+    syntax_example = "ST_Y(geometry)",
+    argument(name = "a_point", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Y {
     signature: Signature,
@@ -89,8 +91,6 @@ impl Default for Y {
         Self::new()
     }
 }
-
-static Y_DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for Y {
     fn name(&self) -> &str {
@@ -114,15 +114,7 @@ impl ScalarUDFImpl for Y {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(Y_DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Return the Y coordinate of the point, or NULL if not available. Input must be a point.",
-                "ST_Y(geometry)",
-            )
-            .with_argument("a_point", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 
@@ -159,6 +151,12 @@ fn _nth_impl<'a>(
     Ok(builder.finish())
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Return the Z coordinate of the point, or NULL if not available. Input must be a point.",
+    syntax_example = "ST_Z(geometry)",
+    argument(name = "a_point", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Z {
     signature: Signature,
@@ -177,8 +175,6 @@ impl Default for Z {
         Self::new()
     }
 }
-
-static Z_DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for Z {
     fn name(&self) -> &str {
@@ -202,18 +198,16 @@ impl ScalarUDFImpl for Z {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(Z_DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Return the Z coordinate of the point, or NULL if not available. Input must be a point.",
-                "ST_Z(geometry)",
-            )
-            .with_argument("a_point", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Return the M coordinate of the point, or NULL if not available. Input must be a point.",
+    syntax_example = "ST_M(geometry)",
+    argument(name = "a_point", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct M {
     signature: Signature,
@@ -232,8 +226,6 @@ impl Default for M {
         Self::new()
     }
 }
-
-static M_DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for M {
     fn name(&self) -> &str {
@@ -257,15 +249,7 @@ impl ScalarUDFImpl for M {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(M_DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Return the M coordinate of the point, or NULL if not available. Input must be a point.",
-                "ST_M(geometry)",
-            )
-            .with_argument("a_point", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

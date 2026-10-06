@@ -24,6 +24,8 @@ arrow-array = { workspace = true }
 arrow-buffer = { workspace = true }
 arrow-schema = { workspace = true }
 datafusion = { workspace = true }
+datafusion-doc = { workspace = true }
+datafusion-macros = { workspace = true }
 geo = { workspace = true }
 geo-traits = { workspace = true }
 geoarrow-array = { workspace = true }

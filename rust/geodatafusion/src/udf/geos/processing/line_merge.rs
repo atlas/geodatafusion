@@ -1,15 +1,15 @@
-use std::sync::{Arc, LazyLock, OnceLock};
+use std::sync::{Arc, LazyLock};
 
 use arrow_array::{Array, BinaryArray};
 use arrow_schema::{DataType, FieldRef};
 use datafusion::common::internal_err;
 use datafusion::error::{DataFusionError, Result};
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
     TypeSignature, Volatility,
 };
 use datafusion::scalar::ScalarValue;
+use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::{WkbArray, from_arrow_array};
 use geoarrow_array::cast::{from_wkb, to_wkb};
@@ -34,6 +34,13 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 });
 
 /// Sews together the component lines of a (multi)linestring.
+#[user_doc(
+    doc_section(label = "Geometry Processing"),
+    description = "Returns a (set of) LineString(s) formed by sewing together the constituent line work of a MultiLineString. Lines are joined at endpoints where exactly two lines meet; lines are not merged across intersections of three or more lines. When `directed` is true, lines are only merged when their directions agree. Non-linear inputs yield an empty GeometryCollection. This function strips the M dimension.",
+    syntax_example = "ST_LineMerge(geometry, directed)",
+    argument(name = "geom", description = "geometry"),
+    argument(name = "directed", description = "boolean")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct LineMerge {
     coord_type: CoordType,
@@ -50,8 +57,6 @@ impl Default for LineMerge {
         Self::new(Default::default())
     }
 }
-
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for LineMerge {
     fn name(&self) -> &str {
@@ -75,16 +80,7 @@ impl ScalarUDFImpl for LineMerge {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns a (set of) LineString(s) formed by sewing together the constituent line work of a MultiLineString. Lines are joined at endpoints where exactly two lines meet; lines are not merged across intersections of three or more lines. When `directed` is true, lines are only merged when their directions agree. Non-linear inputs yield an empty GeometryCollection. This function strips the M dimension.",
-                "ST_LineMerge(geometry, directed)",
-            )
-            .with_argument("geom", "geometry")
-            .with_argument("directed", "boolean")
-            .build()
-        }))
+        self.doc()
     }
 }
 

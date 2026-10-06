@@ -1,14 +1,14 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_schema::{DataType, FieldRef};
 use datafusion::common::internal_err;
 use datafusion::error::{DataFusionError, Result};
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
     Volatility,
 };
 use datafusion::scalar::ScalarValue;
+use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_schema::error::GeoArrowResult;
@@ -16,6 +16,13 @@ use geoarrow_schema::{CoordType, Dimension, GeoArrowType, GeometryType};
 
 use crate::error::GeoDataFusionResult;
 
+#[user_doc(
+    doc_section(label = "Geometry Processing"),
+    description = "Computes a simplified representation of a geometry using the Douglas-Peucker algorithm. The simplification tolerance is a distance value, in the units of the input SRS. Simplification removes vertices which are within the tolerance distance of the simplified linework. The result may not be valid even if the input is.",
+    syntax_example = "ST_Simplify(geometry, epsilon)",
+    argument(name = "geom", description = "geometry"),
+    argument(name = "tolerance", description = "float8")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Simplify {
     signature: Signature,
@@ -36,8 +43,6 @@ impl Default for Simplify {
         Self::new(Default::default())
     }
 }
-
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for Simplify {
     fn name(&self) -> &str {
@@ -62,19 +67,17 @@ impl ScalarUDFImpl for Simplify {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Computes a simplified representation of a geometry using the Douglas-Peucker algorithm. The simplification tolerance is a distance value, in the units of the input SRS. Simplification removes vertices which are within the tolerance distance of the simplified linework. The result may not be valid even if the input is.",
-                "ST_Simplify(geometry, epsilon)",
-            )
-            .with_argument("geom", "geometry")
-            .with_argument("tolerance", "float")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Processing"),
+    description = "Returns a simplified representation of a geometry using the Visvalingam-Whyatt algorithm. The simplification tolerance is an area value, in the units of the input SRS. Simplification removes vertices which form \"corners\" with area less than the tolerance. The result may not be valid even if the input is.",
+    syntax_example = "ST_SimplifyVW(geometry, epsilon)",
+    argument(name = "geom", description = "geometry"),
+    argument(name = "tolerance", description = "float8")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct SimplifyVW {
     signature: Signature,
@@ -95,8 +98,6 @@ impl Default for SimplifyVW {
         Self::new(Default::default())
     }
 }
-
-static DOCUMENTATION_VW: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for SimplifyVW {
     fn name(&self) -> &str {
@@ -121,19 +122,17 @@ impl ScalarUDFImpl for SimplifyVW {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION_VW.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns a simplified representation of a geometry using the Visvalingam-Whyatt algorithm. The simplification tolerance is an area value, in the units of the input SRS. Simplification removes vertices which form \"corners\" with area less than the tolerance. The result may not be valid even if the input is.",
-                "ST_SimplifyVW(geometry, epsilon)",
-            )
-            .with_argument("geom", "geometry")
-            .with_argument("tolerance", "float")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Processing"),
+    description = "Computes a simplified representation of a geometry using a variant of the Douglas-Peucker algorithm which limits simplification to ensure the result has the same topology as the input. The simplification tolerance is a distance value, in the units of the input SRS. Simplification removes vertices which are within the tolerance distance of the simplified linework, as long as topology is preserved. The result will be valid and simple if the input is.",
+    syntax_example = "ST_SimplifyPreserveTopology(geometry, epsilon)",
+    argument(name = "geom", description = "geometry"),
+    argument(name = "tolerance", description = "float8")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct SimplifyPreserveTopology {
     signature: Signature,
@@ -154,8 +153,6 @@ impl Default for SimplifyPreserveTopology {
         Self::new(Default::default())
     }
 }
-
-static DOCUMENTATION_TOPO: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for SimplifyPreserveTopology {
     fn name(&self) -> &str {
@@ -183,16 +180,7 @@ impl ScalarUDFImpl for SimplifyPreserveTopology {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION_TOPO.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Computes a simplified representation of a geometry using a variant of the Douglas-Peucker algorithm which limits simplification to ensure the result has the same topology as the input. The simplification tolerance is a distance value, in the units of the input SRS. Simplification removes vertices which are within the tolerance distance of the simplified linework, as long as topology is preserved. The result will be valid and simple if the input is.",
-                "ST_SimplifyPreserveTopology(geometry, epsilon)",
-            )
-            .with_argument("geom", "geometry")
-            .with_argument("tolerance", "float")
-            .build()
-        }))
+        self.doc()
     }
 }
 

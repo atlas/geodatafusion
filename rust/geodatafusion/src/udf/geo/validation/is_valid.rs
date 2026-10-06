@@ -1,16 +1,22 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_schema::DataType;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geoarrow_array::array::from_arrow_array;
 
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Geometry Validation"),
+    description = "Tests if an ST_Geometry value is well-formed and valid in 2D according to the OGC rules",
+    syntax_example = "ST_IsValid(geomA)",
+    argument(name = "geom", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct IsValid;
 
@@ -25,8 +31,6 @@ impl Default for IsValid {
         Self::new()
     }
 }
-
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for IsValid {
     fn name(&self) -> &str {
@@ -46,11 +50,7 @@ impl ScalarUDFImpl for IsValid {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(DOC_SECTION_OTHER, "Tests if an ST_Geometry value is well-formed and valid in 2D according to the OGC rules", "ST_IsValid(geomA)")
-                .with_argument("geom", "geometry")
-                .build()
-        }))
+        self.doc()
     }
 }
 

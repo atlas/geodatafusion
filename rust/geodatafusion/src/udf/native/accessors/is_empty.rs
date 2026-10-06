@@ -1,13 +1,13 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_array::BooleanArray;
 use arrow_array::builder::BooleanBuilder;
 use arrow_schema::DataType;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geo_traits::{
     GeometryCollectionTrait, GeometryTrait, LineStringTrait, MultiLineStringTrait, MultiPointTrait,
     MultiPolygonTrait, PointTrait, PolygonTrait,
@@ -18,6 +18,15 @@ use geoarrow_schema::GeoArrowType;
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Tests if a geometry is topologically empty. \
+                 Multi-geometries and GeometryCollections where every leaf is empty \
+                 (e.g. GEOMETRYCOLLECTION(POINT EMPTY, POLYGON EMPTY) are reported empty. \
+                 ST_IsEmpty(NULL) is NULL.",
+    syntax_example = "ST_IsEmpty(geom)",
+    argument(name = "geom", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct IsEmpty;
 
@@ -32,8 +41,6 @@ impl Default for IsEmpty {
         Self::new()
     }
 }
-
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for IsEmpty {
     fn name(&self) -> &str {
@@ -53,18 +60,7 @@ impl ScalarUDFImpl for IsEmpty {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Tests if a geometry is topologically empty. \
-                 Multi-geometries and GeometryCollections where every leaf is empty \
-                 (e.g. GEOMETRYCOLLECTION(POINT EMPTY, POLYGON EMPTY) are reported empty. \
-                 ST_IsEmpty(NULL) is NULL.",
-                "ST_IsEmpty(geom)",
-            )
-            .with_argument("geom", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

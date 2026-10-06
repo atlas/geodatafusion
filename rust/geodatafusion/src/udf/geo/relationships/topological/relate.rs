@@ -1,13 +1,13 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_array::builder::BooleanBuilder;
 use arrow_array::{Array, BooleanArray};
 use arrow_schema::{DataType, Field};
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature, Volatility,
 };
+use datafusion_macros::user_doc;
 use geo::relate::IntersectionMatrix;
 use geo::{PreparedGeometry, Relate};
 use geoarrow_array::array::from_arrow_array;
@@ -17,8 +17,20 @@ use geoarrow_schema::error::GeoArrowResult;
 
 use crate::error::GeoDataFusionResult;
 
+/// Declares a spatial predicate UDF: the standard UDF anatomy, with `$callback` reading the
+/// DE-9IM matrix of `(geomA, geomB)`.
+// rustfmt indents the `#[user_doc]` attribute further on every run inside a macro.
+#[rustfmt::skip]
 macro_rules! impl_relate_udf {
-    ($struct_name:ident, $udf_name:expr, $documentation_name:ident, $callback:expr, $doc_text:expr, $doc_example:expr) => {
+    ($struct_name:ident, $udf_name:literal, $callback:expr, $summary:literal, $doc_text:literal, $doc_example:literal) => {
+        #[doc = $summary]
+        #[user_doc(
+            doc_section(label = "Spatial Relationships"),
+            description = $doc_text,
+            syntax_example = $doc_example,
+            argument(name = "geomA", description = "geometry"),
+            argument(name = "geomB", description = "geometry")
+        )]
         #[derive(Debug, Eq, PartialEq, Hash)]
         pub struct $struct_name {
             signature: Signature,
@@ -37,8 +49,6 @@ macro_rules! impl_relate_udf {
                 Self::new()
             }
         }
-
-        static $documentation_name: OnceLock<Documentation> = OnceLock::new();
 
         impl ScalarUDFImpl for $struct_name {
             fn name(&self) -> &str {
@@ -65,12 +75,7 @@ macro_rules! impl_relate_udf {
             }
 
             fn documentation(&self) -> Option<&Documentation> {
-                Some($documentation_name.get_or_init(|| {
-                    Documentation::builder(DOC_SECTION_OTHER, $doc_text, $doc_example)
-                        .with_argument("geomA", "geometry")
-                        .with_argument("geomB", "geometry")
-                        .build()
-                }))
+                self.doc()
             }
         }
     };
@@ -79,64 +84,64 @@ macro_rules! impl_relate_udf {
 impl_relate_udf!(
     Intersects,
     "st_intersects",
-    INTERSECTS_DOC,
     |matrix| matrix.is_intersects(),
+    "Tests if two geometries intersect (they have at least one point in common).",
     "Returns true if two geometries intersect. Geometries intersect if they have any point in common.",
     "ST_Intersects(geomA, geomB)"
 );
 impl_relate_udf!(
     Disjoint,
     "st_disjoint",
-    DISJOINT_DOC,
     |matrix| matrix.is_disjoint(),
+    "Tests if two geometries have no points in common.",
     "Returns true if two geometries are disjoint. Geometries are disjoint if they have no point in common.",
     "ST_Disjoint(geomA, geomB)"
 );
 impl_relate_udf!(
     Within,
     "st_within",
-    WITHIN_DOC,
     |matrix| matrix.is_within(),
+    "Tests if every point of A lies in B, and their interiors have a point in common.",
     "Returns TRUE if geometry A is within geometry B. A is within B if and only if all points of A lie inside (i.e. in the interior or boundary of) B (or equivalently, no points of A lie in the exterior of B), and the interiors of A and B have at least one point in common.",
     "ST_Within(geomA, geomB)"
 );
 impl_relate_udf!(
     Contains,
     "st_contains",
-    CONTAINS_DOC,
     |matrix| matrix.is_contains(),
+    "Tests if every point of B lies in A, and their interiors have a point in common.",
     "Returns TRUE if geometry A contains geometry B. A contains B if and only if all points of B lie inside (i.e. in the interior or boundary of) A (or equivalently, no points of B lie in the exterior of A), and the interiors of A and B have at least one point in common.",
     "ST_Contains(geomA, geomB)"
 );
 impl_relate_udf!(
     Equals,
     "st_equals",
-    EQUALS_DOC,
     |matrix| matrix.is_equal_topo(),
+    "Tests if two geometries include the same set of points.",
     "Returns true if the given geometries are \"topologically equal\". Use this for a 'better' answer than '='. Topological equality means that the geometries have the same dimension, and their point-sets occupy the same space. This means that the order of vertices may be different in topologically equal geometries.",
     "ST_Equals(geomA, geomB)"
 );
 impl_relate_udf!(
     CoveredBy,
     "st_coveredby",
-    COVERED_BY_DOC,
     |matrix| matrix.is_coveredby(),
+    "Tests if every point of A lies in B.",
     "Returns true if every point in Geometry/Geography A lies inside (i.e. intersects the interior or boundary of) Geometry/Geography B. Equivalently, tests that no point of A lies outside (in the exterior of) B.",
     "ST_CoveredBy(geomA, geomB)"
 );
 impl_relate_udf!(
     Covers,
     "st_covers",
-    COVERS_DOC,
     |matrix| matrix.is_covers(),
+    "Tests if every point of B lies in A.",
     "Returns true if every point in Geometry/Geography B lies inside (i.e. intersects the interior or boundary of) Geometry/Geography A. Equivalently, tests that no point of B lies outside (in the exterior of) A.",
     "ST_Covers(geomA, geomB)"
 );
 impl_relate_udf!(
     Touches,
     "st_touches",
-    TOUCHES_DOC,
     |matrix| matrix.is_touches(),
+    "Tests if two geometries have at least one point in common, but their interiors do not intersect.",
     "Returns TRUE if A and B intersect, but their interiors do not intersect. Equivalently, A and B have at least one point in common, and the common points lie in at least one boundary. For Point/Point inputs the relationship is always FALSE, since points do not have a boundary.",
     "ST_Touches(geomA, geomB)"
 );
@@ -144,16 +149,16 @@ impl_relate_udf!(
 impl_relate_udf!(
     Crosses,
     "st_crosses",
-    CROSSES_DOC,
     |matrix| matrix.is_crosses(),
+    "Tests if two geometries have some, but not all, interior points in common.",
     "Compares two geometry objects and returns true if their intersection \"spatially crosses\"; that is, the geometries have some, but not all interior points in common. The intersection of the interiors of the geometries must be non-empty and must have dimension less than the maximum dimension of the two input geometries, and the intersection of the two geometries must not equal either geometry. Otherwise, it returns false. The crosses relation is symmetric and irreflexive.",
     "ST_Crosses(geomA, geomB)"
 );
 impl_relate_udf!(
     Overlaps,
     "st_overlaps",
-    OVERLAPS_DOC,
     |matrix| matrix.is_overlaps(),
+    "Tests if two geometries have the same dimension and intersect, but each has at least one point not in the other.",
     "Returns TRUE if geometry A and B \"spatially overlap\". Two geometries overlap if they have the same dimension, their interiors intersect in that dimension. and each has at least one point inside the other (or equivalently, neither one covers the other). The overlaps relation is symmetric and irreflexive.",
     "ST_Overlaps(geomA, geomB)"
 );

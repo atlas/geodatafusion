@@ -1,14 +1,14 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_array::builder::{ArrayBuilder, Int32Builder, ListBuilder};
 use arrow_array::{ArrayRef, ListArray, StructArray};
 use arrow_buffer::{NullBufferBuilder, OffsetBuffer};
 use arrow_schema::{DataType, Field, FieldRef, Fields};
 use datafusion::error::{DataFusionError, Result};
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geo_traits::{
     GeometryCollectionTrait, GeometryTrait, MultiLineStringTrait, MultiPointTrait,
     MultiPolygonTrait,
@@ -23,6 +23,18 @@ use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
 use crate::util::signature::single_geometry;
 
 /// Decomposes a geometry into its atomic components (POINT, LINESTRING, POLYGON).
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Decomposes a geometry into its atomic components (Point, LineString, Polygon). \
+                 Multi-geometries and GeometryCollections are split (recursively) into their parts. \
+                 Atomic geometries are returned unchanged. This includes Polygons, which are returned whole. \
+                 Returns, per input row, a list of `(path, geom)` structs where \
+                 `path` is the 1-based navigation path to the component (empty for an atomic input). \
+                 Use `unnest` if you want to expand into a row per component instead of row per input geom. \
+                 Empty inputs (recursively, per the same definition as ST_Empty) produce zero components.",
+    syntax_example = "ST_Dump(geom)",
+    argument(name = "geom", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Dump {
     coord_type: CoordType,
@@ -39,8 +51,6 @@ impl Default for Dump {
         Self::new(Default::default())
     }
 }
-
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for Dump {
     fn name(&self) -> &str {
@@ -69,21 +79,7 @@ impl ScalarUDFImpl for Dump {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Decomposes a geometry into its atomic components (Point, LineString, Polygon). \
-                 Multi-geometries and GeometryCollections are split (recursively) into their parts. \
-                 Atomic geometries are returned unchanged. This includes Polygons, which are returned whole. \
-                 Returns, per input row, a list of `(path, geom)` structs where \
-                 `path` is the 1-based navigation path to the component (empty for an atomic input). \
-                 Use `unnest` if you want to expand into a row per component instead of row per input geom. \
-                 Empty inputs (recursively, per the same definition as ST_Empty) produce zero components.",
-                "ST_Dump(geom)",
-            )
-            .with_argument("geom", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 

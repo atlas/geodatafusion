@@ -1,6 +1,6 @@
 //! Point constructors
 
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_array::cast::AsArray;
 use arrow_array::types::Float64Type;
@@ -8,12 +8,12 @@ use arrow_array::{Array, ArrayRef};
 use arrow_schema::{DataType, Field};
 use datafusion::common::internal_err;
 use datafusion::error::{DataFusionError, Result};
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
     TypeSignature, Volatility,
 };
 use datafusion::scalar::ScalarValue;
+use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::{PointArray, SeparatedCoordBuffer};
 use geoarrow_array::builder::PointBuilder;
@@ -21,6 +21,16 @@ use geoarrow_schema::{CoordType, Crs, Dimension, Metadata, PointType};
 
 use crate::error::GeoDataFusionResult;
 
+#[user_doc(
+    doc_section(label = "Geometry Constructors"),
+    description = "Returns a Point with the given X and Y coordinate values.",
+    syntax_example = "ST_Point(x, y, srid)",
+    argument(name = "x", description = "float8"),
+    argument(name = "y", description = "float8"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_makepoint"),
+    related_udf(name = "st_pointz")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Point {
     signature: Signature,
@@ -51,8 +61,6 @@ impl Default for Point {
         Self::new(Default::default())
     }
 }
-
-static POINT_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for Point {
     fn name(&self) -> &str {
@@ -92,22 +100,21 @@ impl ScalarUDFImpl for Point {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(POINT_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns a Point with the given X and Y coordinate values.",
-                "ST_Point(-71.104, 42.315) or ST_Point(-71.104, 42.315, 4326)",
-            )
-            .with_argument("x", "x value")
-            .with_argument("y", "y value")
-            .with_argument("srid", "integer SRID value")
-            .with_related_udf("st_makepoint")
-            .with_related_udf("st_pointz")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Constructors"),
+    description = "Returns an Point with the given X, Y and Z coordinate values, and optionally an SRID number.",
+    syntax_example = "ST_PointZ(x, y, z, srid)",
+    argument(name = "x", description = "float8"),
+    argument(name = "y", description = "float8"),
+    argument(name = "z", description = "float8"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_makepoint"),
+    related_udf(name = "st_pointz")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct PointZ {
     signature: Signature,
@@ -143,8 +150,6 @@ impl Default for PointZ {
         Self::new(Default::default())
     }
 }
-
-static POINT_Z_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for PointZ {
     fn name(&self) -> &str {
@@ -184,23 +189,21 @@ impl ScalarUDFImpl for PointZ {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(POINT_Z_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns an Point with the given X, Y and Z coordinate values, and optionally an SRID number.",
-                "ST_Point(-71.104, 42.315) or ST_Point(-71.104, 42.315, 4326)",
-            )
-            .with_argument("x", "x value")
-            .with_argument("y", "y value")
-            .with_argument("z", "z value")
-            .with_argument("srid", "integer SRID value")
-            .with_related_udf("st_makepoint")
-            .with_related_udf("st_pointz")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Constructors"),
+    description = "Returns an Point with the given X, Y and M coordinate values, and optionally an SRID number.",
+    syntax_example = "ST_PointM(x, y, m, srid)",
+    argument(name = "x", description = "float8"),
+    argument(name = "y", description = "float8"),
+    argument(name = "m", description = "float8"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_makepoint"),
+    related_udf(name = "st_pointz")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct PointM {
     signature: Signature,
@@ -236,8 +239,6 @@ impl Default for PointM {
         Self::new(Default::default())
     }
 }
-
-static POINT_M_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for PointM {
     fn name(&self) -> &str {
@@ -277,23 +278,22 @@ impl ScalarUDFImpl for PointM {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(POINT_M_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns an Point with the given X, Y and M coordinate values, and optionally an SRID number.",
-                "ST_PointM(-71.104, 42.315, 3.4) or ST_PointM(-71.104, 42.315, 3.4, 4326)",
-            )
-            .with_argument("x", "x value")
-            .with_argument("y", "y value")
-            .with_argument("m", "m value")
-            .with_argument("srid", "integer SRID value")
-            .with_related_udf("st_makepoint")
-            .with_related_udf("st_pointz")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Constructors"),
+    description = "Returns an Point with the given X, Y, Z and M coordinate values, and optionally an SRID number.",
+    syntax_example = "ST_PointZM(x, y, z, m, srid)",
+    argument(name = "x", description = "float8"),
+    argument(name = "y", description = "float8"),
+    argument(name = "z", description = "float8"),
+    argument(name = "m", description = "float8"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_makepoint"),
+    related_udf(name = "st_pointz")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct PointZM {
     signature: Signature,
@@ -331,8 +331,6 @@ impl Default for PointZM {
         Self::new(Default::default())
     }
 }
-
-static POINT_ZM_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for PointZM {
     fn name(&self) -> &str {
@@ -372,23 +370,21 @@ impl ScalarUDFImpl for PointZM {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(POINT_ZM_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns an Point with the given X, Y, Z and M coordinate values, and optionally an SRID number.",
-                "ST_Point(-71.104, 42.315) or ST_Point(-71.104, 42.315, 4326)",
-            )
-            .with_argument("x", "x value")
-            .with_argument("y", "y value")
-            .with_argument("z", "z value")
-            .with_argument("m", "m value")
-            .with_argument("srid", "integer SRID value")
-            .with_related_udf("st_makepoint")
-            .with_related_udf("st_pointz")
-            .build()
-        }))
+        self.doc()
     }
 }
+#[user_doc(
+    doc_section(label = "Geometry Constructors"),
+    description = "Creates a 2D XY or 3D XYZ or 4D XYZM Point geometry. Use ST_MakePointM to make points with XYM coordinates",
+    syntax_example = "ST_MakePoint(-71.104, 42.315)",
+    argument(name = "x", description = "float8"),
+    argument(name = "y", description = "float8"),
+    argument(name = "z", description = "float8"),
+    argument(name = "m", description = "float8"),
+    related_udf(name = "st_point"),
+    related_udf(name = "st_pointz"),
+    related_udf(name = "st_makepointm")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct MakePoint {
     signature: Signature,
@@ -426,8 +422,6 @@ impl Default for MakePoint {
     }
 }
 
-static MAKE_POINT_DOC: OnceLock<Documentation> = OnceLock::new();
-
 impl ScalarUDFImpl for MakePoint {
     fn name(&self) -> &str {
         "st_makepoint"
@@ -460,24 +454,21 @@ impl ScalarUDFImpl for MakePoint {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(MAKE_POINT_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Creates a 2D XY or 3D XYZ or 4D XYZM Point geometry. Use ST_MakePointM to make points with XYM coordinates",
-                "ST_MakePoint(-71.104, 42.315)",
-            )
-            .with_argument("x", "x value")
-            .with_argument("y", "y value")
-            .with_argument("z", "z value")
-            .with_argument("m", "m value")
-            .with_related_udf("st_point")
-            .with_related_udf("st_pointz")
-            .with_related_udf("ST_MakePointM")
-            .build()
-        }))
+        self.doc()
     }
 }
 
+#[user_doc(
+    doc_section(label = "Geometry Constructors"),
+    description = "Creates a point with X, Y and M (measure) ordinates. Use ST_MakePoint to make points with XY, XYZ, or XYZM coordinates.",
+    syntax_example = "ST_MakePointM(-71.104, 42.315, 10)",
+    argument(name = "x", description = "float8"),
+    argument(name = "y", description = "float8"),
+    argument(name = "m", description = "float8"),
+    related_udf(name = "st_point"),
+    related_udf(name = "st_pointz"),
+    related_udf(name = "st_makepoint")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct MakePointM {
     signature: Signature,
@@ -501,8 +492,6 @@ impl Default for MakePointM {
         Self::new(Default::default())
     }
 }
-
-static MAKE_POINT_M_DOC: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for MakePointM {
     fn name(&self) -> &str {
@@ -530,20 +519,7 @@ impl ScalarUDFImpl for MakePointM {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(MAKE_POINT_M_DOC.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Creates a point with X, Y and M (measure) ordinates. Use ST_MakePoint to make points with XY, XYZ, or XYZM coordinates.",
-                "ST_MakePointM(-71.104, 42.315, 10)",
-            )
-            .with_argument("x", "x value")
-            .with_argument("y", "y value")
-            .with_argument("m", "m value")
-            .with_related_udf("st_point")
-            .with_related_udf("st_pointz")
-            .with_related_udf("ST_MakePoint")
-            .build()
-        }))
+        self.doc()
     }
 }
 

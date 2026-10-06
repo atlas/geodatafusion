@@ -1,11 +1,11 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::Arc;
 
 use arrow_schema::DataType;
 use datafusion::error::Result;
-use datafusion::logical_expr::scalar_doc_sections::DOC_SECTION_OTHER;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
+use datafusion_macros::user_doc;
 use geoarrow_array::WrapArray;
 use geoarrow_expr_geo::unsigned_area;
 use geoarrow_schema::GeoArrowType;
@@ -13,6 +13,12 @@ use geoarrow_schema::GeoArrowType;
 use crate::error::GeoDataFusionResult;
 use crate::util::signature::single_geometry;
 
+#[user_doc(
+    doc_section(label = "Measurement Functions"),
+    description = "Returns the area of a polygonal geometry.",
+    syntax_example = "ST_Area(geom)",
+    argument(name = "geom", description = "geometry")
+)]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Area;
 
@@ -27,8 +33,6 @@ impl Default for Area {
         Self::new()
     }
 }
-
-static DOCUMENTATION: OnceLock<Documentation> = OnceLock::new();
 
 impl ScalarUDFImpl for Area {
     fn name(&self) -> &str {
@@ -48,15 +52,7 @@ impl ScalarUDFImpl for Area {
     }
 
     fn documentation(&self) -> Option<&Documentation> {
-        Some(DOCUMENTATION.get_or_init(|| {
-            Documentation::builder(
-                DOC_SECTION_OTHER,
-                "Returns the area of a polygonal geometry.",
-                "ST_Area(geom)",
-            )
-            .with_argument("geom", "geometry")
-            .build()
-        }))
+        self.doc()
     }
 }
 
