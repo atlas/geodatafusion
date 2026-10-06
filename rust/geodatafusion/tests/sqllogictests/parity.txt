@@ -11,11 +11,15 @@ geodatafusion/st_distance 5/5
 geodatafusion/st_geomfromewkt 13/13
 geodatafusion/st_geomfromtext 57/59
 geodatafusion/st_intersects 5/5
+geodatafusion/st_m 10/10
 geodatafusion/st_point 6/6
 geodatafusion/st_setsrid 11/11
 geodatafusion/st_simplify 3/3
 geodatafusion/st_srid 5/5
 geodatafusion/st_within 5/5
+geodatafusion/st_x 10/10
+geodatafusion/st_y 10/10
+geodatafusion/st_z 10/10
 postgis_docs/box2d 1/2
 postgis_docs/box3d 1/2
 postgis_docs/contains_box2df_box2df 0/1
@@ -191,7 +195,7 @@ postgis_docs/st_locatealong 0/1
 postgis_docs/st_locatebetween 0/2
 postgis_docs/st_locatebetweenelevations 0/2
 postgis_docs/st_longestline 0/3
-postgis_docs/st_m 0/1
+postgis_docs/st_m 1/1
 postgis_docs/st_makeenvelope 0/1
 postgis_docs/st_makeline 0/4
 postgis_docs/st_makepoint 4/4
@@ -280,8 +284,8 @@ postgis_docs/st_union 0/1
 postgis_docs/st_voronoilines 0/1
 postgis_docs/st_voronoipolygons 0/2
 postgis_docs/st_within 0/1
-postgis_docs/st_x 1/2
-postgis_docs/st_y 1/2
-postgis_docs/st_z 0/1
+postgis_docs/st_x 2/2
+postgis_docs/st_y 2/2
+postgis_docs/st_z 1/1
 postgis_docs/st_zmflag 0/4
 smoke/basic 5/5
