@@ -10,9 +10,9 @@ use geo_traits::{CoordTrait, RectTrait};
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_array::scalar::Rect;
 
-use crate::data_types::any_single_geometry_type_input;
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::bounding_box::util::bounds::impl_extrema;
+use crate::util::signature::single_geometry;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct XMin;
@@ -37,7 +37,7 @@ impl ScalarUDFImpl for XMin {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
@@ -90,7 +90,7 @@ impl ScalarUDFImpl for YMin {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
@@ -143,7 +143,7 @@ impl ScalarUDFImpl for ZMin {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
@@ -198,7 +198,7 @@ impl ScalarUDFImpl for XMax {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
@@ -251,7 +251,7 @@ impl ScalarUDFImpl for YMax {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
@@ -304,7 +304,7 @@ impl ScalarUDFImpl for ZMax {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {

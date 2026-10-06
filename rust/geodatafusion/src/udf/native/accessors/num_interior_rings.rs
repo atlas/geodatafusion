@@ -15,8 +15,8 @@ use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor, downcast_geoarrow_arr
 use geoarrow_schema::GeoArrowType;
 use geoarrow_schema::error::GeoArrowResult;
 
-use crate::data_types::any_single_geometry_type_input;
 use crate::error::GeoDataFusionResult;
+use crate::util::signature::single_geometry;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct NumInteriorRings;
@@ -42,7 +42,7 @@ impl ScalarUDFImpl for NumInteriorRings {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn aliases(&self) -> &[String] {

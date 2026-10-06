@@ -15,8 +15,8 @@ use geoarrow_array::cast::{from_wkb, to_wkb};
 use geoarrow_schema::{CoordType, GeoArrowType, GeometryType, Metadata};
 use geos::{Geom, Geometry};
 
-use crate::data_types::any_geometry_type;
 use crate::error::GeoDataFusionResult;
+use crate::util::signature::any_geometry_type;
 
 /// A single geometry argument, optionally followed by the `directed` boolean.
 static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
@@ -24,7 +24,10 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
     let mut variants = Vec::with_capacity(geometry_types.len() * 2);
     for geometry_type in geometry_types {
         variants.push(TypeSignature::Exact(vec![geometry_type.clone()]));
-        variants.push(TypeSignature::Exact(vec![geometry_type, DataType::Boolean]));
+        variants.push(TypeSignature::Exact(vec![
+            geometry_type.clone(),
+            DataType::Boolean,
+        ]));
     }
     Signature::one_of(variants, Volatility::Immutable)
 });

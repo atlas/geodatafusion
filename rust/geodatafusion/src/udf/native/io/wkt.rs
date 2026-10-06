@@ -12,8 +12,8 @@ use geoarrow_array::array::{LargeWktArray, WktArray, WktViewArray, from_arrow_ar
 use geoarrow_array::cast::{from_wkt, to_wkt};
 use geoarrow_schema::{CoordType, GeoArrowType, GeometryType, Metadata, WktType};
 
-use crate::data_types::any_single_geometry_type_input;
 use crate::error::GeoDataFusionResult;
+use crate::util::signature::single_geometry;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct AsText;
@@ -46,7 +46,7 @@ impl ScalarUDFImpl for AsText {
     }
 
     fn signature(&self) -> &Signature {
-        any_single_geometry_type_input()
+        single_geometry()
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> datafusion::error::Result<DataType> {

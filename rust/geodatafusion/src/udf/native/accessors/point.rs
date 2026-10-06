@@ -12,8 +12,8 @@ use geo_traits::{CoordTrait, GeometryTrait, PointTrait};
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_array::{GeoArrowArrayAccessor, downcast_geoarrow_array};
 
-use crate::data_types::any_point_type_input;
 use crate::error::GeoDataFusionResult;
+use crate::util::signature::any_point_type_input;
 
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct X {
