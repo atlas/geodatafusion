@@ -33,6 +33,7 @@ geoarrow-expr-geo = { workspace = true }
 geoarrow-schema = { workspace = true }
 geohash = { workspace = true }
 geos = { workspace = true, optional = true }
+serde_json = { workspace = true }
 thiserror = { workspace = true }
 wkt = { workspace = true }
 

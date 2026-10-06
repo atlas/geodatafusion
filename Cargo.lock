@@ -2064,6 +2064,7 @@ dependencies = [
  "geohash",
  "geos",
  "object_store",
+ "serde_json",
  "sqllogictest",
  "thiserror 1.0.69",
  "tokio",

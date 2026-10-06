@@ -101,6 +101,10 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.GeomFromText()))
     ctx.register_udf(udf(native.GeomFromWKB()))
 
+    # srs
+    ctx.register_udf(udf(native.SetSRID()))
+    ctx.register_udf(udf(native.SRID()))
+
 
 def register_all(ctx: SessionContext):
     register_all_geo(ctx)

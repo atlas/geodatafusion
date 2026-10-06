@@ -32,6 +32,8 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     crate::udf::native::constructors::register(session_context);
 
     crate::udf::native::io::register(session_context);
+
+    crate::udf::native::srs::register(session_context);
 }
 
 #[cfg(test)]

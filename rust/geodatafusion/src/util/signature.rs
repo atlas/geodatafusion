@@ -1,8 +1,10 @@
-//! Signatures for geodatafusion UDFs.
+//! Signatures and argument coercion for geodatafusion UDFs.
 
 use std::sync::LazyLock;
 
 use arrow_schema::DataType;
+use datafusion::common::plan_err;
+use datafusion::error::Result;
 use datafusion::logical_expr::{Signature, Volatility};
 use geoarrow_schema::{
     BoxType, CoordType, Dimension, GeometryCollectionType, GeometryType, LineStringType,
@@ -135,4 +137,112 @@ static ANY_POINT_TYPE: LazyLock<Vec<DataType>> = LazyLock::new(|| {
 
 pub(crate) fn any_point_type_input(arg_count: usize) -> Signature {
     Signature::uniform(arg_count, ANY_POINT_TYPE.clone(), Volatility::Immutable)
+}
+
+/// A PostGIS argument type, for [`coerce_args`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Arg {
+    /// `geometry` (or `box2d`/`box3d`): any of [`any_geometry_type`], kept as is so the field
+    /// metadata survives. `Null` becomes `Binary`, a NULL WKB value.
+    Geometry,
+    /// An `integer` SRID. Integer types and `Null` are kept as is, so that a constant stays a
+    /// literal for `return_field_from_args`: coercing it would wrap it in a cast.
+    Srid,
+}
+
+impl Arg {
+    /// The type `data_type` is coerced to, or `None` if this argument doesn't accept it.
+    fn coerce(self, data_type: &DataType) -> Option<DataType> {
+        use DataType::*;
+
+        match (self, data_type) {
+            (Arg::Geometry, Null) => Some(Binary),
+            (Arg::Geometry, t) if any_geometry_type().contains(t) => Some(t.clone()),
+            (Arg::Srid, Null) => Some(Null),
+            (Arg::Srid, t) if t.is_integer() => Some(t.clone()),
+            _ => None,
+        }
+    }
+
+    /// The PostGIS name of this argument type, for error messages.
+    fn sql_name(self) -> &'static str {
+        match self {
+            Arg::Geometry => "geometry",
+            Arg::Srid => "integer",
+        }
+    }
+}
+
+/// `coerce_types` for a [`Signature::user_defined`] UDF: the coerced types of the first overload
+/// in `overloads` that `arg_types` match, otherwise a plan error naming `name`.
+///
+/// Each overload lists a PostGIS signature's argument types, so a UDF's overloads read like its
+/// PostGIS synopsis. PostGIS `DEFAULT` parameters become shorter overloads.
+pub(crate) fn coerce_args(
+    name: &str,
+    arg_types: &[DataType],
+    overloads: &[&[Arg]],
+) -> Result<Vec<DataType>> {
+    for overload in overloads {
+        if overload.len() != arg_types.len() {
+            continue;
+        }
+        let coerced: Option<Vec<DataType>> = overload
+            .iter()
+            .zip(arg_types)
+            .map(|(arg, data_type)| arg.coerce(data_type))
+            .collect();
+        if let Some(coerced) = coerced {
+            return Ok(coerced);
+        }
+    }
+    let supported = overloads
+        .iter()
+        .map(|overload| {
+            let args: Vec<&str> = overload.iter().map(|arg| arg.sql_name()).collect();
+            format!("{name}({})", args.join(", "))
+        })
+        .collect::<Vec<_>>()
+        .join(", ");
+    let given: Vec<String> = arg_types.iter().map(|t| t.to_string()).collect();
+    plan_err!(
+        "{name} does not support arguments ({}). Supported: {supported}",
+        given.join(", ")
+    )
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    const OVERLOADS: &[&[Arg]] = &[&[Arg::Geometry], &[Arg::Geometry, Arg::Srid]];
+
+    #[test]
+    fn test_coerce_args_picks_matching_overload() {
+        let coerced = coerce_args("st_setsrid", &[DataType::Binary], OVERLOADS).unwrap();
+        assert_eq!(coerced, vec![DataType::Binary]);
+
+        let coerced =
+            coerce_args("st_setsrid", &[DataType::Null, DataType::Int64], OVERLOADS).unwrap();
+        assert_eq!(coerced, vec![DataType::Binary, DataType::Int64]);
+    }
+
+    #[test]
+    fn test_coerce_args_keeps_srid_literal_types() {
+        let coerced =
+            coerce_args("st_setsrid", &[DataType::Binary, DataType::Null], OVERLOADS).unwrap();
+        assert_eq!(coerced, vec![DataType::Binary, DataType::Null]);
+    }
+
+    #[test]
+    fn test_coerce_args_rejects_unsupported_types() {
+        let err = coerce_args("st_setsrid", &[DataType::Binary, DataType::Utf8], OVERLOADS)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            err.contains("st_setsrid does not support arguments (Binary, Utf8)"),
+            "{err}"
+        );
+        assert!(err.contains("st_setsrid(geometry, integer)"), "{err}");
+    }
 }
