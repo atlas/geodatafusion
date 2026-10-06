@@ -133,10 +133,11 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
 1. **Foundations:** G6 batch 1 (`src/util/` including the kernel drivers and WKB output, errors,
    `#[user_doc]`, SRID helpers, ST_SRID, ST_SetSRID). In parallel: the predicate
    argument-order bug and the panics, which give wrong answers or crash today.
-   *Status:* done, except the remaining panics (ST_EndPoint on `LINESTRING EMPTY`,
-   ST_MakePointM with interleaved coordinates), ST_Extent's partial aggregation, and
-   GeoParquet's PROJJSON expansion and missing-`crs` default. `util::args` readers beyond
-   `scalar_srid`, and `util::ordinates`/`util::owned`, are added with their first user.
+   *Status:* done, except ST_Extent's partial aggregation, and GeoParquet's PROJJSON
+   expansion and missing-`crs` default. The two remaining panics (ST_EndPoint on
+   `LINESTRING EMPTY`, ST_MakePointM with interleaved coordinates) went with phase 3's output
+   migration. `util::args` readers beyond `scalar_srid`, and `util::ordinates`/`util::owned`,
+   are added with their first user.
 2. **The biggest unlock:** G4's ST_GeomFromEWKT/ST_AsEWKT and PostGIS number formatting. EWKT
    is the first failure in about 100 records.
    *Status:* done: PostGIS number formatting and ISO/extended WKT writing, a PostGIS-compatible
@@ -147,6 +148,12 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
 3. **Migrations:** each group moves its existing functions to its template and output encoding,
    in one breaking release (E6 H3a: no public user breaks). The functions changing backend move
    (E2).
+   *Status:* outputs done: every geometry-returning UDF returns WKB with no `coord_type`,
+   ST_AsText/ST_AsBinary return untagged Utf8/Binary, and return types map to the PostGIS SQL
+   types (D2, D3). The consumers that only read native points were moved to the kernel drivers
+   first. Parity 265/773 -> 361/865. Left: the G1 kernel migrations, ST_Extent's
+   `state_fields`, the GeoHash rewrite and move, EWKB, the GEOS bridge and backend moves, and
+   removing the implicit `geos` feature.
 4. **New functions:** group batches in parallel. Pull forward the most-used cheap ones:
    ST_DWithin, ST_Multi, ST_AsGeoJSON/ST_GeomFromGeoJSON. Then ST_Transform (G3, PROJ),
    ST_Buffer/ST_Union/ST_Intersection (G3), ST_Collect/ST_MakeLine (G1, G5). G6 batches 2–4
