@@ -1,0 +1,48 @@
+# Edge cases for ST_GeoHash, not covered by the PostGIS docs examples.
+
+# Every dimension
+query T
+SELECT ST_GeoHash('POINT(-126 48)'::geometry)
+----
+c0w3hf1s70w3hf1s70w3
+
+query T
+SELECT ST_GeoHash('POINT Z (-126 48 3)'::geometry)
+----
+c0w3hf1s70w3hf1s70w3
+
+query T
+SELECT ST_GeoHash('POINT ZM (-126 48 3 4)'::geometry)
+----
+c0w3hf1s70w3hf1s70w3
+
+# WKB input
+query T
+SELECT ST_GeoHash(ST_GeomFromEWKT('SRID=4326;POINT(10.75 59.91)'))
+----
+u4xsud7cj1kyrm3pry62
+
+# Precision
+query T
+SELECT ST_GeoHash('POINT(10.75 59.91)'::geometry, 12)
+----
+u4xsud7cj1ky
+
+# EMPTY and NULL
+query T
+SELECT ST_GeoHash('POINT EMPTY'::geometry)
+----
+NULL
+
+query T
+SELECT ST_GeoHash(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_GeoHash(g) FROM (VALUES ('POINT(-126 48)'::geometry), (NULL::geometry), ('POINT EMPTY'::geometry)) AS t(g)
+----
+NULL
+NULL
+c0w3hf1s70w3hf1s70w3

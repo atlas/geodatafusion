@@ -1,19 +1,20 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
-use arrow_array::builder::StringViewBuilder;
+use arrow_array::StringViewArray;
 use arrow_schema::DataType;
+use datafusion::common::exec_datafusion_err;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
-    ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature, Volatility,
+    ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
 use datafusion_macros::user_doc;
-use geo_traits::PointTrait;
 use geo_traits::to_geo::ToGeoCoord;
-use geoarrow_array::GeoArrowArrayAccessor;
-use geoarrow_array::array::PointArray;
-use geoarrow_schema::{CoordType, Dimension, PointType};
+use geo_traits::{CoordTrait, GeometryTrait, GeometryType, PointTrait};
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::geometry_array;
+use crate::util::kernel::{GeometryKernel, map_geometry};
+use crate::util::signature::single_geometry;
 
 #[user_doc(
     doc_section(label = "Geometry Output"),
@@ -36,28 +37,16 @@ impl Default for GeoHash {
     }
 }
 
-static GEOHASH_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
-    let valid_types = vec![
-        PointType::new(Dimension::XY, Default::default())
-            .with_coord_type(CoordType::Separated)
-            .data_type(),
-        PointType::new(Dimension::XY, Default::default())
-            .with_coord_type(CoordType::Interleaved)
-            .data_type(),
-    ];
-    Signature::uniform(1, valid_types, Volatility::Immutable)
-});
-
 impl ScalarUDFImpl for GeoHash {
     fn name(&self) -> &str {
         "st_geohash"
     }
 
     fn signature(&self) -> &Signature {
-        &GEOHASH_SIGNATURE
+        single_geometry()
     }
 
-    fn return_type(&self, _arg_types: &[DataType]) -> datafusion::error::Result<DataType> {
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
         Ok(DataType::Utf8View)
     }
 
@@ -71,36 +60,47 @@ impl ScalarUDFImpl for GeoHash {
 }
 
 fn geohash_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-    let array = ColumnarValue::values_to_arrays(&args.args)?
-        .into_iter()
-        .next()
-        .unwrap();
-    let point_array = PointArray::try_from((array.as_ref(), args.arg_fields[0].as_ref()))?;
-    let mut builder = StringViewBuilder::with_capacity(array.len());
+    let geometries = geometry_array(&args, 0)?;
+    let result: StringViewArray = map_geometry(geometries.as_ref(), &GeoHashKernel)?;
+    Ok(ColumnarValue::Array(Arc::new(result)))
+}
 
-    for point in point_array.iter() {
-        if let Some(point) = point {
-            let coord = point?.coord().unwrap();
-            // TODO: make arg
-            // 12 is the max length supported by rust geohash. We should document this and maybe
-            // clamp numbers to 12.
-            let s = geohash::encode(coord.to_coord(), 12)?;
-            builder.append_value(s);
-        } else {
-            builder.append_null();
-        }
+/// The GeoHash of a point.
+struct GeoHashKernel;
+
+impl GeometryKernel for GeoHashKernel {
+    type Output = String;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        _row: usize,
+    ) -> GeoDataFusionResult<Option<String>> {
+        // TODO: PostGIS hashes the bounding box of any geometry, to up to 20 characters.
+        let GeometryType::Point(point) = geom.as_type() else {
+            return Err(exec_datafusion_err!("st_geohash: only points are supported").into());
+        };
+        // An EMPTY point has no coordinate, or NaN coordinates in WKB. PostGIS returns NULL.
+        let Some(coord) = point
+            .coord()
+            .filter(|c| !(c.x().is_nan() && c.y().is_nan()))
+        else {
+            return Ok(None);
+        };
+        // 12 characters is the most the geohash crate supports.
+        Ok(Some(geohash::encode(coord.to_coord(), 12)?))
     }
-
-    Ok(ColumnarValue::Array(Arc::new(builder.finish())))
 }
 
 #[cfg(test)]
 mod test {
+    use arrow_array::Array;
     use arrow_array::cast::AsArray;
     use datafusion::prelude::SessionContext;
 
     use super::*;
     use crate::udf::native::constructors::Point;
+    use crate::udf::native::io::GeomFromEWKT;
 
     #[tokio::test]
     async fn test_geohash() {
@@ -118,5 +118,23 @@ mod test {
         let string_arr = column.as_string_view();
 
         assert_eq!(string_arr.value(0), "c0w3hf1s70w3");
+    }
+
+    #[tokio::test]
+    async fn test_geohash_wkb_and_empty() {
+        let ctx = SessionContext::new();
+        ctx.register_udf(GeoHash.into());
+        ctx.register_udf(GeomFromEWKT.into());
+
+        let df = ctx
+            .sql("SELECT ST_GeoHash(ST_GeomFromEWKT(g)) FROM (VALUES ('POINT ZM (-126 48 3 4)'), ('POINT EMPTY')) AS t(g);")
+            .await
+            .unwrap();
+
+        let batches = df.collect().await.unwrap();
+        let string_arr = batches[0].column(0).as_string_view();
+
+        assert_eq!(string_arr.value(0), "c0w3hf1s70w3");
+        assert!(string_arr.is_null(1));
     }
 }
