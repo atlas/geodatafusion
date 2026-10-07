@@ -1,0 +1,97 @@
+# Edge cases for ST_GeometryType, not covered by the PostGIS docs examples.
+
+# Every type
+query T
+SELECT ST_GeometryType('POINT(1 2)'::geometry)
+----
+ST_Point
+
+query T
+SELECT ST_GeometryType('LINESTRING(0 0,1 1)'::geometry)
+----
+ST_LineString
+
+query T
+SELECT ST_GeometryType('POLYGON((0 0,1 0,1 1,0 0))'::geometry)
+----
+ST_Polygon
+
+query T
+SELECT ST_GeometryType('MULTIPOINT(1 2,3 4)'::geometry)
+----
+ST_MultiPoint
+
+query T
+SELECT ST_GeometryType('MULTILINESTRING((0 0,1 1),(2 2,3 3))'::geometry)
+----
+ST_MultiLineString
+
+query T
+SELECT ST_GeometryType('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))'::geometry)
+----
+ST_MultiPolygon
+
+query T
+SELECT ST_GeometryType('GEOMETRYCOLLECTION(POINT(1 2))'::geometry)
+----
+ST_GeometryCollection
+
+# Every dimension
+query T
+SELECT ST_GeometryType('POINT Z (1 2 3)'::geometry)
+----
+ST_Point
+
+query T
+SELECT ST_GeometryType('POINT M (1 2 3)'::geometry)
+----
+ST_Point
+
+query T
+SELECT ST_GeometryType('POINT ZM (1 2 3 4)'::geometry)
+----
+ST_Point
+
+query T
+SELECT ST_GeometryType('MULTILINESTRING M ((0 0 1,1 1 2))'::geometry)
+----
+ST_MultiLineString
+
+query T
+SELECT ST_GeometryType('GEOMETRYCOLLECTION ZM (POINT ZM (1 2 3 4))'::geometry)
+----
+ST_GeometryCollection
+
+# EMPTY, SRID and NULL
+query T
+SELECT ST_GeometryType('POINT EMPTY'::geometry)
+----
+ST_Point
+
+query T
+SELECT ST_GeometryType('POLYGON M EMPTY'::geometry)
+----
+ST_Polygon
+
+query T
+SELECT ST_GeometryType('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+ST_GeometryCollection
+
+query T
+SELECT ST_GeometryType('SRID=4326;POINT(1 2)'::geometry)
+----
+ST_Point
+
+query T
+SELECT ST_GeometryType(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_GeometryType(g) FROM (VALUES ('POINT M (1 2 3)'::geometry), (NULL::geometry), ('LINESTRING Z (0 0 0,1 1 1)'::geometry)) AS t(g)
+----
+NULL
+ST_LineString
+ST_Point
