@@ -1,5 +1,5 @@
 use geodatafusion::udf::native::accessors::{
-    CoordDim, EndPoint, GeometryType, IsClosed, M, NDims, NPoints, NumInteriorRings,
+    CoordDim, EndPoint, GeometryType, IsClosed, M, NDims, NPoints, NumInteriorRings, NumPoints,
     ST_GeometryType, StartPoint, X, Y, Z,
 };
 
@@ -15,6 +15,7 @@ impl_udf!(IsClosed, PyIsClosed, "IsClosed");
 impl_udf!(EndPoint, PyEndPoint, "EndPoint");
 impl_udf!(StartPoint, PyStartPoint, "StartPoint");
 impl_udf!(NPoints, PyNPoints, "NPoints");
+impl_udf!(NumPoints, PyNumPoints, "NumPoints");
 impl_udf!(NumInteriorRings, PyNumInteriorRings, "NumInteriorRings");
 impl_udf!(GeometryType, PyGeometryType, "GeometryType");
 impl_udf!(ST_GeometryType, PySTGeometryType, "STGeometryType");

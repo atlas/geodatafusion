@@ -67,6 +67,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.NDims()))
     ctx.register_udf(udf(native.NPoints()))
     ctx.register_udf(udf(native.NumInteriorRings()))
+    ctx.register_udf(udf(native.NumPoints()))
     ctx.register_udf(udf(native.StartPoint()))
     ctx.register_udf(udf(native.STGeometryType()))
     ctx.register_udf(udf(native.X()))
