@@ -14,6 +14,7 @@ geodatafusion/st_coveredby 5/5
 geodatafusion/st_covers 5/5
 geodatafusion/st_distance 5/5
 geodatafusion/st_endpoint 16/16
+geodatafusion/st_extent 8/8
 geodatafusion/st_geohash 2/8
 geodatafusion/st_geometrytype 18/18
 geodatafusion/st_geomfromewkt 13/13

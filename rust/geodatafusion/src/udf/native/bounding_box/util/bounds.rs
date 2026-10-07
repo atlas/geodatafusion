@@ -47,6 +47,17 @@ impl BoundingRect {
         }
     }
 
+    /// A 2D box with the given bounds; ±infinity bounds make it empty.
+    pub fn from_xy(minx: f64, miny: f64, maxx: f64, maxy: f64) -> Self {
+        BoundingRect {
+            minx,
+            miny,
+            maxx,
+            maxy,
+            ..Self::new(false)
+        }
+    }
+
     /// Whether no coordinate was added.
     pub fn is_empty(&self) -> bool {
         self.minx > self.maxx

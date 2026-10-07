@@ -1,0 +1,48 @@
+# Edge cases for ST_Extent, not covered by the PostGIS docs examples.
+
+# One and several rows
+query T
+SELECT ST_Extent(g) FROM (VALUES ('POINT(1 2)'::geometry)) AS t(g)
+----
+BOX(1 2,1 2)
+
+query T
+SELECT ST_Extent(g) FROM (VALUES ('POINT(1 2)'::geometry), ('LINESTRING(-3 0,4 5)'::geometry), ('POLYGON((0 0,10 0,10 -10,0 0))'::geometry)) AS t(g)
+----
+BOX(-3 -10,10 5)
+
+# Z and M don't count
+query T
+SELECT ST_Extent(g) FROM (VALUES ('POINT Z (1 2 3)'::geometry), ('POINT M (4 5 6)'::geometry)) AS t(g)
+----
+BOX(1 2,4 5)
+
+# NULL and EMPTY rows are skipped
+query T
+SELECT ST_Extent(g) FROM (VALUES ('POINT(1 2)'::geometry), (NULL::geometry), ('POINT EMPTY'::geometry), ('POINT(3 4)'::geometry)) AS t(g)
+----
+BOX(1 2,3 4)
+
+# No box for no rows, only NULL rows or only EMPTY rows
+query T
+SELECT ST_Extent(g) FROM (VALUES ('POINT(1 2)'::geometry)) AS t(g) WHERE false
+----
+NULL
+
+query T
+SELECT ST_Extent(g) FROM (VALUES (NULL::geometry), (NULL::geometry)) AS t(g)
+----
+NULL
+
+query T
+SELECT ST_Extent(g) FROM (VALUES ('POINT EMPTY'::geometry), ('LINESTRING EMPTY'::geometry)) AS t(g)
+----
+NULL
+
+# GROUP BY
+query IT rowsort
+SELECT k, ST_Extent(g) FROM (VALUES (1, 'POINT(1 2)'::geometry), (2, 'POINT(5 5)'::geometry), (1, 'POINT(3 -4)'::geometry), (2, NULL::geometry), (3, NULL::geometry)) AS t(k, g) GROUP BY k
+----
+1 BOX(1 -4,3 2)
+2 BOX(5 5,5 5)
+3 NULL
