@@ -1,0 +1,62 @@
+# Edge cases for ST_NumInteriorRings, not covered by the PostGIS docs examples.
+
+# Polygons
+query I
+SELECT ST_NumInteriorRings('POLYGON((0 0,10 0,10 10,0 0))'::geometry)
+----
+0
+
+query I
+SELECT ST_NumInteriorRings('POLYGON((0 0,10 0,10 10,0 10,0 0),(1 1,2 1,2 2,1 1),(5 5,6 5,6 6,5 5))'::geometry)
+----
+2
+
+query I
+SELECT ST_NumInteriorRings('POLYGON Z ((0 0 1,10 0 1,10 10 1,0 0 1),(1 1 1,2 1 1,2 2 1,1 1 1))'::geometry)
+----
+1
+
+# Other types
+query I
+SELECT ST_NumInteriorRings('POINT(1 2)'::geometry)
+----
+NULL
+
+query I
+SELECT ST_NumInteriorRings('LINESTRING(0 0,1 1)'::geometry)
+----
+NULL
+
+query I
+SELECT ST_NumInteriorRings('MULTIPOLYGON(((0 0,10 0,10 10,0 0),(1 1,2 1,2 2,1 1)))'::geometry)
+----
+NULL
+
+query I
+SELECT ST_NumInteriorRings('GEOMETRYCOLLECTION(POLYGON((0 0,10 0,10 10,0 0)))'::geometry)
+----
+NULL
+
+# EMPTY and NULL
+query I
+SELECT ST_NumInteriorRings('POLYGON EMPTY'::geometry)
+----
+0
+
+query I
+SELECT ST_NumInteriorRings('POINT EMPTY'::geometry)
+----
+NULL
+
+query I
+SELECT ST_NumInteriorRings(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query I rowsort
+SELECT ST_NumInteriorRings(g) FROM (VALUES ('POLYGON((0 0,10 0,10 10,0 10,0 0),(1 1,2 1,2 2,1 1))'::geometry), (NULL::geometry), ('POLYGON((0 0,10 0,10 10,0 0))'::geometry)) AS t(g)
+----
+0
+1
+NULL

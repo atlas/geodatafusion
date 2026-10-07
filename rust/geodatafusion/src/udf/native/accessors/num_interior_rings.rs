@@ -1,26 +1,23 @@
 use std::sync::{Arc, LazyLock};
 
-use arrow_array::builder::Int32Builder;
-use arrow_array::{ArrayRef, Int32Array};
+use arrow_array::Int32Array;
 use arrow_schema::DataType;
+use datafusion::common::exec_datafusion_err;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
 use datafusion_macros::user_doc;
-use geo_traits::*;
-use geoarrow_array::array::{PolygonArray, from_arrow_array};
-use geoarrow_array::cast::AsGeoArrowArray;
-use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor, downcast_geoarrow_array};
-use geoarrow_schema::GeoArrowType;
-use geoarrow_schema::error::GeoArrowResult;
+use geo_traits::{GeometryTrait, GeometryType, PolygonTrait};
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::geometry_array;
+use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::signature::single_geometry;
 
 #[user_doc(
     doc_section(label = "Geometry Accessors"),
-    description = "Returns the number of interior rings (holes) of a Polygon geometry. Returns NULL if the geometry is not a polygon.",
+    description = "Returns the number of interior rings (holes) of a POLYGON. Returns NULL for any other geometry type, including a MULTIPOLYGON.",
     syntax_example = "ST_NumInteriorRings(a_polygon)",
     argument(name = "a_polygon", description = "geometry")
 )]
@@ -68,49 +65,30 @@ impl ScalarUDFImpl for NumInteriorRings {
 }
 
 fn num_interior_rings_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-    let arrays = ColumnarValue::values_to_arrays(&args.args)?;
-    let geo_array = from_arrow_array(&arrays[0], &args.arg_fields[0])?;
-    let geo_array_ref = geo_array.as_ref();
-
-    let out: ArrayRef = match geo_array.data_type() {
-        GeoArrowType::Polygon(_) => Arc::new(polygon_impl(geo_array.as_polygon())?),
-        _ => Arc::new(downcast_geoarrow_array!(geo_array_ref, geometry_impl)?),
-    };
-
-    Ok(out.into())
+    let geometries = geometry_array(&args, 0)?;
+    let result: Int32Array = map_geometry(geometries.as_ref(), &NumInteriorRingsKernel)?;
+    Ok(ColumnarValue::Array(Arc::new(result)))
 }
 
-fn polygon_impl(array: &PolygonArray) -> GeoArrowResult<Int32Array> {
-    let mut builder = Int32Builder::with_capacity(array.len());
+/// The number of interior rings of a polygon; NULL for every other type, including
+/// multipolygons, as in PostGIS.
+struct NumInteriorRingsKernel;
 
-    for item in array.iter() {
-        if let Some(geom) = item {
-            builder.append_value(geom?.num_interiors() as i32);
-        } else {
-            builder.append_null();
-        }
+impl GeometryKernel for NumInteriorRingsKernel {
+    type Output = i32;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        _row: usize,
+    ) -> GeoDataFusionResult<Option<i32>> {
+        let count = match geom.as_type() {
+            GeometryType::Polygon(polygon) => polygon.num_interiors(),
+            GeometryType::Rect(_) | GeometryType::Triangle(_) => 0,
+            _ => return Ok(None),
+        };
+        let count = i32::try_from(count)
+            .map_err(|_| exec_datafusion_err!("too many rings for an integer: {count}"))?;
+        Ok(Some(count))
     }
-
-    Ok(builder.finish())
-}
-
-fn geometry_impl<'a>(array: &'a impl GeoArrowArrayAccessor<'a>) -> GeoArrowResult<Int32Array> {
-    let mut builder = Int32Builder::with_capacity(array.len());
-
-    for item in array.iter() {
-        if let Some(geom) = item {
-            match geom?.as_type() {
-                geo_traits::GeometryType::Polygon(geom) => {
-                    builder.append_value(geom.num_interiors() as i32)
-                }
-                _ => {
-                    builder.append_null();
-                }
-            };
-        } else {
-            builder.append_null();
-        }
-    }
-
-    Ok(builder.finish())
 }
