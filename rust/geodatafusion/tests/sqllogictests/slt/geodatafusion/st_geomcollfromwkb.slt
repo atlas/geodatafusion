@@ -1,0 +1,43 @@
+# Edge cases for ST_GeomCollFromWKB, not covered by the PostGIS docs examples.
+
+# The right type, with and without SRID
+query T
+SELECT ST_GeomCollFromWKB(ST_AsBinary('GEOMETRYCOLLECTION(POINT(1 2))'::geometry))
+----
+GEOMETRYCOLLECTION(POINT(1 2))
+
+query T
+SELECT ST_GeomCollFromWKB(ST_AsBinary('GEOMETRYCOLLECTION(POINT(1 2))'::geometry), 4326)
+----
+SRID=4326;GEOMETRYCOLLECTION(POINT(1 2))
+
+query T
+SELECT ST_GeomCollFromWKB(ST_AsEWKB('SRID=3857;GEOMETRYCOLLECTION(POINT(1 2))'::geometry))
+----
+SRID=3857;GEOMETRYCOLLECTION(POINT(1 2))
+
+query T
+SELECT ST_GeomCollFromWKB(ST_AsBinary('GEOMETRYCOLLECTION EMPTY'::geometry))
+----
+GEOMETRYCOLLECTION EMPTY
+
+# Another type is NULL
+query T
+SELECT ST_GeomCollFromWKB(ST_AsBinary('MULTIPOINT((1 2))'::geometry))
+----
+NULL
+
+# Truncated input is an error
+statement error
+SELECT ST_GeomCollFromWKB(decode('0101', 'hex'))
+
+# NULL
+query T
+SELECT ST_GeomCollFromWKB(NULL)
+----
+NULL
+
+query T
+SELECT ST_GeomCollFromWKB(ST_AsBinary('GEOMETRYCOLLECTION(POINT(1 2))'::geometry), NULL)
+----
+NULL

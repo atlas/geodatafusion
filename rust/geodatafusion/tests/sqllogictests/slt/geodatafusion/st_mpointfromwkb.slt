@@ -1,0 +1,43 @@
+# Edge cases for ST_MPointFromWKB, not covered by the PostGIS docs examples.
+
+# The right type, with and without SRID
+query T
+SELECT ST_MPointFromWKB(ST_AsBinary('MULTIPOINT((1 2),(3 4))'::geometry))
+----
+MULTIPOINT((1 2),(3 4))
+
+query T
+SELECT ST_MPointFromWKB(ST_AsBinary('MULTIPOINT((1 2),(3 4))'::geometry), 4326)
+----
+SRID=4326;MULTIPOINT((1 2),(3 4))
+
+query T
+SELECT ST_MPointFromWKB(ST_AsEWKB('SRID=3857;MULTIPOINT((1 2),(3 4))'::geometry))
+----
+SRID=3857;MULTIPOINT((1 2),(3 4))
+
+query T
+SELECT ST_MPointFromWKB(ST_AsBinary('MULTIPOINT EMPTY'::geometry))
+----
+MULTIPOINT EMPTY
+
+# Another type is NULL
+query T
+SELECT ST_MPointFromWKB(ST_AsBinary('POINT(1 2)'::geometry))
+----
+NULL
+
+# Truncated input is an error
+statement error
+SELECT ST_MPointFromWKB(decode('0101', 'hex'))
+
+# NULL
+query T
+SELECT ST_MPointFromWKB(NULL)
+----
+NULL
+
+query T
+SELECT ST_MPointFromWKB(ST_AsBinary('MULTIPOINT((1 2),(3 4))'::geometry), NULL)
+----
+NULL

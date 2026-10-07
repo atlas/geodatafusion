@@ -1,7 +1,9 @@
 use geodatafusion::udf::native::io::{
     AsBinary, AsEWKB, AsEWKT, AsHEXEWKB, AsText, Box2DFromGeoHash, GeoHash, GeomCollFromText,
-    GeomFromEWKB, GeomFromEWKT, GeomFromGeoHash, GeomFromText, GeomFromWKB, LineFromText,
-    MLineFromText, MPointFromText, MPolyFromText, PointFromGeoHash, PointFromText, PolygonFromText,
+    GeomCollFromWKB, GeomFromEWKB, GeomFromEWKT, GeomFromGeoHash, GeomFromText, GeomFromWKB,
+    LineFromText, LineFromWKB, MLineFromText, MLineFromWKB, MPointFromText, MPointFromWKB,
+    MPolyFromText, MPolyFromWKB, PointFromGeoHash, PointFromText, PointFromWKB, PolyFromWKB,
+    PolygonFromText,
 };
 
 use crate::impl_udf;
@@ -27,3 +29,10 @@ impl_udf!(MPointFromText, PyMPointFromText, "MPointFromText");
 impl_udf!(MLineFromText, PyMLineFromText, "MLineFromText");
 impl_udf!(MPolyFromText, PyMPolyFromText, "MPolyFromText");
 impl_udf!(GeomCollFromText, PyGeomCollFromText, "GeomCollFromText");
+impl_udf!(PointFromWKB, PyPointFromWKB, "PointFromWKB");
+impl_udf!(LineFromWKB, PyLineFromWKB, "LineFromWKB");
+impl_udf!(PolyFromWKB, PyPolyFromWKB, "PolyFromWKB");
+impl_udf!(MPointFromWKB, PyMPointFromWKB, "MPointFromWKB");
+impl_udf!(MLineFromWKB, PyMLineFromWKB, "MLineFromWKB");
+impl_udf!(MPolyFromWKB, PyMPolyFromWKB, "MPolyFromWKB");
+impl_udf!(GeomCollFromWKB, PyGeomCollFromWKB, "GeomCollFromWKB");
