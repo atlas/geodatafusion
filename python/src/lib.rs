@@ -43,12 +43,6 @@ fn _rust(py: Python, m: &Bound<PyModule>) -> PyResult<()> {
         .getattr(intern!(py, "modules"))?
         .set_item("geodatafusion.native", native_mod)?;
 
-    let geohash_mod = wrap_pymodule!(udf::geohash::geohash)(py);
-    m.add_submodule(geohash_mod.bind(py))?;
-    py.import(intern!(py, "sys"))?
-        .getattr(intern!(py, "modules"))?
-        .set_item("geodatafusion.geohash", geohash_mod)?;
-
     let geo_mod = wrap_pymodule!(udf::geo::geo)(py);
     m.add_submodule(geo_mod.bind(py))?;
     py.import(intern!(py, "sys"))?

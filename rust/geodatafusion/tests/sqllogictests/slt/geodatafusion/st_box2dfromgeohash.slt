@@ -1,0 +1,66 @@
+# Edge cases for ST_Box2dFromGeoHash, not covered by the PostGIS docs examples.
+
+# Precision
+query T
+SELECT ST_Box2dFromGeoHash('9qqj7nmxncgyy4d0dbxqz0')
+----
+BOX(-115.172816 36.114646,-115.172816 36.114646)
+
+query T
+SELECT ST_Box2dFromGeoHash('9qqj7nmxncgyy4d0dbxqz0', 4)
+----
+BOX(-115.3125 36.03515625,-114.9609375 36.2109375)
+
+query T
+SELECT ST_Box2dFromGeoHash('9qqj', 10)
+----
+BOX(-115.3125 36.03515625,-114.9609375 36.2109375)
+
+query T
+SELECT ST_Box2dFromGeoHash('9qqj', 0)
+----
+BOX(-180 -90,180 90)
+
+query T
+SELECT ST_Box2dFromGeoHash('9qqj', -1)
+----
+BOX(-115.3125 36.03515625,-114.9609375 36.2109375)
+
+query T
+SELECT ST_Box2dFromGeoHash('9qqj', NULL)
+----
+BOX(-115.3125 36.03515625,-114.9609375 36.2109375)
+
+# Uppercase, empty and very long GeoHashes
+query T
+SELECT ST_Box2dFromGeoHash('9QQJ')
+----
+BOX(-115.3125 36.03515625,-114.9609375 36.2109375)
+
+query T
+SELECT ST_Box2dFromGeoHash('')
+----
+BOX(-180 -90,180 90)
+
+query T
+SELECT ST_Box2dFromGeoHash('umyxzxs9mkzz50g4zeqjpm')
+----
+BOX(20.7266304824 78.7474946535,20.7266304824 78.7474946535)
+
+# Invalid characters are an error
+statement error
+SELECT ST_Box2dFromGeoHash('9qqa')
+
+# NULL
+query T
+SELECT ST_Box2dFromGeoHash(NULL)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_Box2dFromGeoHash(h) FROM (VALUES ('9qqj'), (NULL), ('s000')) AS t(h)
+----
+BOX(-115.3125 36.03515625,-114.9609375 36.2109375)
+BOX(0 0,0.3515625 0.17578125)
+NULL

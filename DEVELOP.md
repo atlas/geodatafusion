@@ -11,7 +11,6 @@ This is a Rust workspace with multiple crates:
         - `native/` - Operations that are natively implemented, without the use of other dependencies like `geo`
         - `geo/` - Operations implemented using the `geo` crate
         - `geos/` - Operations implemented using the `geos` crate (bindings to the native GEOS library), gated behind the optional `geos` feature
-        - `geohash/` - GeoHash encoding/decoding, using the `geohash` crate
 - `rust/geodatafusion-flatgeobuf` - FlatGeobuf format support
 - `rust/geodatafusion-geoparquet` - GeoParquet format support
 - `rust/geodatafusion-geojson` - GeoJSON format support
@@ -102,14 +101,13 @@ Functions are organized by category in `rust/geodatafusion/src/udf/`:
 
 - `native/constructors/` - Geometry constructors (ST_MakePoint, etc.)
 - `native/accessors/` - Geometry accessors (ST_X, ST_Y, etc.)
-- `native/io/` - Input/output (WKT, WKB)
+- `native/io/` - Input/output (WKT, WKB, GeoHash)
 - `native/bounding_box/` - Bounding box functions
 - `geo/measurement/` - Measurement functions (ST_Area, ST_Distance)
 - `geo/processing/` - Processing functions (ST_Buffer, ST_Simplify)
 - `geo/relationships/` - Spatial relationships (ST_Intersects, etc.)
 - `geo/validation/` - Validation functions (ST_IsValid)
 - `geos/processing/` - GEOS-backed processing functions (ST_LineMerge)
-- `geohash/` - GeoHash functions
 
 ### GEOS-backed functions
 

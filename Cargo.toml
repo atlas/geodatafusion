@@ -39,7 +39,6 @@ geoarrow-expr-geo = "0.9.0"
 geoarrow-geojson = "0.9.0"
 geoarrow-schema = "0.9.0"
 geodatafusion = { path = "rust/geodatafusion", version = "0.5.0" }
-geohash = "0.13.1"
 geojson = "0.24"
 geoparquet = "0.9.0"
 geos = { version = "11.1", default-features = false }
