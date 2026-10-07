@@ -10,58 +10,11 @@ use datafusion::logical_expr::{
 use datafusion_macros::user_doc;
 use geoarrow_array::array::{LargeWkbArray, WkbArray, WkbViewArray};
 use geoarrow_array::builder::WkbBuilder;
-use geoarrow_array::cast::to_wkb;
 use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor};
 use geoarrow_schema::GeoArrowType;
 
-use crate::error::{GeoDataFusionError, GeoDataFusionResult};
-use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
-use crate::util::signature::single_geometry;
-
-#[user_doc(
-    doc_section(label = "Geometry Output"),
-    description = "Returns the OGC/ISO Well-Known Binary (WKB) representation of the geometry.",
-    syntax_example = "ST_AsBinary(geometry)",
-    argument(name = "g1", description = "geometry")
-)]
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub struct AsBinary;
-
-impl AsBinary {
-    pub fn new() -> Self {
-        Self {}
-    }
-}
-
-impl Default for AsBinary {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ScalarUDFImpl for AsBinary {
-    fn name(&self) -> &str {
-        "st_asbinary"
-    }
-
-    fn signature(&self) -> &Signature {
-        single_geometry()
-    }
-
-    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        Ok(DataType::Binary)
-    }
-
-    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        let geometries = geometry_array(&args, 0)?;
-        let wkb = to_wkb::<i32>(geometries.as_ref()).map_err(GeoDataFusionError::GeoArrow)?;
-        Ok(ColumnarValue::Array(Arc::new(wkb.inner().clone())))
-    }
-
-    fn documentation(&self) -> Option<&Documentation> {
-        self.doc()
-    }
-}
+use crate::error::GeoDataFusionResult;
+use crate::util::field::{input_metadata, wkb_return_field};
 
 #[user_doc(
     doc_section(label = "Geometry Input"),
@@ -171,69 +124,5 @@ impl ScalarUDFImpl for GeomFromWKB {
 
     fn documentation(&self) -> Option<&Documentation> {
         self.doc()
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use std::sync::Arc;
-
-    use arrow_array::RecordBatch;
-    use arrow_schema::Schema;
-    use datafusion::prelude::SessionContext;
-    use geoarrow_array::test::point;
-    use geoarrow_schema::{CoordType, Crs, Dimension, Metadata};
-
-    use super::*;
-
-    #[tokio::test]
-    async fn test_as_binary() {
-        let ctx = SessionContext::new();
-
-        let crs = Crs::from_authority_code("EPSG:4326".to_string());
-        let metadata = Arc::new(Metadata::new(crs.clone(), Default::default()));
-
-        let point_arr = point::array(CoordType::Separated, Dimension::XY).with_metadata(metadata);
-
-        let arr = point_arr.to_array_ref();
-        let field = point_arr.data_type().to_field("geometry", true);
-        let schema = Schema::new([Arc::new(field)]);
-        let batch = RecordBatch::try_new(Arc::new(schema), vec![arr]).unwrap();
-
-        ctx.register_batch("t", batch).unwrap();
-
-        ctx.register_udf(AsBinary::new().into());
-        ctx.register_udf(GeomFromWKB::new().into());
-
-        let sql_df = ctx
-            .sql("SELECT ST_AsBinary(geometry) FROM t;")
-            .await
-            .unwrap();
-
-        let output_batches = sql_df.collect().await.unwrap();
-        assert_eq!(output_batches.len(), 1);
-        let output_batch = &output_batches[0];
-
-        // PostGIS returns bytea, so the CRS isn't kept.
-        let output_schema = output_batch.schema();
-        let output_field = output_schema.field(0);
-        assert_eq!(output_field.data_type(), &DataType::Binary);
-        assert_eq!(output_field.extension_type_name(), None);
-
-        let sql_df2 = ctx
-            .sql("SELECT ST_GeomFromWKB(ST_AsBinary(geometry)) FROM t;")
-            .await
-            .unwrap();
-
-        let output_batches = sql_df2.collect().await.unwrap();
-        assert_eq!(output_batches.len(), 1);
-        let output_batch = &output_batches[0];
-        let output_schema = output_batch.schema();
-        let output_field = output_schema.field(0);
-        let output_column = output_batch.column(0);
-        let wkb_arr = WkbArray::try_from((output_column.as_ref(), output_field)).unwrap();
-
-        // The CRS doesn't survive ST_AsBinary, as in PostGIS.
-        assert_eq!(wkb_arr.inner(), to_wkb::<i32>(&point_arr).unwrap().inner());
     }
 }
