@@ -34,6 +34,7 @@ geoarrow-schema = { workspace = true }
 geos = { workspace = true, optional = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
+wkb = { workspace = true }
 wkt = { workspace = true }
 
 [dev-dependencies]
@@ -59,7 +60,6 @@ object_store = { workspace = true, features = ["http"] }
 sqllogictest = { workspace = true }
 tokio = { workspace = true, features = ["macros", "fs", "rt-multi-thread"] }
 tokio-postgres = { workspace = true }
-wkb = { workspace = true }
 
 [[test]]
 name = "sqllogictests"

@@ -1537,6 +1537,7 @@ dependencies = [
  "geoarrow-schema",
  "serde_json",
  "thiserror 1.0.69",
+ "wkb",
  "wkt",
 ]
 
