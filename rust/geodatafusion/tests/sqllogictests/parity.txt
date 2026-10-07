@@ -7,7 +7,10 @@ geodatafusion/box3d 16/16
 geodatafusion/geometrytype 18/18
 geodatafusion/st_3dextent 10/10
 geodatafusion/st_3dmakebox 5/5
+geodatafusion/st_asbinary 17/17
+geodatafusion/st_asewkb 17/17
 geodatafusion/st_asewkt 35/35
+geodatafusion/st_ashexewkb 17/17
 geodatafusion/st_astext 28/28
 geodatafusion/st_box2dfromgeohash 12/12
 geodatafusion/st_contains 5/5
@@ -87,13 +90,13 @@ postgis_docs/st_addpoint 0/1
 postgis_docs/st_affine 0/2
 postgis_docs/st_angle 0/3
 postgis_docs/st_area 0/3
-postgis_docs/st_asbinary 1/2
+postgis_docs/st_asbinary 2/2
 postgis_docs/st_asencodedpolyline 0/2
-postgis_docs/st_asewkb 0/2
+postgis_docs/st_asewkb 2/2
 postgis_docs/st_asgeobuf 0/1
 postgis_docs/st_asgeojson 0/4
 postgis_docs/st_asgml 0/5
-postgis_docs/st_ashexewkb 0/2
+postgis_docs/st_ashexewkb 1/2
 postgis_docs/st_askml 0/2
 postgis_docs/st_aslatlontext 0/6
 postgis_docs/st_asmarc21 0/3
@@ -187,7 +190,7 @@ postgis_docs/st_geomfromkml 0/1
 postgis_docs/st_geomfrommarc21 0/3
 postgis_docs/st_geomfromtext 6/7
 postgis_docs/st_geomfromtwkb 0/2
-postgis_docs/st_geomfromwkb 0/2
+postgis_docs/st_geomfromwkb 1/2
 postgis_docs/st_hasarc 0/1
 postgis_docs/st_hasm 0/2
 postgis_docs/st_hasz 0/2

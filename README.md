@@ -206,8 +206,8 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | Name         | Implemented | Description                                                                                                   |
 | ------------ | ----------- | ------------------------------------------------------------------------------------------------------------- |
 | ST_AsBinary  | ✅          | Return the OGC/ISO Well-Known Binary (WKB) representation of the geometry/geography without SRID meta data.   |
-| ST_AsEWKB    |             | Return the Extended Well-Known Binary (EWKB) representation of the geometry with SRID meta data.              |
-| ST_AsHEXEWKB |             | Returns a Geometry in HEXEWKB format (as text) using either little-endian (NDR) or big-endian (XDR) encoding. |
+| ST_AsEWKB    | ✅          | Return the Extended Well-Known Binary (EWKB) representation of the geometry with SRID meta data.              |
+| ST_AsHEXEWKB | ✅          | Returns a Geometry in HEXEWKB format (as text) using either little-endian (NDR) or big-endian (XDR) encoding. |
 
 #### Other Formats
 
