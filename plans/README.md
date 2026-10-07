@@ -157,9 +157,10 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    declares its state and returns NULL for no geometries, and ST_3DExtent is added. G4 R5
    done: native GeoHash in `native/io` (20-character points, any geometry, `maxchars` and
    `precision`, ST_GeomFromGeoHash), checked against 2,877 PostGIS cases; the `geohash` crate
-   is gone. Parity 715/1201, every hand-written record passing. Left: EWKB and the typed
-   constructors, the GEOS bridge and backend moves, the G2 kernels (D6), and removing the
-   implicit `geos` feature.
+   is gone. Parity 715/1201, every hand-written record passing. G4 batch 3 done: (E)WKB
+   input and output (checked against 256 PostGIS encodings) and the 14 type-checked
+   `*FromText`/`*FromWKB` constructors. Left: the GEOS bridge and backend moves, the G2
+   kernels (D6), and removing the implicit `geos` feature.
 4. **New functions:** group batches in parallel. Pull forward the most-used cheap ones:
    ST_DWithin, ST_Multi, ST_AsGeoJSON/ST_GeomFromGeoJSON. Then ST_Transform (G3, PROJ),
    ST_Buffer/ST_Union/ST_Intersection (G3), ST_Collect/ST_MakeLine (G1, G5). G6 batches 2–4
