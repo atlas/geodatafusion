@@ -23,12 +23,10 @@ def register_all_geo(ctx: SessionContext):
 
     # processing
     ctx.register_udf(udf(geo.Simplify()))
-    ctx.register_udf(udf(geo.SimplifyPreserveTopology()))
     ctx.register_udf(udf(geo.SimplifyVW()))
 
     # validation
     ctx.register_udf(udf(geo.IsValid()))
-    ctx.register_udf(udf(geo.IsValidReason()))
 
 
 def register_all_native(ctx: SessionContext):

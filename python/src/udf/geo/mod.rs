@@ -13,12 +13,10 @@ pub(crate) fn geo(m: &Bound<PyModule>) -> PyResult<()> {
 
     // processing
     m.add_class::<processing::PySimplify>()?;
-    m.add_class::<processing::PySimplifyPreserveTopology>()?;
     m.add_class::<processing::PySimplifyVW>()?;
 
     // validation
     m.add_class::<validation::PyIsValid>()?;
-    m.add_class::<validation::PyIsValidReason>()?;
 
     Ok(())
 }

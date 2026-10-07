@@ -1,6 +1,5 @@
-use geodatafusion::udf::geo::validation::{IsValid, IsValidReason};
+use geodatafusion::udf::geo::validation::IsValid;
 
 use crate::impl_udf;
 
 impl_udf!(IsValid, PyIsValid, "IsValid");
-impl_udf!(IsValidReason, PyIsValidReason, "IsValidReason");

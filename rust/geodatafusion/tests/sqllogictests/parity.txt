@@ -16,6 +16,7 @@ geodatafusion/st_box2dfromgeohash 12/12
 geodatafusion/st_buffer 41/41
 geodatafusion/st_buildarea 12/12
 geodatafusion/st_centroid 18/18
+geodatafusion/st_concavehull 15/15
 geodatafusion/st_contains 25/25
 geodatafusion/st_containsproperly 20/20
 geodatafusion/st_convexhull 18/18
@@ -42,6 +43,7 @@ geodatafusion/st_geomfromwkb 16/16
 geodatafusion/st_intersection 20/20
 geodatafusion/st_intersects 25/25
 geodatafusion/st_isclosed 26/26
+geodatafusion/st_isvalidreason 13/13
 geodatafusion/st_linefromtext 10/10
 geodatafusion/st_linefromwkb 8/8
 geodatafusion/st_linemerge 21/21
@@ -81,6 +83,7 @@ geodatafusion/st_relatematch 7/7
 geodatafusion/st_setsrid 11/11
 geodatafusion/st_sharedpaths 9/9
 geodatafusion/st_simplify 3/3
+geodatafusion/st_simplifypreservetopology 15/15
 geodatafusion/st_snap 12/12
 geodatafusion/st_srid 5/5
 geodatafusion/st_startpoint 16/16
@@ -169,7 +172,7 @@ postgis_docs/st_clusterwithinwin 0/1
 postgis_docs/st_collect 0/4
 postgis_docs/st_collectionextract 0/3
 postgis_docs/st_collectionhomogenize 0/5
-postgis_docs/st_concavehull 0/3
+postgis_docs/st_concavehull 2/3
 postgis_docs/st_contains 0/2
 postgis_docs/st_containsproperly 0/2
 postgis_docs/st_convexhull 0/1
@@ -253,7 +256,7 @@ postgis_docs/st_isempty 4/5
 postgis_docs/st_isring 0/2
 postgis_docs/st_issimple 0/2
 postgis_docs/st_isvaliddetail 0/2
-postgis_docs/st_isvalidreason 1/3
+postgis_docs/st_isvalidreason 2/3
 postgis_docs/st_isvalidtrajectory 0/2
 postgis_docs/st_largestemptycircle 0/2
 postgis_docs/st_length 1/3
@@ -342,7 +345,7 @@ postgis_docs/st_shiftlongitude 0/1
 postgis_docs/st_shortestline 0/2
 postgis_docs/st_simplify 0/1
 postgis_docs/st_simplifypolygonhull 0/3
-postgis_docs/st_simplifypreservetopology 0/3
+postgis_docs/st_simplifypreservetopology 3/3
 postgis_docs/st_simplifyvw 3/3
 postgis_docs/st_snap 4/4
 postgis_docs/st_split 0/3

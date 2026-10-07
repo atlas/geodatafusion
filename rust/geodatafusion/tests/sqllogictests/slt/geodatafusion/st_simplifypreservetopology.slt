@@ -1,0 +1,74 @@
+# Edge cases for ST_SimplifyPreserveTopology, not covered by the PostGIS docs examples.
+
+query T
+SELECT ST_SimplifyPreserveTopology('LINESTRING(0 0,1 0.1,2 0,3 0.1,4 0,5 5)'::geometry, 0.5)
+----
+LINESTRING(0 0,4 0,5 5)
+
+query T
+SELECT ST_SimplifyPreserveTopology('LINESTRING(0 0,1 0.1,2 0,3 0.1,4 0,5 5)'::geometry, 0)
+----
+LINESTRING(0 0,1 0.1,2 0,3 0.1,4 0,5 5)
+
+query T
+SELECT ST_SimplifyPreserveTopology('POLYGON((0 0,10 0.2,20 0,20 20,10 19.8,0 20,0 0),(5 5,6 5.05,7 5,7 7,5 7,5 5))'::geometry, 0.5)
+----
+POLYGON((0 0,20 0,20 20,0 20,0 0),(5 5,7 5,7 7,5 7,5 5))
+
+query T
+SELECT ST_SimplifyPreserveTopology('POLYGON((0 0,10 0.2,20 0,20 20,10 19.8,0 20,0 0),(5 5,6 5.05,7 5,7 7,5 7,5 5))'::geometry, 10)
+----
+POLYGON((0 0,20 0,20 20,0 20,0 0),(5 7,7 5,7 7,5 7))
+
+query T
+SELECT ST_SimplifyPreserveTopology('MULTIPOLYGON(((0 0,10 0,10 10,0 10,0 0)),((20 20,21 20.1,22 20,22 22,20 22,20 20)))'::geometry, 0.5)
+----
+MULTIPOLYGON(((0 0,10 0,10 10,0 10,0 0)),((20 20,22 20,22 22,20 22,20 20)))
+
+query T
+SELECT ST_SimplifyPreserveTopology('POINT(1 2)'::geometry, 1)
+----
+POINT(1 2)
+
+query T
+SELECT ST_SimplifyPreserveTopology('MULTIPOINT((1 2),(3 4))'::geometry, 1)
+----
+MULTIPOINT((1 2),(3 4))
+
+query T
+SELECT ST_SimplifyPreserveTopology('LINESTRING Z (0 0 1,1 0.1 2,2 0 3,5 5 4)'::geometry, 0.5)
+----
+LINESTRING Z (0 0 1,2 0 3,5 5 4)
+
+query T
+SELECT ST_SimplifyPreserveTopology('LINESTRING M (0 0 1,1 0.1 2,2 0 3,5 5 4)'::geometry, 0.5)
+----
+LINESTRING(0 0,2 0,5 5)
+
+query T
+SELECT ST_SimplifyPreserveTopology('SRID=4326;LINESTRING(0 0,1 0.1,2 0)'::geometry, 0.5)
+----
+SRID=4326;LINESTRING(0 0,2 0)
+
+query T
+SELECT ST_SimplifyPreserveTopology('LINESTRING EMPTY'::geometry, 1)
+----
+LINESTRING EMPTY
+
+query T
+SELECT ST_SimplifyPreserveTopology('POLYGON M EMPTY'::geometry, 1)
+----
+POLYGON M EMPTY
+
+query T
+SELECT ST_SimplifyPreserveTopology(NULL::geometry, 1)
+----
+NULL
+
+query T
+SELECT ST_SimplifyPreserveTopology('LINESTRING(0 0,1 0.1,2 0,3 0.1,4 0,5 5)'::geometry, NULL)
+----
+NULL
+
+query error
+SELECT ST_SimplifyPreserveTopology('LINESTRING(0 0,1 0.1,2 0,3 0.1,4 0,5 5)'::geometry, -1)
