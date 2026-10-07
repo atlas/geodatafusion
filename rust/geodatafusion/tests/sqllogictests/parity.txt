@@ -28,7 +28,8 @@ geodatafusion/st_crosses 20/20
 geodatafusion/st_delaunaytriangles 14/14
 geodatafusion/st_difference 20/20
 geodatafusion/st_disjoint 20/20
-geodatafusion/st_distance 5/5
+geodatafusion/st_distance 31/31
+geodatafusion/st_dwithin 18/18
 geodatafusion/st_endpoint 16/16
 geodatafusion/st_equals 20/20
 geodatafusion/st_extent 8/8

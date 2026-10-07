@@ -251,6 +251,16 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_Touches               | ✅          | Tests if two geometries have at least one point in common, but their interiors do not intersect.                                        |
 | ST_Within                | ✅          | Tests if every point of A lies in B, and their interiors have a point in common.                                                        |
 
+#### Distance Relationships
+
+| Name                     | Implemented | Description                                                                                                                             |
+| ------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| ST_3DDFullyWithin        |             | Tests if two 3D geometries are entirely within a given 3D distance.                                                                     |
+| ST_3DDWithin             |             | Tests if two 3D geometries are within a given 3D distance.                                                                              |
+| ST_DFullyWithin          |             | Tests if a geometry is entirely inside a distance of another.                                                                           |
+| ST_DWithin               | ✅          | Tests if two geometries are within a given distance.                                                                                    |
+| ST_PointInsideCircle     |             | Tests if a point geometry is inside a circle defined by a center and radius.                                                            |
+
 ### Measurement Functions
 
 | Name                    | Implemented | Description                                                                                                                    |

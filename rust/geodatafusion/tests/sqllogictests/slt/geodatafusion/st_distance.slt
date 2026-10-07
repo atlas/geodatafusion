@@ -24,3 +24,144 @@ SELECT ST_Distance(ST_SetSRID('POINT(0 0)'::geometry, 4326), ST_SetSRID('POINT(3
 # Wrong argument types are an error
 statement error
 SELECT ST_Distance('POINT(0 0)'::geometry, 1)
+
+# Edge cases recorded with the native implementation.
+
+# Points, lines and polygons
+query R
+SELECT ST_Distance('POINT(0 0)'::geometry, 'POINT(3 4)'::geometry)
+----
+5
+
+query R
+SELECT ST_Distance('POINT(0 0)'::geometry, 'LINESTRING(-1 1,1 1)'::geometry)
+----
+1
+
+query R
+SELECT ST_Distance('POINT(0 0)'::geometry, 'LINESTRING(2 0,3 0)'::geometry)
+----
+2
+
+query R
+SELECT ST_Distance('LINESTRING(0 0,10 10)'::geometry, 'LINESTRING(0 10,10 0)'::geometry)
+----
+0
+
+query R
+SELECT ST_Distance('LINESTRING(0 0,1 0)'::geometry, 'LINESTRING(2 1,3 5)'::geometry)
+----
+1.41421356237
+
+query R
+SELECT ST_Distance('POINT(5 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+0
+
+query R
+SELECT ST_Distance('POINT(5 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0),(4 4,6 4,6 6,4 6,4 4))'::geometry)
+----
+1
+
+query R
+SELECT ST_Distance('POINT(10 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+0
+
+query R
+SELECT ST_Distance('LINESTRING(2 2,3 3)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+0
+
+query R
+SELECT ST_Distance('LINESTRING(-5 5,5 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+0
+
+query R
+SELECT ST_Distance('POLYGON((1 1,2 1,2 2,1 1))'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+0
+
+query R
+SELECT ST_Distance('POLYGON((0 0,1 0,1 1,0 0))'::geometry, 'POLYGON((3 0,4 0,4 1,3 0))'::geometry)
+----
+2
+
+query R
+SELECT ST_Distance('POLYGON((4.5 4.5,5.5 4.5,5.5 5.5,4.5 4.5))'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0),(4 4,6 4,6 6,4 6,4 4))'::geometry)
+----
+0.5
+
+# A point a rounding error from a line or ring
+query R
+SELECT ST_Distance('LINESTRING(5 3,4 4)'::geometry, 'POINT(4.5 3.4999999999999996)'::geometry)
+----
+0.000000000000000314018491737
+
+# Invalid polygons: a hole sticking out of the shell is ignored from outside
+query R
+SELECT ST_Distance('POLYGON((0 0,10 0,10 10,0 10,0 0),(5 5,15 5,15 7,5 7,5 5))'::geometry, 'POINT(20 6)'::geometry)
+----
+10
+
+query R
+SELECT ST_Distance('POLYGON((0 0,2 0,0 2,2 2,0 0))'::geometry, 'POINT(1 0.5)'::geometry)
+----
+0
+
+# Collections
+query R
+SELECT ST_Distance('MULTIPOINT((10 10),(3 4))'::geometry, 'POINT(0 0)'::geometry)
+----
+5
+
+query R
+SELECT ST_Distance('GEOMETRYCOLLECTION(POINT EMPTY,POINT(3 4))'::geometry, 'POINT(0 0)'::geometry)
+----
+5
+
+query R
+SELECT ST_Distance('MULTIPOINT(EMPTY,(3 4))'::geometry, 'POINT(0 0)'::geometry)
+----
+5
+
+query R
+SELECT ST_Distance('GEOMETRYCOLLECTION(LINESTRING(10 0,10 10),POLYGON((0 0,1 0,1 1,0 0)))'::geometry, 'POINT(3 0)'::geometry)
+----
+2
+
+# Z and M are ignored
+query R
+SELECT ST_Distance('POINT Z (0 0 0)'::geometry, 'POINT Z (3 4 100)'::geometry)
+----
+5
+
+query R
+SELECT ST_Distance('POINT M (0 0 7)'::geometry, 'LINESTRING M (3 0 1,3 4 2)'::geometry)
+----
+3
+
+# EMPTY gives NULL
+query R
+SELECT ST_Distance('POINT EMPTY'::geometry, 'POINT(0 0)'::geometry)
+----
+NULL
+
+query R
+SELECT ST_Distance('POINT(0 0)'::geometry, 'GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+NULL
+
+query R
+SELECT ST_Distance('MULTIPOLYGON EMPTY'::geometry, 'POLYGON EMPTY'::geometry)
+----
+NULL
+
+# A column, including NULL
+query R rowsort
+SELECT ST_Distance(g, 'POINT(0 0)'::geometry) FROM (VALUES ('POINT(3 4)'::geometry), (NULL::geometry), ('POINT EMPTY'::geometry)) AS t(g)
+----
+5
+NULL
+NULL

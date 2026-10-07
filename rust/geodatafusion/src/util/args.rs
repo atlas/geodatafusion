@@ -67,13 +67,6 @@ pub(crate) fn optional_text_arg(
 
 /// Optional `float8` argument `index`, one value per row (constants are broadcast), or `default`
 /// in every row if the call doesn't have it.
-#[cfg_attr(
-    not(feature = "geos-3_11"),
-    expect(
-        dead_code,
-        reason = "only GEOS-backed UDFs take a float parameter so far"
-    )
-)]
 pub(crate) fn optional_float_arg(
     args: &ScalarFunctionArgs,
     index: usize,

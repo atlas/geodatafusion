@@ -81,8 +81,10 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
 
     // measurement
     m.add_class::<measurement::PyArea>()?;
+    m.add_class::<measurement::PyDistance>()?;
 
     // relationships
+    m.add_class::<relationships::PyDWithin>()?;
     m.add_class::<relationships::PyRelateMatch>()?;
 
     // srs
