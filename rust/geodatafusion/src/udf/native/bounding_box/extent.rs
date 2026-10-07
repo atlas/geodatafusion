@@ -17,23 +17,24 @@ use geoarrow_array::builder::RectBuilder;
 use geoarrow_schema::{BoxType, Dimension, GeoArrowType};
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::native::bounding_box::util::bounds::{BoundingRect, total_bounds};
+use crate::udf::native::bounding_box::util::bounds::{BoundingRect, extent_bounds};
 use crate::util::field::input_metadata;
 use crate::util::signature::single_geometry;
 
-/// Aggregate function that returns the bounding box of geometries.
+/// Aggregate function that returns the 2D bounding box of geometries.
 #[user_doc(
     doc_section(label = "Bounding Box Functions"),
     description = "An aggregate function that returns the 2D bounding box of a set of geometries, with the CRS of the input. NULL and empty geometries are skipped; the result is NULL if no geometry remains.",
     syntax_example = "ST_Extent(geomfield)",
-    argument(name = "geomfield", description = "geometry")
+    argument(name = "geomfield", description = "geometry"),
+    related_udf(name = "st_3dextent")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Extent;
 
 impl Extent {
     pub fn new() -> Self {
-        Self {}
+        Self
     }
 }
 
@@ -57,29 +58,15 @@ impl AggregateUDFImpl for Extent {
     }
 
     fn return_field(&self, arg_fields: &[FieldRef]) -> Result<FieldRef> {
-        let output_type = BoxType::new(Dimension::XY, input_metadata(&arg_fields[0]));
-        Ok(Arc::new(output_type.to_field(self.name(), true)))
+        Ok(return_field_impl(self.name(), arg_fields, Dimension::XY))
     }
 
     fn accumulator(&self, args: AccumulatorArgs) -> Result<Box<dyn Accumulator>> {
-        Ok(Box::new(ExtentAccumulator {
-            bounds: BoundingRect::new(false),
-            input_field: Arc::clone(&args.expr_fields[0]),
-            return_field: Arc::clone(&args.return_field),
-        }))
+        Ok(Box::new(ExtentAccumulator::new(&args, false)))
     }
 
     fn state_fields(&self, args: StateFieldsArgs) -> Result<Vec<FieldRef>> {
-        Ok(STATE_NAMES
-            .iter()
-            .map(|name| {
-                Arc::new(Field::new(
-                    format_state_name(args.name, name),
-                    DataType::Float64,
-                    true,
-                ))
-            })
-            .collect())
+        Ok(state_fields_impl(&args, STATE_NAMES_2D))
     }
 
     fn order_sensitivity(&self) -> AggregateOrderSensitivity {
@@ -92,24 +79,114 @@ impl AggregateUDFImpl for Extent {
     }
 }
 
+/// Aggregate function that returns the 3D bounding box of geometries.
+#[user_doc(
+    doc_section(label = "Bounding Box Functions"),
+    description = "An aggregate function that returns the 3D bounding box of a set of geometries, with the CRS of the input. A geometry without Z counts as Z 0. NULL and empty geometries are skipped; the result is NULL if no geometry remains.",
+    syntax_example = "ST_3DExtent(geomfield)",
+    argument(name = "geomfield", description = "geometry"),
+    related_udf(name = "st_extent")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct Extent3D;
+
+impl Extent3D {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for Extent3D {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AggregateUDFImpl for Extent3D {
+    fn name(&self) -> &str {
+        "st_3dextent"
+    }
+
+    fn signature(&self) -> &Signature {
+        single_geometry()
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field should be called instead")
+    }
+
+    fn return_field(&self, arg_fields: &[FieldRef]) -> Result<FieldRef> {
+        Ok(return_field_impl(self.name(), arg_fields, Dimension::XYZ))
+    }
+
+    fn accumulator(&self, args: AccumulatorArgs) -> Result<Box<dyn Accumulator>> {
+        Ok(Box::new(ExtentAccumulator::new(&args, true)))
+    }
+
+    fn state_fields(&self, args: StateFieldsArgs) -> Result<Vec<FieldRef>> {
+        Ok(state_fields_impl(&args, STATE_NAMES_3D))
+    }
+
+    fn order_sensitivity(&self) -> AggregateOrderSensitivity {
+        // The bounds don't depend on the order of the rows.
+        AggregateOrderSensitivity::Insensitive
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+fn return_field_impl(name: &str, arg_fields: &[FieldRef], dim: Dimension) -> FieldRef {
+    let output_type = BoxType::new(dim, input_metadata(&arg_fields[0]));
+    Arc::new(output_type.to_field(name, true))
+}
+
 /// The partial state: the bounds so far, ±infinity while nothing was added.
-const STATE_NAMES: [&str; 4] = ["xmin", "ymin", "xmax", "ymax"];
+const STATE_NAMES_2D: &[&str] = &["xmin", "ymin", "xmax", "ymax"];
+const STATE_NAMES_3D: &[&str] = &["xmin", "ymin", "zmin", "xmax", "ymax", "zmax"];
+
+fn state_fields_impl(args: &StateFieldsArgs, names: &[&str]) -> Vec<FieldRef> {
+    names
+        .iter()
+        .map(|name| {
+            Arc::new(Field::new(
+                format_state_name(args.name, name),
+                DataType::Float64,
+                true,
+            ))
+        })
+        .collect()
+}
 
 #[derive(Debug)]
 struct ExtentAccumulator {
     bounds: BoundingRect,
+    include_z: bool,
     input_field: FieldRef,
     return_field: FieldRef,
 }
 
+impl ExtentAccumulator {
+    fn new(args: &AccumulatorArgs, include_z: bool) -> Self {
+        Self {
+            bounds: BoundingRect::new(include_z),
+            include_z,
+            input_field: Arc::clone(&args.expr_fields[0]),
+            return_field: Arc::clone(&args.return_field),
+        }
+    }
+}
+
 impl Accumulator for ExtentAccumulator {
     fn state(&mut self) -> Result<Vec<ScalarValue>> {
-        Ok(vec![
-            ScalarValue::from(self.bounds.minx()),
-            ScalarValue::from(self.bounds.miny()),
-            ScalarValue::from(self.bounds.maxx()),
-            ScalarValue::from(self.bounds.maxy()),
-        ])
+        let [minx, miny, minz, maxx, maxy, maxz] = self.bounds.raw_bounds();
+        let values = if self.include_z {
+            vec![minx, miny, minz, maxx, maxy, maxz]
+        } else {
+            vec![minx, miny, maxx, maxy]
+        };
+        Ok(values.into_iter().map(ScalarValue::from).collect())
     }
 
     fn evaluate(&mut self) -> Result<ScalarValue> {
@@ -121,6 +198,7 @@ impl Accumulator for ExtentAccumulator {
             &mut self.bounds,
             &values[0],
             &self.input_field,
+            self.include_z,
         )?)
     }
 
@@ -133,12 +211,27 @@ impl Accumulator for ExtentAccumulator {
             arrow_arith::aggregate::max(array.as_primitive::<Float64Type>())
                 .unwrap_or(f64::NEG_INFINITY)
         };
-        self.bounds.update(&BoundingRect::from_xy(
-            min(&states[0]),
-            min(&states[1]),
-            max(&states[2]),
-            max(&states[3]),
-        ));
+        let state = if self.include_z {
+            [
+                min(&states[0]),
+                min(&states[1]),
+                min(&states[2]),
+                max(&states[3]),
+                max(&states[4]),
+                max(&states[5]),
+            ]
+        } else {
+            [
+                min(&states[0]),
+                min(&states[1]),
+                f64::INFINITY,
+                max(&states[2]),
+                max(&states[3]),
+                f64::NEG_INFINITY,
+            ]
+        };
+        self.bounds
+            .update(&BoundingRect::from_raw_bounds(state, self.include_z));
         Ok(())
     }
 
@@ -151,9 +244,10 @@ fn extent_update(
     bounds: &mut BoundingRect,
     array: &ArrayRef,
     field: &FieldRef,
+    include_z: bool,
 ) -> GeoDataFusionResult<()> {
     let geometries = from_arrow_array(array, field)?;
-    bounds.update(&total_bounds(geometries.as_ref())?);
+    bounds.update(&extent_bounds(geometries.as_ref(), include_z)?);
     Ok(())
 }
 
@@ -166,7 +260,7 @@ fn extent_evaluate(
         return Ok(ScalarValue::try_from(return_field.data_type())?);
     }
     let GeoArrowType::Rect(output_type) = GeoArrowType::from_arrow_field(return_field)? else {
-        return Err(internal_datafusion_err!("st_extent: unexpected return field").into());
+        return Err(internal_datafusion_err!("unexpected return field").into());
     };
     let mut builder = RectBuilder::with_capacity(output_type, 1);
     builder.push_rect(Some(bounds));

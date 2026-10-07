@@ -372,7 +372,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_EstimatedExtent |             | Returns the estimated extent of a spatial table.                         |
 | ST_Expand          |             | Returns a bounding box expanded from another bounding box or a geometry. |
 | ST_Extent          | ✅          | Aggregate function that returns the bounding box of geometries.          |
-| ST_3DExtent        |             | Aggregate function that returns the 3D bounding box of geometries.       |
+| ST_3DExtent        | ✅          | Aggregate function that returns the 3D bounding box of geometries.       |
 | ST_MakeBox2D       | ✅          | Creates a BOX2D defined by two 2D point geometries.                      |
 | ST_3DMakeBox       | ✅          | Creates a BOX3D defined by two 3D point geometries.                      |
 | ST_XMax            | ✅          | Returns the X maxima of a 2D or 3D bounding box or a geometry.           |

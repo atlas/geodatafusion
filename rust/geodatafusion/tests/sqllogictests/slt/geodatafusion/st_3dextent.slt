@@ -1,0 +1,58 @@
+# Edge cases for ST_3DExtent, not covered by the PostGIS docs examples.
+
+# One and several rows
+query T
+SELECT ST_3DExtent(g) FROM (VALUES ('POINT(1 2)'::geometry)) AS t(g)
+----
+BOX3D(1 2 0,1 2 0)
+
+query T
+SELECT ST_3DExtent(g) FROM (VALUES ('POINT(1 2)'::geometry), ('LINESTRING(-3 0,4 5)'::geometry), ('POLYGON((0 0,10 0,10 -10,0 0))'::geometry)) AS t(g)
+----
+BOX3D(-3 -10 0,10 5 0)
+
+# Z counts, M doesn't; 2D input gives Z 0
+query T
+SELECT ST_3DExtent(g) FROM (VALUES ('POINT Z (1 2 3)'::geometry), ('POINT M (4 5 6)'::geometry)) AS t(g)
+----
+BOX3D(1 2 0,4 5 3)
+
+# NULL and EMPTY rows are skipped
+query T
+SELECT ST_3DExtent(g) FROM (VALUES ('POINT(1 2)'::geometry), (NULL::geometry), ('POINT EMPTY'::geometry), ('POINT(3 4)'::geometry)) AS t(g)
+----
+BOX3D(1 2 0,3 4 0)
+
+# No box for no rows, only NULL rows or only EMPTY rows
+query T
+SELECT ST_3DExtent(g) FROM (VALUES ('POINT(1 2)'::geometry)) AS t(g) WHERE false
+----
+NULL
+
+query T
+SELECT ST_3DExtent(g) FROM (VALUES (NULL::geometry), (NULL::geometry)) AS t(g)
+----
+NULL
+
+query T
+SELECT ST_3DExtent(g) FROM (VALUES ('POINT EMPTY'::geometry), ('LINESTRING EMPTY'::geometry)) AS t(g)
+----
+NULL
+
+# GROUP BY (with Z: PostGIS 3.6.4 returns an uninitialised Z for 2D input here)
+query IT rowsort
+SELECT k, ST_3DExtent(g) FROM (VALUES (1, 'POINT Z (1 2 3)'::geometry), (2, 'POINT Z (5 5 5)'::geometry), (1, 'POINT Z (3 -4 -1)'::geometry), (2, NULL::geometry), (3, NULL::geometry)) AS t(k, g) GROUP BY k
+----
+1 BOX3D(1 -4 -1,3 2 3)
+2 BOX3D(5 5 5,5 5 5)
+3 NULL
+
+query T
+SELECT ST_3DExtent(g) FROM (VALUES ('POINT Z (1 2 3)'::geometry), ('LINESTRING Z (0 0 -5,1 1 1)'::geometry)) AS t(g)
+----
+BOX3D(0 0 -5,1 2 3)
+
+query T
+SELECT ST_3DExtent(g) FROM (VALUES ('POINT Z (1 2 3)'::geometry), ('POINT(4 5)'::geometry)) AS t(g)
+----
+BOX3D(1 2 0,4 5 3)
