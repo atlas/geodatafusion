@@ -2,6 +2,7 @@ mod accessors;
 mod bounding_box;
 mod constructors;
 mod io;
+mod relationships;
 mod srs;
 
 use pyo3::prelude::*;
@@ -76,6 +77,9 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<io::PyPointFromGeoHash>()?;
     m.add_class::<io::PyGeomFromGeoHash>()?;
     m.add_class::<io::PyBox2DFromGeoHash>()?;
+
+    // relationships
+    m.add_class::<relationships::PyRelateMatch>()?;
 
     // srs
     m.add_class::<srs::PySetSRID>()?;

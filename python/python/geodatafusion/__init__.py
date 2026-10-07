@@ -108,6 +108,9 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.GeomFromGeoHash()))
     ctx.register_udf(udf(native.Box2DFromGeoHash()))
 
+    # relationships
+    ctx.register_udf(udf(native.RelateMatch()))
+
     # srs
     ctx.register_udf(udf(native.SetSRID()))
     ctx.register_udf(udf(native.SRID()))
