@@ -2052,7 +2052,6 @@ dependencies = [
  "geoarrow-array",
  "geoarrow-expr-geo",
  "geoarrow-schema",
- "geohash",
  "geos",
  "object_store",
  "serde_json",
@@ -2136,16 +2135,6 @@ version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c5a7f08910fd98737a6eda7568e7c5e645093e073328eeef49758cfe8b0489c7"
 dependencies = [
- "libm",
-]
-
-[[package]]
-name = "geohash"
-version = "0.13.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f58890382f70caccc5fa388981f7ac80c913795042afce9f3e065695d8f7464"
-dependencies = [
- "geo-types",
  "libm",
 ]
 

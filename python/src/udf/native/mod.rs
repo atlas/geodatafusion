@@ -55,6 +55,10 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<io::PyGeomFromEWKT>()?;
     m.add_class::<io::PyGeomFromText>()?;
     m.add_class::<io::PyGeomFromWKB>()?;
+    m.add_class::<io::PyGeoHash>()?;
+    m.add_class::<io::PyPointFromGeoHash>()?;
+    m.add_class::<io::PyGeomFromGeoHash>()?;
+    m.add_class::<io::PyBox2DFromGeoHash>()?;
 
     // srs
     m.add_class::<srs::PySetSRID>()?;

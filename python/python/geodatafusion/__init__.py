@@ -47,14 +47,6 @@ def register_all_geo(ctx: SessionContext):
     ctx.register_udf(udf(geo.IsValidReason()))
 
 
-def register_all_geohash(ctx: SessionContext):
-    from . import geohash
-
-    ctx.register_udf(udf(geohash.GeoHash()))
-    ctx.register_udf(udf(geohash.PointFromGeoHash()))
-    ctx.register_udf(udf(geohash.Box2DFromGeoHash()))
-
-
 def register_all_native(ctx: SessionContext):
     from . import native
 
@@ -106,6 +98,10 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.GeomFromEWKT()))
     ctx.register_udf(udf(native.GeomFromText()))
     ctx.register_udf(udf(native.GeomFromWKB()))
+    ctx.register_udf(udf(native.GeoHash()))
+    ctx.register_udf(udf(native.PointFromGeoHash()))
+    ctx.register_udf(udf(native.GeomFromGeoHash()))
+    ctx.register_udf(udf(native.Box2DFromGeoHash()))
 
     # srs
     ctx.register_udf(udf(native.SetSRID()))
@@ -114,5 +110,4 @@ def register_all_native(ctx: SessionContext):
 
 def register_all(ctx: SessionContext):
     register_all_geo(ctx)
-    register_all_geohash(ctx)
     register_all_native(ctx)

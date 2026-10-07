@@ -23,8 +23,6 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     #[cfg(feature = "geos-3_11")]
     crate::udf::geos::processing::register(session_context);
 
-    crate::udf::geohash::register(session_context);
-
     crate::udf::native::accessors::register(session_context);
 
     crate::udf::native::bounding_box::register(session_context);

@@ -1,0 +1,72 @@
+# Edge cases for ST_PointFromGeoHash, not covered by the PostGIS docs examples.
+
+# Precision
+query T
+SELECT ST_AsText(ST_PointFromGeoHash('9qqj7nmxncgyy4d0dbxqz0'))
+----
+POINT(-115.17281600000001 36.11464599999999)
+
+query T
+SELECT ST_AsText(ST_PointFromGeoHash('9qqj7nmxncgyy4d0dbxqz0', 4))
+----
+POINT(-115.13671875 36.123046875)
+
+query T
+SELECT ST_AsText(ST_PointFromGeoHash('9qqj', 10))
+----
+POINT(-115.13671875 36.123046875)
+
+query T
+SELECT ST_AsText(ST_PointFromGeoHash('9qqj', 0))
+----
+POINT(0 0)
+
+query T
+SELECT ST_AsText(ST_PointFromGeoHash('9qqj', -1))
+----
+POINT(-115.13671875 36.123046875)
+
+query T
+SELECT ST_AsText(ST_PointFromGeoHash('9qqj', NULL))
+----
+POINT(-115.13671875 36.123046875)
+
+# Uppercase, empty and very long GeoHashes
+query T
+SELECT ST_AsText(ST_PointFromGeoHash('9QQJ'))
+----
+POINT(-115.13671875 36.123046875)
+
+query T
+SELECT ST_AsText(ST_PointFromGeoHash(''))
+----
+POINT(0 0)
+
+query T
+SELECT ST_AsText(ST_PointFromGeoHash('umyxzxs9mkzz50g4zeqjpm'))
+----
+POINT(20.726630482409984 78.7474946535387)
+
+# Invalid characters are an error
+statement error
+SELECT ST_PointFromGeoHash('9qqa')
+
+# NULL
+query T
+SELECT ST_AsText(ST_PointFromGeoHash(NULL))
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_AsText(ST_PointFromGeoHash(h)) FROM (VALUES ('9qqj'), (NULL), ('s000')) AS t(h)
+----
+NULL
+POINT(-115.13671875 36.123046875)
+POINT(0.17578125 0.087890625)
+
+# No SRID
+query I
+SELECT ST_SRID(ST_PointFromGeoHash('9qqj'))
+----
+0
