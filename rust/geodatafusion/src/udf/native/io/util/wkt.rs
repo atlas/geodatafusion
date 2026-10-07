@@ -52,8 +52,8 @@ impl WktWriter {
         let dim = geom.dim();
         match geom.as_type() {
             GeometryType::Point(point) => {
-                self.header(out, "POINT", dim, is_empty_point(point));
-                if let Some(coord) = point.coord().filter(|_| !is_empty_point(point)) {
+                self.header(out, "POINT", dim, point.coord().is_none());
+                if let Some(coord) = point.coord() {
                     out.push('(');
                     self.coord(out, &coord);
                     out.push(')');
@@ -80,7 +80,7 @@ impl WktWriter {
                         if i > 0 {
                             out.push(',');
                         }
-                        match point.coord().filter(|_| !is_empty_point(&point)) {
+                        match point.coord() {
                             // Extended WKT writes multipoint members without parentheses.
                             Some(coord) if self.flavor == WktFlavor::Extended => {
                                 self.coord(out, &coord);
@@ -249,13 +249,6 @@ impl WktWriter {
             write_number(out, coord.nth_or_panic(i), self.max_decimal_digits);
         }
     }
-}
-
-/// A point is empty without a coordinate, or with NaN coordinates (WKB's EMPTY point).
-fn is_empty_point(point: &impl PointTrait<T = f64>) -> bool {
-    point
-        .coord()
-        .is_none_or(|coord| coord.x().is_nan() && coord.y().is_nan())
 }
 
 /// Why PostGIS would reject a (E)WKT string. The messages are PostGIS's.

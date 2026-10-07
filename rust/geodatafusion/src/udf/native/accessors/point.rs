@@ -231,11 +231,8 @@ impl GeometryKernel for OrdinateKernel<'_> {
                 exec_datafusion_err!("{}: Argument must have type POINT", self.name).into(),
             );
         };
-        // An EMPTY point has no coordinate, or NaN coordinates in WKB.
-        let Some(coord) = point
-            .coord()
-            .filter(|c| !(c.x().is_nan() && c.y().is_nan()))
-        else {
+        // An EMPTY point has no coordinate.
+        let Some(coord) = point.coord() else {
             return Ok(None);
         };
         Ok(match self.ordinate {
