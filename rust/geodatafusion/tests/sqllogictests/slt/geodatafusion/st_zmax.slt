@@ -1,0 +1,87 @@
+# Edge cases for ST_ZMax, not covered by the PostGIS docs examples.
+
+# Every type
+query R
+SELECT ST_ZMax('POINT(1 2)'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMax('LINESTRING(0 0,3 4)'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMax('POLYGON((0 0,10 0,10 10,0 0),(1 1,2 1,2 2,1 1))'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMax('MULTIPOINT(1 2,-3 4)'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMax('GEOMETRYCOLLECTION(POINT(5 6),LINESTRING(0 0,1 -1))'::geometry)
+----
+0
+
+# Every dimension
+query R
+SELECT ST_ZMax('LINESTRING Z (1 2 3,4 5 -6)'::geometry)
+----
+3
+
+query R
+SELECT ST_ZMax('LINESTRING M (1 2 3,4 5 6)'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMax('LINESTRING ZM (1 2 3 4,4 5 6 7)'::geometry)
+----
+6
+
+query R
+SELECT ST_ZMax('SRID=4326;POINT(1 2)'::geometry)
+----
+0
+
+# EMPTY and NULL
+query R
+SELECT ST_ZMax('POINT EMPTY'::geometry)
+----
+NULL
+
+query R
+SELECT ST_ZMax('LINESTRING Z EMPTY'::geometry)
+----
+NULL
+
+query R
+SELECT ST_ZMax('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+NULL
+
+query R
+SELECT ST_ZMax('MULTIPOINT(EMPTY,(1 1))'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMax('GEOMETRYCOLLECTION(POINT EMPTY,POINT(3 4))'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMax(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query R rowsort
+SELECT ST_ZMax(g) FROM (VALUES ('LINESTRING Z (1 2 3,4 5 6)'::geometry), (NULL::geometry), ('POINT EMPTY'::geometry)) AS t(g)
+----
+6
+NULL
+NULL

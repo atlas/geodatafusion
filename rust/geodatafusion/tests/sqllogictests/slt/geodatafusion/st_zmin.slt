@@ -1,0 +1,87 @@
+# Edge cases for ST_ZMin, not covered by the PostGIS docs examples.
+
+# Every type
+query R
+SELECT ST_ZMin('POINT(1 2)'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMin('LINESTRING(0 0,3 4)'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMin('POLYGON((0 0,10 0,10 10,0 0),(1 1,2 1,2 2,1 1))'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMin('MULTIPOINT(1 2,-3 4)'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMin('GEOMETRYCOLLECTION(POINT(5 6),LINESTRING(0 0,1 -1))'::geometry)
+----
+0
+
+# Every dimension
+query R
+SELECT ST_ZMin('LINESTRING Z (1 2 3,4 5 -6)'::geometry)
+----
+-6
+
+query R
+SELECT ST_ZMin('LINESTRING M (1 2 3,4 5 6)'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMin('LINESTRING ZM (1 2 3 4,4 5 6 7)'::geometry)
+----
+3
+
+query R
+SELECT ST_ZMin('SRID=4326;POINT(1 2)'::geometry)
+----
+0
+
+# EMPTY and NULL
+query R
+SELECT ST_ZMin('POINT EMPTY'::geometry)
+----
+NULL
+
+query R
+SELECT ST_ZMin('LINESTRING Z EMPTY'::geometry)
+----
+NULL
+
+query R
+SELECT ST_ZMin('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+NULL
+
+query R
+SELECT ST_ZMin('MULTIPOINT(EMPTY,(1 1))'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMin('GEOMETRYCOLLECTION(POINT EMPTY,POINT(3 4))'::geometry)
+----
+0
+
+query R
+SELECT ST_ZMin(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query R rowsort
+SELECT ST_ZMin(g) FROM (VALUES ('LINESTRING Z (1 2 3,4 5 6)'::geometry), (NULL::geometry), ('POINT EMPTY'::geometry)) AS t(g)
+----
+3
+NULL
+NULL
