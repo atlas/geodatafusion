@@ -120,6 +120,8 @@ pub(crate) enum Arg {
     Srid,
     /// `text`: string types are kept as is. `Null` becomes `Utf8`.
     Text,
+    /// `bytea`: binary types are kept as is, with their field metadata. `Null` becomes `Binary`.
+    Bytea,
     /// `boolean`: `Boolean` and `Null` become `Boolean`.
     #[cfg_attr(
         all(not(feature = "geos-3_11"), not(test)),
@@ -142,6 +144,8 @@ impl Arg {
             (Arg::Srid, t) if t.is_integer() => Some(t.clone()),
             (Arg::Text, Null) => Some(Utf8),
             (Arg::Text, Utf8 | LargeUtf8 | Utf8View) => Some(data_type.clone()),
+            (Arg::Bytea, Null) => Some(Binary),
+            (Arg::Bytea, Binary | LargeBinary | BinaryView) => Some(data_type.clone()),
             (Arg::Boolean, Boolean | Null) => Some(Boolean),
             _ => None,
         }
@@ -155,6 +159,7 @@ impl Arg {
             Arg::Integer => "integer",
             Arg::Srid => "integer",
             Arg::Text => "text",
+            Arg::Bytea => "bytea",
             Arg::Boolean => "boolean",
         }
     }

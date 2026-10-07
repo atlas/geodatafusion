@@ -97,6 +97,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.AsEWKB()))
     ctx.register_udf(udf(native.AsHEXEWKB()))
     ctx.register_udf(udf(native.AsEWKT()))
+    ctx.register_udf(udf(native.GeomFromEWKB()))
     ctx.register_udf(udf(native.GeomFromEWKT()))
     ctx.register_udf(udf(native.GeomFromText()))
     ctx.register_udf(udf(native.GeomFromWKB()))

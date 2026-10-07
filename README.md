@@ -169,7 +169,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 
 | Name                 | Implemented | Description                                                                                                                                   |
 | -------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| ST_GeomFromEWKB      |             | Return a specified ST_Geometry value from Extended Well-Known Binary representation (EWKB).                                                   |
+| ST_GeomFromEWKB      | ✅          | Return a specified ST_Geometry value from Extended Well-Known Binary representation (EWKB).                                                   |
 | ST_GeomFromWKB       | ✅          | Creates a geometry instance from a Well-Known Binary geometry representation (WKB) and optional SRID.                                         |
 | ST_LineFromWKB       |             | Makes a LINESTRING from WKB with the given SRID                                                                                               |
 | ST_LinestringFromWKB |             | Makes a geometry from WKB with the given SRID.                                                                                                |

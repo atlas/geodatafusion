@@ -22,9 +22,11 @@ geodatafusion/st_endpoint 16/16
 geodatafusion/st_extent 8/8
 geodatafusion/st_geohash 23/23
 geodatafusion/st_geometrytype 18/18
+geodatafusion/st_geomfromewkb 12/12
 geodatafusion/st_geomfromewkt 13/13
 geodatafusion/st_geomfromgeohash 12/12
 geodatafusion/st_geomfromtext 59/59
+geodatafusion/st_geomfromwkb 16/16
 geodatafusion/st_intersects 5/5
 geodatafusion/st_isclosed 26/26
 geodatafusion/st_m 10/10
