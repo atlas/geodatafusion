@@ -1,0 +1,108 @@
+# Edge cases for ST_Intersection, not covered by the PostGIS docs examples.
+
+# Overlapping, disjoint and touching inputs
+query T
+SELECT ST_Intersection('POLYGON((0 0,2 0,2 2,0 2,0 0))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+POLYGON((2 2,2 1,1 1,1 2,2 2))
+
+query T
+SELECT ST_Intersection('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry)
+----
+POINT EMPTY
+
+query T
+SELECT ST_Intersection('LINESTRING(0 0,2 2)'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+LINESTRING(1 1,2 2)
+
+query T
+SELECT ST_Intersection('MULTIPOINT((0 0),(1.5 1.5))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+POINT(1.5 1.5)
+
+query T
+SELECT ST_Intersection('GEOMETRYCOLLECTION(POINT(1.5 1.5),LINESTRING(0 0,5 5))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+LINESTRING(1 1,3 3)
+
+# gridSize
+query T
+SELECT ST_Intersection('LINESTRING(0 0,2.3 2.3)'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry, 0.5)
+----
+LINESTRING(1 1,2.5 2.5)
+
+query T
+SELECT ST_Intersection('POLYGON((0 0,2 0,2 2,0 2,0 0))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry, -1)
+----
+POLYGON((2 2,2 1,1 1,1 2,2 2))
+
+query T
+SELECT ST_Intersection('POLYGON((0 0,2 0,2 2,0 2,0 0))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry, NULL)
+----
+NULL
+
+# Z kept, M dropped
+query T
+SELECT ST_Intersection('LINESTRING Z (0 0 1,2 0 2)'::geometry, 'LINESTRING(1 -1,1 1)'::geometry)
+----
+POINT Z (1 0 1.5)
+
+query T
+SELECT ST_Intersection('LINESTRING M (0 0 1,4 4 2)'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+LINESTRING(1 1,3 3)
+
+query T
+SELECT ST_Intersection('POLYGON ZM ((0 0 1 5,2 0 1 5,2 2 1 5,0 2 1 5,0 0 1 5))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+POLYGON Z ((2 2 1,2 1 1,1 1 1,1 2 1,2 2 1))
+
+# EMPTY inputs
+query T
+SELECT ST_Intersection('LINESTRING M (0 0 1,5 5 2)'::geometry, 'POINT EMPTY'::geometry)
+----
+POINT EMPTY
+
+query T
+SELECT ST_Intersection('POINT M EMPTY'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+POINT M EMPTY
+
+query T
+SELECT ST_Intersection('POINT EMPTY'::geometry, 'LINESTRING M (0 0 1,5 5 2)'::geometry)
+----
+POINT EMPTY
+
+query T
+SELECT ST_Intersection('POLYGON EMPTY'::geometry, 'POINT Z EMPTY'::geometry)
+----
+POINT Z EMPTY
+
+# SRID
+query T
+SELECT ST_Intersection('SRID=4326;POINT(1 1)'::geometry, 'SRID=4326;MULTIPOINT((1 1),(2 2))'::geometry)
+----
+SRID=4326;POINT(1 1)
+
+statement error
+SELECT ST_Intersection('SRID=4326;POINT(1 1)'::geometry, 'SRID=3857;POINT(1 1)'::geometry)
+
+# NULL
+query T
+SELECT ST_Intersection(NULL::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+NULL
+
+query T
+SELECT ST_Intersection('POLYGON((0 0,2 0,2 2,0 2,0 0))'::geometry, NULL::geometry)
+----
+NULL
+
+# Columns
+query T rowsort
+SELECT ST_Intersection(a, b) FROM (VALUES ('POLYGON((0 0,2 0,2 2,0 2,0 0))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry), ('POINT(1.5 1.5)'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry), (NULL::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)) AS t(a, b)
+----
+NULL
+POINT(1.5 1.5)
+POLYGON((2 2,2 1,1 1,1 2,2 2))

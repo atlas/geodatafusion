@@ -1,0 +1,108 @@
+# Edge cases for ST_Difference, not covered by the PostGIS docs examples.
+
+# Overlapping, disjoint and touching inputs
+query T
+SELECT ST_Difference('POLYGON((0 0,2 0,2 2,0 2,0 0))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+POLYGON((2 0,0 0,0 2,1 2,1 1,2 1,2 0))
+
+query T
+SELECT ST_Difference('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry)
+----
+POINT(0 0)
+
+query T
+SELECT ST_Difference('LINESTRING(0 0,2 2)'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_Difference('MULTIPOINT((0 0),(1.5 1.5))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+POINT(0 0)
+
+query T
+SELECT ST_Difference('GEOMETRYCOLLECTION(POINT(1.5 1.5),LINESTRING(0 0,5 5))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+MULTILINESTRING((0 0,1 1),(3 3,5 5))
+
+# gridSize
+query T
+SELECT ST_Difference('LINESTRING(0 0,2.3 2.3)'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry, 0.5)
+----
+LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_Difference('POLYGON((0 0,2 0,2 2,0 2,0 0))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry, -1)
+----
+POLYGON((2 0,0 0,0 2,1 2,1 1,2 1,2 0))
+
+query T
+SELECT ST_Difference('POLYGON((0 0,2 0,2 2,0 2,0 0))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry, NULL)
+----
+NULL
+
+# Z kept, M dropped
+query T
+SELECT ST_Difference('LINESTRING Z (0 0 1,2 0 2)'::geometry, 'LINESTRING(1 -1,1 1)'::geometry)
+----
+MULTILINESTRING Z ((0 0 1,1 0 1.5),(1 0 1.5,2 0 2))
+
+query T
+SELECT ST_Difference('LINESTRING M (0 0 1,4 4 2)'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+MULTILINESTRING((0 0,1 1),(3 3,4 4))
+
+query T
+SELECT ST_Difference('POLYGON ZM ((0 0 1 5,2 0 1 5,2 2 1 5,0 2 1 5,0 0 1 5))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+POLYGON Z ((2 0 1,0 0 1,0 2 1,1 2 1,1 1 1,2 1 1,2 0 1))
+
+# EMPTY inputs
+query T
+SELECT ST_Difference('LINESTRING M (0 0 1,5 5 2)'::geometry, 'POINT EMPTY'::geometry)
+----
+LINESTRING M (0 0 1,5 5 2)
+
+query T
+SELECT ST_Difference('POINT M EMPTY'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+POINT M EMPTY
+
+query T
+SELECT ST_Difference('POINT EMPTY'::geometry, 'LINESTRING M (0 0 1,5 5 2)'::geometry)
+----
+POINT EMPTY
+
+query T
+SELECT ST_Difference('POLYGON EMPTY'::geometry, 'POINT Z EMPTY'::geometry)
+----
+POLYGON EMPTY
+
+# SRID
+query T
+SELECT ST_Difference('SRID=4326;POINT(1 1)'::geometry, 'SRID=4326;MULTIPOINT((1 1),(2 2))'::geometry)
+----
+SRID=4326;POINT EMPTY
+
+statement error
+SELECT ST_Difference('SRID=4326;POINT(1 1)'::geometry, 'SRID=3857;POINT(1 1)'::geometry)
+
+# NULL
+query T
+SELECT ST_Difference(NULL::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)
+----
+NULL
+
+query T
+SELECT ST_Difference('POLYGON((0 0,2 0,2 2,0 2,0 0))'::geometry, NULL::geometry)
+----
+NULL
+
+# Columns
+query T rowsort
+SELECT ST_Difference(a, b) FROM (VALUES ('POLYGON((0 0,2 0,2 2,0 2,0 0))'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry), ('POINT(1.5 1.5)'::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry), (NULL::geometry, 'POLYGON((1 1,3 1,3 3,1 3,1 1))'::geometry)) AS t(a, b)
+----
+NULL
+POINT EMPTY
+POLYGON((2 0,0 0,0 2,1 2,1 1,2 1,2 0))
