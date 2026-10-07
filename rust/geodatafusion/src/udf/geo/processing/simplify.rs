@@ -17,8 +17,7 @@ use crate::error::GeoDataFusionResult;
 use crate::util::field::{geometry_array, input_metadata, wkb_result, wkb_return_field};
 use crate::util::signature::{Arg, coerce_args};
 
-/// PostGIS: ST_Simplify(geometry geom, float tolerance) and the same for ST_SimplifyVW and
-/// ST_SimplifyPreserveTopology.
+/// PostGIS: ST_Simplify(geometry geom, float tolerance) and the same for ST_SimplifyVW.
 static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry, Arg::Float]];
 
 static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
@@ -148,65 +147,6 @@ impl ScalarUDFImpl for SimplifyVW {
 }
 
 /// Returns a simplified and valid representation of a geometry.
-#[user_doc(
-    doc_section(label = "Geometry Processing"),
-    description = "Computes a simplified representation of a geometry, limiting simplification to ensure the result has the same topology as the input. The simplification tolerance is a distance value, in the units of the input SRS. Unlike PostGIS, which uses a variant of Douglas-Peucker, this uses a topology-preserving Visvalingam-Whyatt algorithm, and the tolerance must be a constant.",
-    syntax_example = "ST_SimplifyPreserveTopology(geom, tolerance)",
-    argument(name = "geom", description = "geometry"),
-    argument(name = "tolerance", description = "float8")
-)]
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub struct SimplifyPreserveTopology;
-
-impl SimplifyPreserveTopology {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
-impl Default for SimplifyPreserveTopology {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl ScalarUDFImpl for SimplifyPreserveTopology {
-    fn name(&self) -> &str {
-        "st_simplifypreservetopology"
-    }
-
-    fn signature(&self) -> &Signature {
-        &SIGNATURE
-    }
-
-    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
-        internal_err!("return_field_from_args should be called instead")
-    }
-
-    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        Ok(wkb_return_field(
-            self.name(),
-            input_metadata(&args.arg_fields[0]),
-        ))
-    }
-
-    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
-        coerce_args(self.name(), arg_types, ARGUMENTS)
-    }
-
-    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(simplify_impl(
-            self.name(),
-            args,
-            geoarrow_expr_geo::simplify_vw_preserve,
-        )?)
-    }
-
-    fn documentation(&self) -> Option<&Documentation> {
-        self.doc()
-    }
-}
-
 fn simplify_impl(
     name: &str,
     args: ScalarFunctionArgs,

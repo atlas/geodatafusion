@@ -305,7 +305,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_BuildArea                | ✅          | Creates a polygonal geometry formed by the linework of a geometry.                                |
 | ST_Centroid                 | ✅          | Returns the geometric center of a geometry.                                                       |
 | ST_ChaikinSmoothing         |             | Returns a smoothed version of a geometry, using the Chaikin algorithm                             |
-| ST_ConcaveHull              |             | Computes a possibly concave geometry that contains all input geometry vertices                    |
+| ST_ConcaveHull              | ✅          | Computes a possibly concave geometry that contains all input geometry vertices                    |
 | ST_ConvexHull               | ✅          | Computes the convex hull of a geometry.                                                           |
 | ST_DelaunayTriangles        | ✅          | Returns the Delaunay triangulation of the vertices of a geometry.                                 |
 | ST_FilterByM                |             | Removes vertices based on their M value                                                           |

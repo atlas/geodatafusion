@@ -1,0 +1,78 @@
+# Edge cases for ST_ConcaveHull, not covered by the PostGIS docs examples.
+
+query T
+SELECT ST_ConcaveHull('MULTIPOINT((0 0),(10 0),(10 10),(0 10),(5 5),(5 2))'::geometry, 0.5)
+----
+POLYGON((5 5,0 10,10 10,10 0,5 2,0 0,5 5))
+
+query T
+SELECT ST_ConcaveHull('MULTIPOINT((0 0),(10 0),(10 10),(0 10),(5 5),(5 2))'::geometry, 1)
+----
+POLYGON((0 0,0 10,10 10,10 0,0 0))
+
+query T
+SELECT ST_ConcaveHull('MULTIPOINT((0 0),(10 0),(10 10),(0 10),(5 5),(5 2))'::geometry, 0)
+----
+POLYGON((5 5,0 10,10 10,10 0,5 2,0 0,5 5))
+
+query T
+SELECT ST_ConcaveHull('MULTIPOINT((0 0),(10 0),(10 10),(0 10),(5 5),(5 2))'::geometry, 0.3, true)
+----
+POLYGON((10 10,10 0,5 2,0 0,5 5,0 10,10 10))
+
+query T
+SELECT ST_ConcaveHull('MULTIPOINT((0 0),(10 0),(10 10),(0 10),(5 5),(5 2))'::geometry, 0.3, false)
+----
+POLYGON((5 5,0 10,10 10,10 0,5 2,0 0,5 5))
+
+# PostGIS hulls POLYGON and MULTIPOLYGON input as polygons (GEOSConcaveHullOfPolygons),
+# which geodatafusion doesn't support. A collection is hulled by its vertices.
+query T
+SELECT ST_ConcaveHull('GEOMETRYCOLLECTION(POLYGON((0 0,10 0,10 10,5 3,0 10,0 0)))'::geometry, 0.5)
+----
+POLYGON((0 0,0 10,5 3,10 10,10 0,0 0))
+
+query T
+SELECT ST_ConcaveHull('LINESTRING(0 0,10 0,10 10)'::geometry, 0.5)
+----
+POLYGON((0 0,10 10,10 0,0 0))
+
+query T
+SELECT ST_ConcaveHull('POINT(1 2)'::geometry, 0.5)
+----
+POINT(1 2)
+
+query T
+SELECT ST_ConcaveHull('MULTIPOINT Z ((0 0 1),(10 0 2),(5 8 3))'::geometry, 0.5)
+----
+POLYGON Z ((5 8 3,10 0 2,0 0 1,5 8 3))
+
+query T
+SELECT ST_ConcaveHull('SRID=4326;MULTIPOINT((0 0),(10 0),(5 8))'::geometry, 0.5)
+----
+SRID=4326;POLYGON((5 8,10 0,0 0,5 8))
+
+query T
+SELECT ST_ConcaveHull('POINT EMPTY'::geometry, 0.5)
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_ConcaveHull('POLYGON M EMPTY'::geometry, 0.5)
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_ConcaveHull(NULL::geometry, 0.5)
+----
+NULL
+
+query T
+SELECT ST_ConcaveHull('MULTIPOINT((0 0),(10 0),(10 10),(0 10),(5 5),(5 2))'::geometry, NULL)
+----
+NULL
+
+query T
+SELECT ST_ConcaveHull('MULTIPOINT((0 0),(10 0),(10 10),(0 10),(5 5),(5 2))'::geometry, 0.5, NULL)
+----
+NULL
