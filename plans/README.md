@@ -159,8 +159,14 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    `precision`, ST_GeomFromGeoHash), checked against 2,877 PostGIS cases; the `geohash` crate
    is gone. Parity 715/1201, every hand-written record passing. G4 batch 3 done: (E)WKB
    input and output (checked against 256 PostGIS encodings) and the 14 type-checked
-   `*FromText`/`*FromWKB` constructors. Left: the GEOS bridge and backend moves, the G2
-   kernels (D6), and removing the implicit `geos` feature.
+   `*FromText`/`*FromWKB` constructors. G3 batches 0-3 done: GEOS pinned to the oracle's
+   3.14.1 (`geos-static`), the bridge (`to_geos`/`from_geos`, Z kept, M dropped, PostGIS's
+   `want3d` rule), ST_LineMerge rebuilt on it, and 18 new GEOS functions (overlay, unary
+   processing, ST_Buffer/ST_OffsetCurve, ST_Snap, ST_SharedPaths, Delaunay, Voronoi). GEOS
+   functions stay Rust-only until D13 decides how wheels ship GEOS. Left: the backend moves
+   (predicates, hulls, centroid, ST_SimplifyPreserveTopology, ST_ConcaveHull) and the G2
+   kernels (D6), which wait for D13 so Python keeps those functions; ST_ClipByBox2D (G6
+   `box2d`).
 4. **New functions:** group batches in parallel. Pull forward the most-used cheap ones:
    ST_DWithin, ST_Multi, ST_AsGeoJSON/ST_GeomFromGeoJSON. Then ST_Transform (G3, PROJ),
    ST_Buffer/ST_Union/ST_Intersection (G3), ST_Collect/ST_MakeLine (G1, G5). G6 batches 2–4
