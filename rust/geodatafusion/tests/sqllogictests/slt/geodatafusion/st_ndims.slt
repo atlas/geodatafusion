@@ -1,0 +1,61 @@
+# Edge cases for ST_NDims, not covered by the PostGIS docs examples.
+
+# Every dimension
+query I
+SELECT ST_NDims('POINT(1 2)'::geometry)
+----
+2
+
+query I
+SELECT ST_NDims('POINT Z (1 2 3)'::geometry)
+----
+3
+
+query I
+SELECT ST_NDims('POINT M (1 2 3)'::geometry)
+----
+3
+
+query I
+SELECT ST_NDims('POINT ZM (1 2 3 4)'::geometry)
+----
+4
+
+query I
+SELECT ST_NDims('MULTIPOLYGON M (((0 0 1,1 0 1,1 1 1,0 0 1)))'::geometry)
+----
+3
+
+query I
+SELECT ST_NDims('GEOMETRYCOLLECTION Z (POINT Z (1 2 3))'::geometry)
+----
+3
+
+# EMPTY and NULL
+query I
+SELECT ST_NDims('POINT EMPTY'::geometry)
+----
+2
+
+query I
+SELECT ST_NDims('LINESTRING Z EMPTY'::geometry)
+----
+3
+
+query I
+SELECT ST_NDims('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+2
+
+query I
+SELECT ST_NDims(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query I rowsort
+SELECT ST_NDims(g) FROM (VALUES ('POINT ZM (1 2 3 4)'::geometry), (NULL::geometry), ('LINESTRING(0 0,1 1)'::geometry)) AS t(g)
+----
+2
+4
+NULL

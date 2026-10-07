@@ -1,26 +1,26 @@
 use std::sync::Arc;
 
-use arrow_array::builder::Int16Builder;
+use arrow_array::Int16Array;
 use arrow_schema::DataType;
+use datafusion::common::internal_datafusion_err;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
 use datafusion_macros::user_doc;
-use geo_traits::GeometryTrait;
-use geoarrow_array::GeoArrowArrayAccessor;
-use geoarrow_array::array::from_arrow_array;
-use geoarrow_array::cast::AsGeoArrowArray;
-use geoarrow_schema::{Dimension, GeoArrowType};
+use geo_traits::{Dimensions, GeometryTrait};
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::geometry_array;
+use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::signature::single_geometry;
 
 #[user_doc(
     doc_section(label = "Geometry Accessors"),
-    description = "Return the coordinate dimension of the ST_Geometry value.",
-    syntax_example = "ST_CoordDim(geometry)",
-    argument(name = "g1", description = "geometry")
+    description = "Returns the coordinate dimension of the geometry: the number of ordinates of its coordinates (2 for XY, 3 for XYZ and XYM, 4 for XYZM). The same as ST_NDims.",
+    syntax_example = "ST_CoordDim(geomA)",
+    argument(name = "geomA", description = "geometry"),
+    related_udf(name = "st_ndims")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct CoordDim;
@@ -59,73 +59,42 @@ impl ScalarUDFImpl for CoordDim {
     }
 }
 
-fn dimension_size(dim: Dimension) -> i16 {
-    match dim {
-        Dimension::XY => 2,
-        Dimension::XYZ => 3,
-        Dimension::XYM => 3,
-        Dimension::XYZM => 4,
-    }
+fn coord_dim_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+    let geometries = geometry_array(&args, 0)?;
+    let result: Int16Array = map_geometry(geometries.as_ref(), &CoordDimKernel)?;
+    Ok(ColumnarValue::Array(Arc::new(result)))
 }
 
-fn coord_dim_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-    let array = ColumnarValue::values_to_arrays(&args.args)?
-        .into_iter()
-        .next()
-        .unwrap();
-    let field = &args.arg_fields[0];
-    let geo_array = from_arrow_array(&array, field)?;
+/// The number of ordinates of a geometry: 2, 3 or 4. Read per row, because a column in a
+/// mixed-dimension encoding can hold every dimension.
+struct CoordDimKernel;
 
-    macro_rules! iter_geom {
-        ($cast_function:ident) => {{
-            let mut output_array = Int16Builder::with_capacity(geo_array.len());
-            for geom in geo_array.$cast_function().iter() {
-                if let Some(geom) = geom {
-                    output_array.append_value(geom?.dim().size().try_into().unwrap());
-                } else {
-                    output_array.append_null();
-                }
-            }
-            Ok(ColumnarValue::Array(Arc::new(output_array.finish())))
-        }};
-        ($cast_function:ident, $param:ident) => {{
-            let mut output_array = Int16Builder::with_capacity(geo_array.len());
-            for geom in geo_array.$cast_function::<$param>().iter() {
-                if let Some(geom) = geom {
-                    output_array.append_value(geom?.dim().size().try_into().unwrap());
-                } else {
-                    output_array.append_null();
-                }
-            }
-            Ok(ColumnarValue::Array(Arc::new(output_array.finish())))
-        }};
-    }
+impl GeometryKernel for CoordDimKernel {
+    type Output = i16;
 
-    use GeoArrowType::*;
-    match geo_array.data_type() {
-        Point(t) => Ok(ColumnarValue::Scalar(dimension_size(t.dimension()).into())),
-        LineString(t) => Ok(ColumnarValue::Scalar(dimension_size(t.dimension()).into())),
-        Polygon(t) => Ok(ColumnarValue::Scalar(dimension_size(t.dimension()).into())),
-        MultiPoint(t) => Ok(ColumnarValue::Scalar(dimension_size(t.dimension()).into())),
-        MultiLineString(t) => Ok(ColumnarValue::Scalar(dimension_size(t.dimension()).into())),
-        MultiPolygon(t) => Ok(ColumnarValue::Scalar(dimension_size(t.dimension()).into())),
-        GeometryCollection(t) => Ok(ColumnarValue::Scalar(dimension_size(t.dimension()).into())),
-        Rect(t) => Ok(ColumnarValue::Scalar(dimension_size(t.dimension()).into())),
-        Geometry(_) => iter_geom!(as_geometry),
-        Wkb(_) => iter_geom!(as_wkb, i32),
-        LargeWkb(_) => iter_geom!(as_wkb, i64),
-        WkbView(_) => iter_geom!(as_wkb_view),
-        Wkt(_) => iter_geom!(as_wkt, i32),
-        LargeWkt(_) => iter_geom!(as_wkt, i64),
-        WktView(_) => iter_geom!(as_wkt_view),
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        _row: usize,
+    ) -> GeoDataFusionResult<Option<i16>> {
+        let size = match geom.dim() {
+            Dimensions::Xy => 2,
+            Dimensions::Xyz | Dimensions::Xym => 3,
+            Dimensions::Xyzm => 4,
+            Dimensions::Unknown(size) => i16::try_from(size).map_err(|_| {
+                internal_datafusion_err!("st_coorddim: unexpected dimension {size}")
+            })?,
+        };
+        Ok(Some(size))
     }
 }
 
 #[user_doc(
     doc_section(label = "Geometry Accessors"),
-    description = "Return the coordinate dimension of the geometry.",
-    syntax_example = "ST_NDims(geometry)",
-    argument(name = "g1", description = "geometry")
+    description = "Returns the coordinate dimension of the geometry: the number of ordinates of its coordinates (2 for XY, 3 for XYZ and XYM, 4 for XYZM).",
+    syntax_example = "ST_NDims(g1)",
+    argument(name = "g1", description = "geometry"),
+    related_udf(name = "st_coorddim")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct NDims;
