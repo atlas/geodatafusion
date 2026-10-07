@@ -94,7 +94,7 @@ versions; a missing helper is added to the shared module.
 | SRIDs | Column-level CRS. Convert only with `util::srid`. Read every CRS form producers write (PROJJSON, `OGC:CRS84`, authority codes, missing GeoParquet `crs` = OGC:CRS84). In memory, write `EPSG:n`/`ESRI:n` authority codes (from a table generated from PostGIS's `spatial_ref_sys`), which round-trip in Arrow hand-offs; expand to full PROJJSON when writing GeoParquet, the one place E4 saw authority codes dropped. Per-row SRIDs that contradict the column are an execution error. | |
 | `geo` kernels | Owned by geodatafusion, `geoarrow-expr-geo` dropped, keeping its shortcuts for point inputs (E1 H6, D6). | |
 | Macros | `macro_rules!` only for a family of five or more near-identical UDFs in one file, expanding to the standard anatomy (the predicates). | |
-| Scalar/aggregate name clash | Drive the upstream DataFusion fallback from a scalar to a same-named aggregate first: the aggregate forms of ST_Union and ST_Collect are 82–88% of their use (E6 H8). `st_<name>_agg` names only if upstream stalls. | G5's interim `_agg` names as the default |
+| Scalar/aggregate name clash | The scalar UDFs get the PostGIS names, consistently, and the aggregates `st_<name>_agg` (D8). DataFusion 54 always resolves a name to a scalar UDF before an aggregate (`datafusion-sql` `expr/function.rs:329`), so the two can't share one. An upstream fallback (try the aggregate when the scalar's signature doesn't match) would let the aggregates take the names later. | G5 proposed `_agg` names; E6 H8 found the aggregate forms of ST_Union and ST_Collect are 82–88% of their use |
 
 ### Harness and CI
 
@@ -106,7 +106,7 @@ versions; a missing helper is added to the shared module.
 - PROJ: a `proj` feature with bundled PROJ (+1–1.5 min in CI), `proj-sys` directly for
   pipelines, and `proj.db` shipped or located with `PROJ_DATA` (E5 H12).
 - G6 batch 2: run the geodatafusion engine with the PostgreSQL dialect, for the operators.
-- G6 batch 5 (DataFusion 55): remove the `::geometry` shim.
+- G6 batch 5 (DataFusion 55): remove the `::geometry` shim. Deferred with everything else that needs 55 (D17).
 
 ## Bugs found in existing code
 
@@ -172,7 +172,7 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    ST_Buffer/ST_Union/ST_Intersection (G3), ST_Collect/ST_MakeLine (G1, G5). G6 batches 2–4
    (operators, types and casts, geography) unblock parts of G2, G3 and G5.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
-6. **DataFusion 55** (geoarrow 0.9.0, released 2026-09-11, is on arrow 59): shim removal, `VALUES` metadata. On 55 every cast drops extension metadata (E7), so check nothing relies on casts keeping it.
+6. **DataFusion 55** (geoarrow 0.9.0, released 2026-09-11, is on arrow 59): shim removal, `VALUES` metadata, and the parts of G6's `sql` module that need cast metadata (the type planner's casts, the operator planner). On 55 every cast drops extension metadata (E7), so check nothing relies on casts keeping it. Deferred, as a separate patch set (D17): the target stays DataFusion 54.
 
 ## Decisions
 
@@ -185,15 +185,17 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
 | D5 | `#[user_doc]` | Migrate. | E5 H5. |
 | D6 | `geoarrow-expr-geo` | Drop it, keeping the point shortcuts. H6 failed as written because it re-measured D1's conversion cost; without that confound the owned typed kernels are within 3% on polygons. The only large gap, point inputs in native encoding (area 10x), is a shortcut the owned kernels keep, and with WKB outputs (D2) most inputs are WKB, where the owned kernels are 0.86–1.03. Owning the kernels also puts PostGIS's EMPTY, NULL and dimension rules in geodatafusion, where they belong whatever the backend, and unblocks `geo` 0.33 (`geoarrow-expr-geo` 0.8 pins `geo ^0.31`). Removed as its last users migrate (G2 R1, the E2 backend moves). | E1 H6. |
 | D7 | GEOS pinning | Pin 3.14.1 with a static build in CI; floor stays 3.11. | E3 H7a, H7b. |
-| D8 | Scalar/aggregate names | Upstream fallback first, `_agg` names only if it stalls. | E6 H8. |
+| D8 | Scalar/aggregate names | The scalar UDFs get the PostGIS names, for every clash (ST_Union, ST_Collect, ST_MakeLine, ST_Polygonize, ...); the aggregates are `st_<name>_agg`. Consistency over usage share for now; an upstream DataFusion fallback could hand the names to the aggregates later. | Your call (revised from "upstream fallback first", E6 H8). |
 | D9 | CRS form | Read every form. `EPSG:n` in memory, full PROJJSON when writing GeoParquet (your choice of the three options E4 identified; no vendored PROJJSON or PROJ dependency). | E4 H9. |
 | D12 | PROJ | `proj` feature. | E5 H12. |
-| D13 | GEOS in wheels | Bundle it. **Needs your call:** static (+0.3–0.8 MB) or auditwheel-vendored shared libraries (+1.8 MB, Shapely's model); LGPL-2.1 §6 treats them differently. | E3 H13. |
+| D13 | GEOS in wheels | Deferred to upstreaming: static (+0.3–0.8 MB) or auditwheel-vendored shared libraries (+1.8 MB, Shapely's model); LGPL-2.1 §6 treats them differently. Not blocking: Python support isn't a goal for now, so the backend moves go ahead and GEOS-backed functions are Rust-only. Non-GEOS functions keep their Python bindings. | E3 H13; your call. |
 | D15 | Out of scope | Only ST_Letters, ST_GeomFromMARC21, ST_ForceSFS (and ST_EstimatedExtent). The rest goes to a late phase. | E6 H15. |
 | D10 | Mixed-SRID checks | At planning for geometry-returning functions, at execution for fixed-return ones (PostGIS checks at execution). | Principle. |
 | D11 | `sql` feature and API | On by default; users install `GeoTypePlanner` via `SessionStateBuilder`; document the PostgreSQL dialect. | API design; **your call**. |
 | D14 | Upstream work | File the issues listed under bugs; don't wait for them. | Process; **your call** on who files. |
 | D16 | Accessors on the wrong type | Error, like PostGIS. | Principle 1. |
+| D17 | DataFusion version | Stay on DataFusion 54. Functions and features that need 55 (cast metadata: the `::geometry` shim removal, `VALUES` metadata, G6's cast and operator planning) are deferred to a separate patch set; anything built now must work on 54. | Your call: dependents are pinned to 54. |
+| D18 | PostGIS-specific types | Map them to existing Arrow and GeoArrow types: `geoarrow.wkb` (geometry, and geography with spherical edges), `geoarrow.box` (box2d/box3d), plain structs for records (`geometry_dump`, `valid_detail`, ST_MaximumInscribedCircle) with PostGIS's field names. Register a `geodatafusion.*` extension type only where behaviour must attach to it. Curves, surfaces and TINs need a Rust curve model, not an Arrow type (late phase); per-row SRIDs would break GeoArrow's column CRS (not planned). | Analysis of the PostGIS types against Arrow. |
 
 Smaller per-group questions (G2 Q4/Q5/Q7/Q10, G5 Q3/Q5/Q7, G6 Q2/Q4/Q7/Q10/Q12) stay in the plans
 and can be decided when the group gets there.
