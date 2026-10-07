@@ -13,6 +13,7 @@ geodatafusion/st_asewkt 35/35
 geodatafusion/st_ashexewkb 17/17
 geodatafusion/st_astext 28/28
 geodatafusion/st_box2dfromgeohash 12/12
+geodatafusion/st_buffer 41/41
 geodatafusion/st_buildarea 12/12
 geodatafusion/st_contains 5/5
 geodatafusion/st_coorddim 11/11
@@ -57,6 +58,7 @@ geodatafusion/st_npoints 15/15
 geodatafusion/st_numinteriorring 2/2
 geodatafusion/st_numinteriorrings 11/11
 geodatafusion/st_numpoints 15/15
+geodatafusion/st_offsetcurve 31/31
 geodatafusion/st_point 6/6
 geodatafusion/st_pointfromgeohash 13/13
 geodatafusion/st_pointfromtext 10/10
@@ -136,7 +138,7 @@ postgis_docs/st_azimuth 0/1
 postgis_docs/st_boundary 0/6
 postgis_docs/st_boundingdiagonal 0/1
 postgis_docs/st_box2dfromgeohash 3/3
-postgis_docs/st_buffer 0/14
+postgis_docs/st_buffer 12/14
 postgis_docs/st_buildarea 0/2
 postgis_docs/st_centroid 1/3
 postgis_docs/st_chaikinsmoothing 0/3
@@ -280,7 +282,7 @@ postgis_docs/st_numcurves 0/2
 postgis_docs/st_numgeometries 0/2
 postgis_docs/st_numpatches 0/1
 postgis_docs/st_numpoints 1/1
-postgis_docs/st_offsetcurve 0/6
+postgis_docs/st_offsetcurve 2/6
 postgis_docs/st_orderingequals 0/3
 postgis_docs/st_orientedenvelope 0/2
 postgis_docs/st_overlaps 2/3

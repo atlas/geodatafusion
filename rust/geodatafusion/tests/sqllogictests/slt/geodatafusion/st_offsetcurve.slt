@@ -1,0 +1,150 @@
+# Edge cases for ST_OffsetCurve, not covered by the PostGIS docs examples.
+
+# Distances and style parameters
+query T
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, 1)
+----
+LINESTRING(0 1,9 1,9 10)
+
+query T
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, -1)
+----
+LINESTRING(0 -1,10 -1,10.195090322 -0.980785280403,10.3826834324 -0.923879532511,10.555570233 -0.831469612303,10.7071067812 -0.707106781187,10.8314696123 -0.55557023302,10.9238795325 -0.382683432365,10.9807852804 -0.195090322016,11 0,11 10)
+
+query T
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, 0)
+----
+LINESTRING(0 0,10 0,10 10)
+
+query T
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, 1, 'quad_segs=1')
+----
+LINESTRING(0 1,9 1,9 10)
+
+query T
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, -1, 'join=mitre')
+----
+LINESTRING(0 -1,11 -1,11 10)
+
+query T
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, -1, 'join=bevel')
+----
+LINESTRING(0 -1,10 -1,11 0,11 10)
+
+query T
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, -1, 'join=mitre mitre_limit=1')
+----
+LINESTRING(0 -1,10.4142135624 -1,11 -0.414213562373,11 10)
+
+query T
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, 1, '')
+----
+LINESTRING(0 1,9 1,9 10)
+
+query T
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0)'::geometry, 20)
+----
+LINESTRING(0 20,10 20)
+
+query T
+SELECT ST_OffsetCurve('LINESTRING(0 0,1 0,1 1,0 1,0 0)'::geometry, 5)
+----
+LINESTRING EMPTY
+
+# Invalid parameters are an error
+statement error
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, 1, 'endcap=flat')
+
+statement error
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, 1, 'side=left')
+
+statement error
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, 1, 'bogus=1')
+
+statement error
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, 1, 'quad_segs')
+
+statement error
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, 1, 'join=sharp')
+
+# Collections
+query T
+SELECT ST_OffsetCurve('MULTILINESTRING((0 0,10 0),(0 5,10 5))'::geometry, 1)
+----
+MULTILINESTRING((0 1,10 1),(0 6,10 6))
+
+query T
+SELECT ST_OffsetCurve('GEOMETRYCOLLECTION(LINESTRING(0 0,10 0),LINESTRING(0 5,10 5))'::geometry, 1)
+----
+MULTILINESTRING((0 1,10 1),(0 6,10 6))
+
+query T
+SELECT ST_OffsetCurve('MULTILINESTRING((0 0,10 0),(0 0,1 0,1 1,0 1,0 0))'::geometry, 5)
+----
+LINESTRING(0 5,10 5)
+
+query T
+SELECT ST_OffsetCurve('MULTILINESTRING((0 0,1 0,1 1,0 1,0 0))'::geometry, 5)
+----
+MULTILINESTRING EMPTY
+
+# Non-linear input is an error
+statement error
+SELECT ST_OffsetCurve('POLYGON((0 0,1 0,1 1,0 0))'::geometry, 1)
+
+statement error
+SELECT ST_OffsetCurve('POINT(1 1)'::geometry, 1)
+
+statement error
+SELECT ST_OffsetCurve('GEOMETRYCOLLECTION(LINESTRING(0 0,10 0),POINT(1 1))'::geometry, 1)
+
+# Z and M dropped
+query T
+SELECT ST_OffsetCurve('LINESTRING Z (0 0 1,10 0 2)'::geometry, 1)
+----
+LINESTRING(0 1,10 1)
+
+query T
+SELECT ST_OffsetCurve('LINESTRING M (0 0 1,10 0 2)'::geometry, 1)
+----
+LINESTRING(0 1,10 1)
+
+# SRID
+query T
+SELECT ST_OffsetCurve('SRID=3857;LINESTRING(0 0,10 0)'::geometry, 1)
+----
+SRID=3857;LINESTRING(0 1,10 1)
+
+# EMPTY and NULL
+query T
+SELECT ST_OffsetCurve('LINESTRING M EMPTY'::geometry, 1)
+----
+LINESTRING M EMPTY
+
+query T
+SELECT ST_OffsetCurve('MULTILINESTRING EMPTY'::geometry, 1)
+----
+MULTILINESTRING EMPTY
+
+query T
+SELECT ST_OffsetCurve(NULL::geometry, 1)
+----
+NULL
+
+query T
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, NULL)
+----
+NULL
+
+query T
+SELECT ST_OffsetCurve('LINESTRING(0 0,10 0,10 10)'::geometry, 1, NULL)
+----
+NULL
+
+# A column-valued distance
+query T rowsort
+SELECT ST_OffsetCurve(g, d) FROM (VALUES ('LINESTRING(0 0,10 0)'::geometry, 1.0), ('LINESTRING(0 0,10 0)'::geometry, -2.0), (NULL::geometry, 1.0)) AS t(g, d)
+----
+LINESTRING(0 -2,10 -2)
+LINESTRING(0 1,10 1)
+NULL

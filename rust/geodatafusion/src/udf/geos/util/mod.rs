@@ -2,6 +2,8 @@
 
 mod column;
 mod convert;
+mod params;
 
 pub(crate) use column::GeosColumn;
 pub(crate) use convert::{empty_like, from_geos, to_geos};
+pub(crate) use params::{BufferStyle, StyleKeys};
