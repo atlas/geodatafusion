@@ -17,7 +17,7 @@ use geos::Geom;
 use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{empty_like, from_geos, to_geos};
+use crate::udf::geos::util::{empty_like, from_geos, has_z, to_geos};
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
 use crate::util::args::optional_float_arg;
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
@@ -111,6 +111,8 @@ impl GeometryKernel for UnaryUnionKernel {
         geom: &impl GeometryTrait<T = f64>,
         row: usize,
     ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        // PostGIS keeps a Z from GEOS only when the input has Z.
+        let want_z = has_z(geom);
         // ST_UnaryUnion is STRICT: SQL NULL in any argument gives SQL NULL.
         if self.grid_size.is_null(row) {
             return Ok(None);
@@ -126,6 +128,6 @@ impl GeometryKernel for UnaryUnionKernel {
         } else {
             geom.unary_union()?
         };
-        Ok(Some(from_geos(&result)?))
+        Ok(Some(from_geos(&result, want_z)?))
     }
 }

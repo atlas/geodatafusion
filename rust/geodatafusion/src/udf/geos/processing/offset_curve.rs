@@ -18,7 +18,7 @@ use wkt::Wkt;
 use wkt::types::{Dimension, LineString, MultiLineString};
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{BufferStyle, StyleKeys, empty_like, from_geos, to_geos};
+use crate::udf::geos::util::{BufferStyle, StyleKeys, empty_like, from_geos, has_z, to_geos};
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
 use crate::util::args::{optional_float_arg, optional_text_arg};
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
@@ -172,7 +172,8 @@ fn offset(
 ) -> GeoDataFusionResult<Wkt<f64>> {
     let curve =
         to_geos(line)?.offset_curve(distance, style.quad_segs, style.join, style.mitre_limit)?;
-    from_geos(&curve)
+    // PostGIS keeps a Z from GEOS only when the input has Z.
+    from_geos(&curve, has_z(line))
 }
 
 fn not_linear(geom: &impl GeometryTrait<T = f64>) -> crate::error::GeoDataFusionError {

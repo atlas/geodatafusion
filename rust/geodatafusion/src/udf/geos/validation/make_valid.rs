@@ -18,7 +18,7 @@ use wkt::Wkt;
 use wkt::types::{MultiLineString, MultiPoint, MultiPolygon};
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{from_geos, to_geos};
+use crate::udf::geos::util::{from_geos, has_z, to_geos};
 use crate::util::args::optional_text_arg;
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
@@ -110,6 +110,8 @@ impl GeometryKernel for MakeValidKernel {
         geom: &impl GeometryTrait<T = f64>,
         row: usize,
     ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        // PostGIS keeps a Z from GEOS only when the input has Z.
+        let want_z = has_z(geom);
         // ST_MakeValid is STRICT: SQL NULL in any argument gives SQL NULL.
         if self.params.is_null(row) {
             return Ok(None);
@@ -117,7 +119,7 @@ impl GeometryKernel for MakeValidKernel {
         // Unlike most GEOS-backed PostGIS functions, ST_MakeValid doesn't return EMPTY input
         // unchanged: an EMPTY input loses M too.
         let params = parse_params(self.params.value(row))?;
-        let valid = from_geos(&to_geos(geom)?.make_valid_with_params(&params)?)?;
+        let valid = from_geos(&to_geos(geom)?.make_valid_with_params(&params)?, want_z)?;
         // PostGIS keeps a collection a collection: a single result becomes a multi.
         let is_collection = matches!(
             geom.as_type(),

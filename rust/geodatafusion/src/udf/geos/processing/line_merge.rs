@@ -14,7 +14,7 @@ use geoarrow_array::GeoArrowArray;
 use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{empty_like, from_geos, to_geos};
+use crate::udf::geos::util::{empty_like, from_geos, has_z, to_geos};
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
 use crate::util::args::optional_bool_arg;
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
@@ -108,6 +108,8 @@ impl GeometryKernel for LineMergeKernel {
         geom: &impl GeometryTrait<T = f64>,
         row: usize,
     ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        // PostGIS keeps a Z from GEOS only when the input has Z.
+        let want_z = has_z(geom);
         // ST_LineMerge is STRICT: SQL NULL in any argument gives SQL NULL.
         if self.directed.is_null(row) {
             return Ok(None);
@@ -123,7 +125,7 @@ impl GeometryKernel for LineMergeKernel {
         } else {
             geom.line_merge()?
         };
-        Ok(Some(from_geos(&merged)?))
+        Ok(Some(from_geos(&merged, want_z)?))
     }
 }
 

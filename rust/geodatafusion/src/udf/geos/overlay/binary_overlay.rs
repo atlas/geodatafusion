@@ -17,7 +17,7 @@ use geos::{Geom, Geometry};
 use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{GeosColumn, from_geos, to_geos};
+use crate::udf::geos::util::{GeosColumn, from_geos, has_z, to_geos};
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
 use crate::util::args::optional_float_arg;
 use crate::util::field::{common_metadata, geometry_array, input_metadata, wkb_return_field};
@@ -251,6 +251,8 @@ impl GeometryKernel for OverlayKernel {
         let Some((other, other_geos)) = self.other.get(row) else {
             return Ok(None);
         };
+        // PostGIS keeps a Z from GEOS only when an input has Z.
+        let want_z = has_z(geom) || has_z(other);
         if self.grid_size.is_null(row) {
             return Ok(None);
         }
@@ -273,7 +275,7 @@ impl GeometryKernel for OverlayKernel {
         let geom = to_geos(geom)?;
         let grid_size = self.grid_size.value(row);
         let result = overlay(&geom, other_geos, self.operation, grid_size)?;
-        Ok(Some(from_geos(&result)?))
+        Ok(Some(from_geos(&result, want_z)?))
     }
 }
 

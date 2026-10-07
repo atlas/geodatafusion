@@ -15,7 +15,7 @@ use geoarrow_array::GeoArrowArray;
 use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{from_geos, to_geos};
+use crate::udf::geos::util::{from_geos, has_z, to_geos};
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
 use crate::util::signature::{Arg, coerce_args};
@@ -101,10 +101,12 @@ impl GeometryKernel for NormalizeKernel {
         geom: &impl GeometryTrait<T = f64>,
         _row: usize,
     ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        // PostGIS keeps a Z from GEOS only when the input has Z.
+        let want_z = has_z(geom);
         // Unlike most GEOS-backed PostGIS functions, ST_Normalize doesn't return EMPTY input
         // unchanged: an EMPTY input loses M too.
         let mut normalized = to_geos(geom)?;
         normalized.normalize()?;
-        Ok(Some(from_geos(&normalized)?))
+        Ok(Some(from_geos(&normalized, want_z)?))
     }
 }

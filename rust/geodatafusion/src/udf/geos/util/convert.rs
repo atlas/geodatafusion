@@ -4,6 +4,7 @@
 //! geo-traits does the same, where a WKB round trip couldn't: GEOS >= 3.12 reads M from WKB,
 //! and the geos crate's WKB writer writes 2D or extended WKB.
 
+use datafusion::common::exec_datafusion_err;
 use geo_traits::{
     CoordTrait, Dimensions, GeometryCollectionTrait, GeometryTrait, GeometryType, LineStringTrait,
     LineTrait, MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait,
@@ -23,8 +24,7 @@ use crate::util::ordinates::z;
 ///
 /// The Z of the outer geometry applies to every part, so GEOS never sees mixed dimensions.
 pub(crate) fn to_geos(geom: &impl GeometryTrait<T = f64>) -> GeoDataFusionResult<Geometry> {
-    let has_z = matches!(geom.dim(), Dimensions::Xyz | Dimensions::Xyzm);
-    Converter { has_z }.geometry(geom)
+    Converter { has_z: has_z(geom) }.geometry(geom)
 }
 
 struct Converter {
@@ -181,9 +181,18 @@ pub(crate) fn empty_like(geom: &impl GeometryTrait<T = f64>) -> Wkt<f64> {
     }
 }
 
-/// Converts a GEOS geometry to an owned geo-traits geometry, keeping Z.
-pub(crate) fn from_geos(geom: &impl Geom) -> GeoDataFusionResult<Wkt<f64>> {
-    let dim = if geom.has_z()? {
+/// Whether a geometry has Z.
+pub(crate) fn has_z(geom: &impl GeometryTrait<T = f64>) -> bool {
+    matches!(geom.dim(), Dimensions::Xyz | Dimensions::Xyzm)
+}
+
+/// Converts a GEOS geometry to an owned geo-traits geometry.
+///
+/// The result has Z only when GEOS's does and `want_z` is set, as PostGIS's `GEOS2LWGEOM` does:
+/// a GEOS operation can return Z for 2D input (an EMPTY result, for one), and PostGIS sets
+/// `want_z` when an input has Z.
+pub(crate) fn from_geos(geom: &impl Geom, want_z: bool) -> GeoDataFusionResult<Wkt<f64>> {
+    let dim = if want_z && geom.has_z()? {
         Dimension::XYZ
     } else {
         Dimension::XY
@@ -195,30 +204,42 @@ pub(crate) fn from_geos(geom: &impl Geom) -> GeoDataFusionResult<Wkt<f64>> {
         }
         GeometryTypes::Polygon => Wkt::Polygon(polygon_from_geos(geom, dim)?),
         GeometryTypes::MultiPoint => Wkt::MultiPoint(MultiPoint::new(
-            members(geom, |member| point_from_geos(member, dim))?,
+            members(geom, want_z, |member| point_from_geos(member, dim))?,
             dim,
         )),
         GeometryTypes::MultiLineString => Wkt::MultiLineString(MultiLineString::new(
-            members(geom, |member| line_string_from_geos(member, dim))?,
+            members(geom, want_z, |member| line_string_from_geos(member, dim))?,
             dim,
         )),
         GeometryTypes::MultiPolygon => Wkt::MultiPolygon(MultiPolygon::new(
-            members(geom, |member| polygon_from_geos(member, dim))?,
+            members(geom, want_z, |member| polygon_from_geos(member, dim))?,
             dim,
         )),
         GeometryTypes::GeometryCollection => Wkt::GeometryCollection(GeometryCollection::new(
-            members(geom, |member| from_geos(member))?,
+            members(geom, want_z, |member| from_geos(member, want_z))?,
             dim,
         )),
     })
 }
 
+/// The members of a GEOS collection, converted. When Z is wanted, members with and without Z
+/// are an error, as in PostGIS, which can't represent them in one collection.
 fn members<T>(
     geom: &impl Geom,
+    want_z: bool,
     convert: impl Fn(&geos::ConstGeometry<'_>) -> GeoDataFusionResult<T>,
 ) -> GeoDataFusionResult<Vec<T>> {
+    let has_z = geom.has_z()?;
     (0..geom.get_num_geometries()?)
-        .map(|n| convert(&geom.get_geometry_n(n)?))
+        .map(|n| {
+            let member = geom.get_geometry_n(n)?;
+            if want_z && member.has_z()? != has_z {
+                return Err(
+                    exec_datafusion_err!("mixed dimension geometries in a GEOS result").into(),
+                );
+            }
+            convert(&member)
+        })
         .collect()
 }
 
@@ -275,7 +296,7 @@ mod test {
         let mut out = String::new();
         write_wkt(
             &mut out,
-            &from_geos(&to_geos(&geom).unwrap()).unwrap(),
+            &from_geos(&to_geos(&geom).unwrap(), has_z(&geom)).unwrap(),
             WktFlavor::Iso,
             15,
         );

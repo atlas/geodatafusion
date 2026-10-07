@@ -20,7 +20,7 @@ use wkt::Wkt;
 use wkt::types::{Dimension, Polygon};
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{BufferStyle, StyleKeys, from_geos, to_geos};
+use crate::udf::geos::util::{BufferStyle, StyleKeys, from_geos, has_z, to_geos};
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
 use crate::util::args::{optional_float_arg, optional_text_arg};
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
@@ -137,6 +137,8 @@ impl GeometryKernel for BufferKernel {
         geom: &impl GeometryTrait<T = f64>,
         row: usize,
     ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        // PostGIS keeps a Z from GEOS only when the input has Z.
+        let want_z = has_z(geom);
         // ST_Buffer is STRICT: SQL NULL in any argument gives SQL NULL.
         let style = match &self.style {
             Style::Options(options) if options.is_null(row) => return Ok(None),
@@ -158,6 +160,6 @@ impl GeometryKernel for BufferKernel {
         }
         let width = style.width(self.radius.value(row));
         let buffer = to_geos(geom)?.buffer_with_params(width, &style.buffer_params()?)?;
-        Ok(Some(from_geos(&buffer)?))
+        Ok(Some(from_geos(&buffer, want_z)?))
     }
 }

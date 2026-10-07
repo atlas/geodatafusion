@@ -16,7 +16,7 @@ use geos::Geom;
 use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{from_geos, to_geos};
+use crate::udf::geos::util::{from_geos, has_z, to_geos};
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
 use crate::util::signature::{Arg, coerce_args};
@@ -102,6 +102,11 @@ impl GeometryKernel for MinimumClearanceLineKernel {
         geom: &impl GeometryTrait<T = f64>,
         _row: usize,
     ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
-        Ok(Some(from_geos(&to_geos(geom)?.minimum_clearance_line()?)?))
+        // PostGIS keeps a Z from GEOS only when the input has Z.
+        let want_z = has_z(geom);
+        Ok(Some(from_geos(
+            &to_geos(geom)?.minimum_clearance_line()?,
+            want_z,
+        )?))
     }
 }
