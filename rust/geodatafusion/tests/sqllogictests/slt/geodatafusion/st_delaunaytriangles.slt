@@ -1,0 +1,70 @@
+# Edge cases for ST_DelaunayTriangles, not covered by the PostGIS docs examples.
+
+query T
+SELECT ST_DelaunayTriangles('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry)
+----
+GEOMETRYCOLLECTION(POLYGON((5 8,0 0,5 3,5 8)),POLYGON((5 8,5 3,10 0,5 8)),POLYGON((10 0,5 3,0 0,10 0)))
+
+query T
+SELECT ST_DelaunayTriangles('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry, 0, 0)
+----
+GEOMETRYCOLLECTION(POLYGON((5 8,0 0,5 3,5 8)),POLYGON((5 8,5 3,10 0,5 8)),POLYGON((10 0,5 3,0 0,10 0)))
+
+query T
+SELECT ST_DelaunayTriangles('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry, 0, 1)
+----
+MULTILINESTRING((5 8,10 0),(0 0,5 8),(0 0,10 0),(0 0,5 3),(5 3,10 0),(5 3,5 8))
+
+query T
+SELECT ST_DelaunayTriangles('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry, 5, 0)
+----
+GEOMETRYCOLLECTION(POLYGON((5 8,0 0,5 3,5 8)),POLYGON((5 8,5 3,10 0,5 8)),POLYGON((10 0,5 3,0 0,10 0)))
+
+query T
+SELECT ST_DelaunayTriangles('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+GEOMETRYCOLLECTION(POLYGON((0 10,0 0,10 0,0 10)),POLYGON((0 10,10 0,10 10,0 10)))
+
+query T
+SELECT ST_DelaunayTriangles('MULTIPOINT Z ((0 0 1),(10 0 2),(5 8 3))'::geometry)
+----
+GEOMETRYCOLLECTION Z (POLYGON Z ((5 8 3,0 0 1,10 0 2,5 8 3)))
+
+query T
+SELECT ST_DelaunayTriangles('MULTIPOINT M ((0 0 1),(10 0 2),(5 8 3))'::geometry)
+----
+GEOMETRYCOLLECTION(POLYGON((5 8,0 0,10 0,5 8)))
+
+query T
+SELECT ST_DelaunayTriangles('POINT(1 1)'::geometry)
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_DelaunayTriangles('MULTIPOINT EMPTY'::geometry)
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_DelaunayTriangles('SRID=3857;MULTIPOINT((0 0),(10 0),(5 8))'::geometry)
+----
+SRID=3857;GEOMETRYCOLLECTION(POLYGON((5 8,0 0,10 0,5 8)))
+
+query T
+SELECT ST_DelaunayTriangles(NULL::geometry)
+----
+NULL
+
+query T
+SELECT ST_DelaunayTriangles('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry, NULL, 0)
+----
+NULL
+
+query T
+SELECT ST_DelaunayTriangles('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry, 0, NULL)
+----
+NULL
+
+# flags=2 (TIN) is unsupported
+statement error
+SELECT ST_DelaunayTriangles('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry, 0, 2)

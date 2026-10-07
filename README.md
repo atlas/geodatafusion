@@ -119,7 +119,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_ShiftLongitude                |             | Shifts the longitude coordinates of a geometry between -180..180 and 0..360.                        |
 | ST_WrapX                         |             | Wrap a geometry around an X value.                                                                  |
 | ST_SnapToGrid                    |             | Snap all points of the input geometry to a regular grid.                                            |
-| ST_Snap                          |             | Snap segments and vertices of input geometry to vertices of a reference geometry.                   |
+| ST_Snap                          | ✅          | Snap segments and vertices of input geometry to vertices of a reference geometry.                   |
 | ST_SwapOrdinates                 |             | Returns a version of the given geometry with given ordinate values swapped.                         |
 
 ### Geometry Validation
@@ -307,7 +307,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_ChaikinSmoothing         |             | Returns a smoothed version of a geometry, using the Chaikin algorithm                             |
 | ST_ConcaveHull              |             | Computes a possibly concave geometry that contains all input geometry vertices                    |
 | ST_ConvexHull               | ✅          | Computes the convex hull of a geometry.                                                           |
-| ST_DelaunayTriangles        |             | Returns the Delaunay triangulation of the vertices of a geometry.                                 |
+| ST_DelaunayTriangles        | ✅          | Returns the Delaunay triangulation of the vertices of a geometry.                                 |
 | ST_FilterByM                |             | Removes vertices based on their M value                                                           |
 | ST_GeneratePoints           |             | Generates a multipoint of random points contained in a Polygon or MultiPolygon.                   |
 | ST_GeometricMedian          |             | Returns the geometric median of a MultiPoint.                                                     |
@@ -321,15 +321,15 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_PointOnSurface           | ✅          | Computes a point guaranteed to lie in a polygon, or on a geometry.                                |
 | ST_Polygonize               |             | Computes a collection of polygons formed from the linework of a set of geometries.                |
 | ST_ReducePrecision          | ✅          | Returns a valid geometry with points rounded to a grid tolerance.                                 |
-| ST_SharedPaths              |             | Returns a collection containing paths shared by the two input linestrings/multilinestrings.       |
+| ST_SharedPaths              | ✅          | Returns a collection containing paths shared by the two input linestrings/multilinestrings.       |
 | ST_Simplify                 | ✅          | Returns a simplified representation of a geometry, using the Douglas-Peucker algorithm.           |
 | ST_SimplifyPreserveTopology | ✅          | Returns a simplified and valid representation of a geometry, using the Douglas-Peucker algorithm. |
 | ST_SimplifyPolygonHull      |             | Computes a simplifed topology-preserving outer or inner hull of a polygonal geometry.             |
 | ST_SimplifyVW               | ✅          | Returns a simplified representation of a geometry, using the Visvalingam-Whyatt algorithm         |
 | ST_SetEffectiveArea         |             | Sets the effective area for each vertex, using the Visvalingam-Whyatt algorithm.                  |
 | ST_TriangulatePolygon       |             | Computes the constrained Delaunay triangulation of polygons                                       |
-| ST_VoronoiLines             |             | Returns the boundaries of the Voronoi diagram of the vertices of a geometry.                      |
-| ST_VoronoiPolygons          |             | Returns the cells of the Voronoi diagram of the vertices of a geometry.                           |
+| ST_VoronoiLines             | ✅          | Returns the boundaries of the Voronoi diagram of the vertices of a geometry.                      |
+| ST_VoronoiPolygons          | ✅          | Returns the cells of the Voronoi diagram of the vertices of a geometry.                           |
 
 ### Coverages
 
