@@ -14,7 +14,7 @@ use geoarrow_schema::error::GeoArrowResult;
 use wkt::types::Coord;
 
 use crate::error::GeoDataFusionResult;
-use crate::util::kernel::GeometryKernel;
+use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::ordinates::z;
 
 /// The bounding box of the coordinates added to it.
@@ -47,14 +47,25 @@ impl BoundingRect {
         }
     }
 
-    /// A 2D box with the given bounds; ±infinity bounds make it empty.
-    pub fn from_xy(minx: f64, miny: f64, maxx: f64, maxy: f64) -> Self {
+    /// The raw bounds, `[minx, miny, minz, maxx, maxy, maxz]`, with ±infinity for bounds nothing
+    /// was added to.
+    pub fn raw_bounds(&self) -> [f64; 6] {
+        [
+            self.minx, self.miny, self.minz, self.maxx, self.maxy, self.maxz,
+        ]
+    }
+
+    /// A box with the raw bounds of [`Self::raw_bounds`].
+    pub fn from_raw_bounds(state: [f64; 6], include_z: bool) -> Self {
+        let [minx, miny, minz, maxx, maxy, maxz] = state;
         BoundingRect {
             minx,
             miny,
+            minz,
             maxx,
             maxy,
-            ..Self::new(false)
+            maxz,
+            include_z,
         }
     }
 
@@ -282,6 +293,27 @@ impl GeometryKernel for BoundsKernel {
         rect.add_geometry(geom);
         Ok((!rect.is_empty()).then_some(rect))
     }
+}
+
+/// The bounds of every geometry of the array, skipping NULL and EMPTY ones.
+///
+/// With `include_z`, each geometry contributes its box3d, so a geometry without Z counts as Z 0,
+/// as in PostGIS's ST_3DExtent.
+pub(crate) fn extent_bounds(
+    arr: &dyn GeoArrowArray,
+    include_z: bool,
+) -> GeoDataFusionResult<BoundingRect> {
+    let kernel = BoundsKernel { include_z };
+    let rects: Vec<Option<BoundingRect>> = map_geometry(arr, &kernel)?;
+    let mut total = BoundingRect::new(include_z);
+    for rect in rects.iter().flatten() {
+        let [minx, miny, _, maxx, maxy, _] = rect.raw_bounds();
+        total.update(&BoundingRect::from_raw_bounds(
+            [minx, miny, rect.minz(), maxx, maxy, rect.maxz()],
+            include_z,
+        ));
+    }
+    Ok(total)
 }
 
 /// Get the total bounds (i.e. minx, miny, maxx, maxy) of the entire geoarrow array.
