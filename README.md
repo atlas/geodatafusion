@@ -301,7 +301,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 
 | Name                        | Implemented | Description                                                                                       |
 | --------------------------- | ----------- | ------------------------------------------------------------------------------------------------- |
-| ST_Buffer                   |             | Computes a geometry covering all points within a given distance from a geometry.                  |
+| ST_Buffer                   | ✅          | Computes a geometry covering all points within a given distance from a geometry.                  |
 | ST_BuildArea                | ✅          | Creates a polygonal geometry formed by the linework of a geometry.                                |
 | ST_Centroid                 | ✅          | Returns the geometric center of a geometry.                                                       |
 | ST_ChaikinSmoothing         |             | Returns a smoothed version of a geometry, using the Chaikin algorithm                             |
@@ -317,7 +317,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_MinimumBoundingCircle    |             | Returns the smallest circle polygon that contains a geometry.                                     |
 | ST_MinimumBoundingRadius    |             | Returns the center point and radius of the smallest circle that contains a geometry.              |
 | ST_OrientedEnvelope         | ✅          | Returns a minimum-area rectangle containing a geometry.                                           |
-| ST_OffsetCurve              |             | Returns an offset line at a given distance and side from an input line.                           |
+| ST_OffsetCurve              | ✅          | Returns an offset line at a given distance and side from an input line.                           |
 | ST_PointOnSurface           | ✅          | Computes a point guaranteed to lie in a polygon, or on a geometry.                                |
 | ST_Polygonize               |             | Computes a collection of polygons formed from the linework of a set of geometries.                |
 | ST_ReducePrecision          | ✅          | Returns a valid geometry with points rounded to a grid tolerance.                                 |
