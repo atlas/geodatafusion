@@ -9,7 +9,7 @@ use datafusion::logical_expr::{
 };
 use datafusion_macros::user_doc;
 use geo_traits::to_geo::ToGeoCoord;
-use geo_traits::{CoordTrait, GeometryTrait, GeometryType, PointTrait};
+use geo_traits::{GeometryTrait, GeometryType, PointTrait};
 
 use crate::error::GeoDataFusionResult;
 use crate::util::field::geometry_array;
@@ -80,11 +80,8 @@ impl GeometryKernel for GeoHashKernel {
         let GeometryType::Point(point) = geom.as_type() else {
             return Err(exec_datafusion_err!("st_geohash: only points are supported").into());
         };
-        // An EMPTY point has no coordinate, or NaN coordinates in WKB. PostGIS returns NULL.
-        let Some(coord) = point
-            .coord()
-            .filter(|c| !(c.x().is_nan() && c.y().is_nan()))
-        else {
+        // An EMPTY point has no coordinate. PostGIS returns NULL.
+        let Some(coord) = point.coord() else {
             return Ok(None);
         };
         // 12 characters is the most the geohash crate supports.

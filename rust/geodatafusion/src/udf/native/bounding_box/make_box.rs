@@ -200,11 +200,8 @@ impl GeometryKernel for PointCoordKernel<'_> {
         let GeometryType::Point(point) = geom.as_type() else {
             return Err(exec_datafusion_err!("{}: arguments must be points", self.name).into());
         };
-        // An EMPTY point has no coordinate, or NaN coordinates in WKB.
-        let Some(coord) = point
-            .coord()
-            .filter(|c| !(c.x().is_nan() && c.y().is_nan()))
-        else {
+        // An EMPTY point has no coordinate.
+        let Some(coord) = point.coord() else {
             return Err(exec_datafusion_err!("{}: args can not be empty points", self.name).into());
         };
         Ok(Some([coord.x(), coord.y(), z(&coord).unwrap_or(0.0)]))
