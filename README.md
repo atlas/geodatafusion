@@ -236,7 +236,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | ST_3DIntersects          |             | Tests if two geometries spatially intersect in 3D - only for points, linestrings, polygons, polyhedral surface (area).                  |
 | ST_Contains              | ✅          | Tests if every point of B lies in A, and their interiors have a point in common.                                                        |
-| ST_ContainsProperly      |             | Tests if every point of B lies in the interior of A.                                                                                    |
+| ST_ContainsProperly      | ✅          | Tests if every point of B lies in the interior of A.                                                                                    |
 | ST_CoveredBy             | ✅          | Tests if every point of A lies in B.                                                                                                    |
 | ST_Covers                | ✅          | Tests if every point of B lies in A.                                                                                                    |
 | ST_Crosses               | ✅          | Tests if two geometries have some, but not all, interior points in common.                                                              |

@@ -1,0 +1,106 @@
+# Edge cases for ST_Equals, not covered by the PostGIS docs examples.
+
+# Point, line and polygon pairs
+query T
+SELECT ST_Equals('POINT(5 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+false
+
+query T
+SELECT ST_Equals('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POINT(5 5)'::geometry)
+----
+false
+
+query T
+SELECT ST_Equals('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POINT(10 5)'::geometry)
+----
+false
+
+query T
+SELECT ST_Equals('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'LINESTRING(-5 5,15 5)'::geometry)
+----
+false
+
+query T
+SELECT ST_Equals('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POLYGON((5 5,15 5,15 15,5 15,5 5))'::geometry)
+----
+false
+
+query T
+SELECT ST_Equals('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POLYGON((10 0,20 0,20 10,10 10,10 0))'::geometry)
+----
+false
+
+query T
+SELECT ST_Equals('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POLYGON((0 0,0 10,10 10,10 0,0 0))'::geometry)
+----
+true
+
+query T
+SELECT ST_Equals('LINESTRING(0 0,10 10)'::geometry, 'LINESTRING(0 10,10 0)'::geometry)
+----
+false
+
+query T
+SELECT ST_Equals('MULTIPOINT((1 1),(20 20))'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+false
+
+query T
+SELECT ST_Equals('GEOMETRYCOLLECTION(POINT(5 5),LINESTRING(1 1,2 2))'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+false
+
+query T
+SELECT ST_Equals('POINT Z (5 5 1)'::geometry, 'POLYGON M ((0 0 1,10 0 1,10 10 1,0 10 1,0 0 1))'::geometry)
+----
+false
+
+# EMPTY inputs
+query T
+SELECT ST_Equals('POINT EMPTY'::geometry, 'POINT(1 1)'::geometry)
+----
+false
+
+query T
+SELECT ST_Equals('POINT(1 1)'::geometry, 'POLYGON EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_Equals('POINT EMPTY'::geometry, 'POINT EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_Equals('GEOMETRYCOLLECTION(POINT EMPTY,POINT(1 1))'::geometry, 'POINT(1 1)'::geometry)
+----
+true
+
+query T
+SELECT ST_Equals('POLYGON EMPTY'::geometry, 'GEOMETRYCOLLECTION(LINESTRING EMPTY,POINT(1 1))'::geometry)
+----
+false
+
+# SRID
+query T
+SELECT ST_Equals('SRID=4326;POINT(1 1)'::geometry, 'SRID=4326;POINT(1 1)'::geometry)
+----
+true
+
+statement error
+SELECT ST_Equals('SRID=4326;POINT(1 1)'::geometry, 'SRID=3857;POINT(1 1)'::geometry)
+
+# NULL
+query T
+SELECT ST_Equals(NULL::geometry, 'POINT(1 1)'::geometry)
+----
+NULL
+
+# Columns on both sides
+query T rowsort
+SELECT ST_Equals(a, b) FROM (VALUES ('POINT(5 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry), ('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POINT(5 5)'::geometry), ('POINT(1 1)'::geometry, NULL::geometry)) AS t(a, b)
+----
+NULL
+false
+false

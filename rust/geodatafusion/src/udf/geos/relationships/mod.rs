@@ -1,11 +1,15 @@
-mod topological;
+//! Spatial relationships.
 
-pub use topological::{
-    Contains, CoveredBy, Covers, Crosses, Disjoint, Equals, Intersects, Overlaps, Touches, Within,
+mod predicates;
+
+pub use predicates::{
+    Contains, ContainsProperly, CoveredBy, Covers, Crosses, Disjoint, Equals, Intersects, Overlaps,
+    Touches, Within,
 };
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(Contains.into());
+    session_context.register_udf(ContainsProperly.into());
     session_context.register_udf(CoveredBy.into());
     session_context.register_udf(Covers.into());
     session_context.register_udf(Crosses.into());
