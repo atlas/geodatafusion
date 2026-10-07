@@ -1,0 +1,56 @@
+# Edge cases for ST_LineFromText, not covered by the PostGIS docs examples.
+
+# The right type, with and without SRID
+query T
+SELECT ST_LineFromText('LINESTRING(0 0,1 1)')
+----
+LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_LineFromText('LINESTRING(0 0,1 1)', 4326)
+----
+SRID=4326;LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_LineFromText('SRID=3857;LINESTRING(0 0,1 1)')
+----
+SRID=3857;LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_LineFromText('LINESTRING EMPTY')
+----
+LINESTRING EMPTY
+
+# Another type is NULL
+query T
+SELECT ST_LineFromText('POINT(1 2)')
+----
+NULL
+
+query T
+SELECT ST_LineFromText('GEOMETRYCOLLECTION EMPTY')
+----
+NULL
+
+# Invalid text is an error
+statement error
+SELECT ST_LineFromText('nonsense')
+
+# NULL
+query T
+SELECT ST_LineFromText(NULL)
+----
+NULL
+
+query T
+SELECT ST_LineFromText('LINESTRING(0 0,1 1)', NULL)
+----
+NULL
+
+# A column, including NULL and another type
+query T rowsort
+SELECT ST_LineFromText(t) FROM (VALUES ('LINESTRING(0 0,1 1)'), (NULL), ('POINT(1 2)')) AS v(t)
+----
+LINESTRING(0 0,1 1)
+NULL
+NULL

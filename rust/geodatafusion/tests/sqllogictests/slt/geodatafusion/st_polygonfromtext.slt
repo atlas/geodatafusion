@@ -1,0 +1,56 @@
+# Edge cases for ST_PolygonFromText, not covered by the PostGIS docs examples.
+
+# The right type, with and without SRID
+query T
+SELECT ST_PolygonFromText('POLYGON((0 0,1 0,1 1,0 0))')
+----
+POLYGON((0 0,1 0,1 1,0 0))
+
+query T
+SELECT ST_PolygonFromText('POLYGON((0 0,1 0,1 1,0 0))', 4326)
+----
+SRID=4326;POLYGON((0 0,1 0,1 1,0 0))
+
+query T
+SELECT ST_PolygonFromText('SRID=3857;POLYGON((0 0,1 0,1 1,0 0))')
+----
+SRID=3857;POLYGON((0 0,1 0,1 1,0 0))
+
+query T
+SELECT ST_PolygonFromText('POLYGON EMPTY')
+----
+POLYGON EMPTY
+
+# Another type is NULL
+query T
+SELECT ST_PolygonFromText('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))')
+----
+NULL
+
+query T
+SELECT ST_PolygonFromText('GEOMETRYCOLLECTION EMPTY')
+----
+NULL
+
+# Invalid text is an error
+statement error
+SELECT ST_PolygonFromText('nonsense')
+
+# NULL
+query T
+SELECT ST_PolygonFromText(NULL)
+----
+NULL
+
+query T
+SELECT ST_PolygonFromText('POLYGON((0 0,1 0,1 1,0 0))', NULL)
+----
+NULL
+
+# A column, including NULL and another type
+query T rowsort
+SELECT ST_PolygonFromText(t) FROM (VALUES ('POLYGON((0 0,1 0,1 1,0 0))'), (NULL), ('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))')) AS v(t)
+----
+NULL
+NULL
+POLYGON((0 0,1 0,1 1,0 0))

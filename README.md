@@ -153,16 +153,16 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ST_BdPolyFromText   |             | Construct a Polygon given an arbitrary collection of closed linestrings as a MultiLineString Well-Known text representation.                          |
 | ST_BdMPolyFromText  |             | Construct a MultiPolygon given an arbitrary collection of closed linestrings as a MultiLineString text representation Well-Known text representation. |
-| ST_GeomCollFromText |             | Makes a collection Geometry from collection WKT with the given SRID. If SRID is not given, it defaults to 0.                                          |
+| ST_GeomCollFromText | ✅          | Makes a collection Geometry from collection WKT with the given SRID. If SRID is not given, it defaults to 0.                                          |
 | ST_GeomFromEWKT     |             | Return a specified ST_Geometry value from Extended Well-Known Text representation (EWKT).                                                             |
 | ST_GeometryFromText | ✅          | Return a specified ST_Geometry value from Well-Known Text representation (WKT). This is an alias name for ST_GeomFromText                             |
 | ST_GeomFromText     | ✅          | Return a specified ST_Geometry value from Well-Known Text representation (WKT).                                                                       |
-| ST_LineFromText     |             | Makes a Geometry from WKT representation with the given SRID. If SRID is not given, it defaults to 0.                                                 |
-| ST_MLineFromText    |             | Return a specified ST_MultiLineString value from WKT representation.                                                                                  |
-| ST_MPointFromText   |             | Makes a Geometry from WKT with the given SRID. If SRID is not given, it defaults to 0.                                                                |
-| ST_MPolyFromText    |             | Makes a MultiPolygon Geometry from WKT with the given SRID. If SRID is not given, it defaults to 0.                                                   |
-| ST_PointFromText    |             | Makes a point Geometry from WKT with the given SRID. If SRID is not given, it defaults to unknown.                                                    |
-| ST_PolygonFromText  |             | Makes a Geometry from WKT with the given SRID. If SRID is not given, it defaults to 0.                                                                |
+| ST_LineFromText     | ✅          | Makes a Geometry from WKT representation with the given SRID. If SRID is not given, it defaults to 0.                                                 |
+| ST_MLineFromText    | ✅          | Return a specified ST_MultiLineString value from WKT representation.                                                                                  |
+| ST_MPointFromText   | ✅          | Makes a Geometry from WKT with the given SRID. If SRID is not given, it defaults to 0.                                                                |
+| ST_MPolyFromText    | ✅          | Makes a MultiPolygon Geometry from WKT with the given SRID. If SRID is not given, it defaults to 0.                                                   |
+| ST_PointFromText    | ✅          | Makes a point Geometry from WKT with the given SRID. If SRID is not given, it defaults to unknown.                                                    |
+| ST_PolygonFromText  | ✅          | Makes a Geometry from WKT with the given SRID. If SRID is not given, it defaults to 0.                                                                |
 | ST_WKTToSQL         | ✅          | Return a specified ST_Geometry value from Well-Known Text representation (WKT). This is an alias name for ST_GeomFromText                             |
 
 #### Well-Known Binary (WKB)

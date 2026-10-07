@@ -1,4 +1,5 @@
-//! Constructors from Well-Known Text: ST_GeomFromText and ST_GeomFromEWKT.
+//! Constructors from Well-Known Text: ST_GeomFromText, ST_GeomFromEWKT and the type-checked
+//! ST_PointFromText family, which return NULL when the text holds another geometry type.
 
 use std::sync::{Arc, LazyLock};
 
@@ -18,6 +19,7 @@ use geoarrow_schema::{GeoArrowType, Metadata};
 use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
+use crate::udf::native::io::util::expected_type::ExpectedType;
 use crate::udf::native::io::util::wkt::{ewkt_srid_prefix, parse_ewkt};
 use crate::util::args::scalar_srid;
 use crate::util::field::{input_metadata, wkb_return_field};
@@ -90,7 +92,7 @@ impl ScalarUDFImpl for GeomFromText {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(geom_from_text_impl(self.name(), args)?)
+        Ok(geom_from_text_impl(self.name(), args, None)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -155,7 +157,459 @@ impl ScalarUDFImpl for GeomFromEWKT {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(geom_from_ewkt_impl(self.name(), args)?)
+        Ok(geom_from_ewkt_impl(self.name(), args, None)?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a POINT from Well-Known Text (WKT), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a POINT from the OGC Well-Known Text representation, or returns NULL if the text holds another geometry type. EWKT is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_PointFromText(WKT, srid)",
+    argument(name = "WKT", description = "text"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromtext")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct PointFromText;
+
+impl PointFromText {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for PointFromText {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for PointFromText {
+    fn name(&self) -> &str {
+        "st_pointfromtext"
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        let srid = output_srid(self.name(), &args)?;
+        let metadata = Arc::new(Metadata::new(srid_to_crs(srid), None));
+        Ok(wkb_return_field(self.name(), metadata))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_text_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::Point),
+        )?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a LINESTRING from Well-Known Text (WKT), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a LINESTRING from the OGC Well-Known Text representation, or returns NULL if the text holds another geometry type. EWKT is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_LineFromText(WKT, srid)",
+    argument(name = "WKT", description = "text"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromtext")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct LineFromText;
+
+impl LineFromText {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for LineFromText {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for LineFromText {
+    fn name(&self) -> &str {
+        "st_linefromtext"
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        let srid = output_srid(self.name(), &args)?;
+        let metadata = Arc::new(Metadata::new(srid_to_crs(srid), None));
+        Ok(wkb_return_field(self.name(), metadata))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_text_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::LineString),
+        )?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a POLYGON from Well-Known Text (WKT), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a POLYGON from the OGC Well-Known Text representation, or returns NULL if the text holds another geometry type. EWKT is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_PolygonFromText(WKT, srid)",
+    argument(name = "WKT", description = "text"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromtext")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct PolygonFromText {
+    aliases: Vec<String>,
+}
+
+impl PolygonFromText {
+    pub fn new() -> Self {
+        Self {
+            aliases: vec!["st_polyfromtext".to_string()],
+        }
+    }
+}
+
+impl Default for PolygonFromText {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for PolygonFromText {
+    fn name(&self) -> &str {
+        "st_polygonfromtext"
+    }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        let srid = output_srid(self.name(), &args)?;
+        let metadata = Arc::new(Metadata::new(srid_to_crs(srid), None));
+        Ok(wkb_return_field(self.name(), metadata))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_text_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::Polygon),
+        )?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a MULTIPOINT from Well-Known Text (WKT), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a MULTIPOINT from the OGC Well-Known Text representation, or returns NULL if the text holds another geometry type. EWKT is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_MPointFromText(WKT, srid)",
+    argument(name = "WKT", description = "text"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromtext")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct MPointFromText {
+    aliases: Vec<String>,
+}
+
+impl MPointFromText {
+    pub fn new() -> Self {
+        Self {
+            aliases: vec!["st_multipointfromtext".to_string()],
+        }
+    }
+}
+
+impl Default for MPointFromText {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for MPointFromText {
+    fn name(&self) -> &str {
+        "st_mpointfromtext"
+    }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        let srid = output_srid(self.name(), &args)?;
+        let metadata = Arc::new(Metadata::new(srid_to_crs(srid), None));
+        Ok(wkb_return_field(self.name(), metadata))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_text_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::MultiPoint),
+        )?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a MULTILINESTRING from Well-Known Text (WKT), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a MULTILINESTRING from the OGC Well-Known Text representation, or returns NULL if the text holds another geometry type. EWKT is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_MLineFromText(WKT, srid)",
+    argument(name = "WKT", description = "text"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromtext")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct MLineFromText {
+    aliases: Vec<String>,
+}
+
+impl MLineFromText {
+    pub fn new() -> Self {
+        Self {
+            aliases: vec!["st_multilinestringfromtext".to_string()],
+        }
+    }
+}
+
+impl Default for MLineFromText {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for MLineFromText {
+    fn name(&self) -> &str {
+        "st_mlinefromtext"
+    }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        let srid = output_srid(self.name(), &args)?;
+        let metadata = Arc::new(Metadata::new(srid_to_crs(srid), None));
+        Ok(wkb_return_field(self.name(), metadata))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_text_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::MultiLineString),
+        )?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a MULTIPOLYGON from Well-Known Text (WKT), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a MULTIPOLYGON from the OGC Well-Known Text representation, or returns NULL if the text holds another geometry type. EWKT is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_MPolyFromText(WKT, srid)",
+    argument(name = "WKT", description = "text"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromtext")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct MPolyFromText {
+    aliases: Vec<String>,
+}
+
+impl MPolyFromText {
+    pub fn new() -> Self {
+        Self {
+            aliases: vec!["st_multipolygonfromtext".to_string()],
+        }
+    }
+}
+
+impl Default for MPolyFromText {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for MPolyFromText {
+    fn name(&self) -> &str {
+        "st_mpolyfromtext"
+    }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        let srid = output_srid(self.name(), &args)?;
+        let metadata = Arc::new(Metadata::new(srid_to_crs(srid), None));
+        Ok(wkb_return_field(self.name(), metadata))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_text_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::MultiPolygon),
+        )?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a GEOMETRYCOLLECTION from Well-Known Text (WKT), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a GEOMETRYCOLLECTION from the OGC Well-Known Text representation, or returns NULL if the text holds another geometry type. EWKT is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_GeomCollFromText(WKT, srid)",
+    argument(name = "WKT", description = "text"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromtext")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct GeomCollFromText;
+
+impl GeomCollFromText {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for GeomCollFromText {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for GeomCollFromText {
+    fn name(&self) -> &str {
+        "st_geomcollfromtext"
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        let srid = output_srid(self.name(), &args)?;
+        let metadata = Arc::new(Metadata::new(srid_to_crs(srid), None));
+        Ok(wkb_return_field(self.name(), metadata))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_text_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::GeometryCollection),
+        )?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -180,23 +634,36 @@ fn output_srid(name: &str, args: &ReturnFieldArgs) -> Result<i32> {
     Ok(literal.and_then(ewkt_srid_prefix).unwrap_or(SRID_UNKNOWN))
 }
 
-fn geom_from_text_impl(name: &str, args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+/// Builds the geometries of the text argument. A type-checked constructor passes the type it
+/// accepts and gets NULL for any other type.
+fn geom_from_text_impl(
+    name: &str,
+    args: ScalarFunctionArgs,
+    expected: Option<ExpectedType>,
+) -> GeoDataFusionResult<ColumnarValue> {
     // SQL NULL in, SQL NULL out.
     if matches!(args.args.get(1), Some(ColumnarValue::Scalar(srid)) if srid.is_null()) {
         let nulls = new_null_array(args.return_field.data_type(), args.number_rows);
         return Ok(ColumnarValue::Array(nulls));
     }
-    geom_from_ewkt_impl(name, args)
+    geom_from_ewkt_impl(name, args, expected)
 }
 
-fn geom_from_ewkt_impl(name: &str, args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+fn geom_from_ewkt_impl(
+    name: &str,
+    args: ScalarFunctionArgs,
+    expected: Option<ExpectedType>,
+) -> GeoDataFusionResult<ColumnarValue> {
     let geometries = parse_rows(name, &args)?;
     let GeoArrowType::Wkb(output_type) = GeoArrowType::from_arrow_field(&args.return_field)? else {
         return Err(internal_datafusion_err!("{name}: unexpected return field").into());
     };
     let mut builder = WkbBuilder::<i32>::new(output_type);
     for geometry in &geometries {
-        builder.push_geometry(geometry.as_ref())?;
+        let geometry = geometry
+            .as_ref()
+            .filter(|geometry| expected.is_none_or(|expected| expected.matches(*geometry)));
+        builder.push_geometry(geometry)?;
     }
     Ok(ColumnarValue::Array(builder.finish().into_array_ref()))
 }
