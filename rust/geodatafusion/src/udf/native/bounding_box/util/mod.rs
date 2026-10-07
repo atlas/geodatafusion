@@ -1,3 +1,3 @@
-pub(super) mod bounds;
+pub(crate) mod bounds;
 
 pub use bounds::total_bounds;

@@ -28,6 +28,75 @@ SELECT ST_GeoHash('POINT(10.75 59.91)'::geometry, 12)
 ----
 u4xsud7cj1ky
 
+query T
+SELECT ST_GeoHash('POINT(-126 48)'::geometry, 30)
+----
+c0w3hf1s70w3hf1s70w3hgzzzzzzzz
+
+query T
+SELECT ST_GeoHash('POINT(-126 48)'::geometry, 0)
+----
+c0w3hf1s70w3hf1s70w3
+
+query T
+SELECT ST_GeoHash('POINT(-126 48)'::geometry, -3)
+----
+c0w3hf1s70w3hf1s70w3
+
+query T
+SELECT ST_GeoHash('POINT(-126 48)'::geometry, maxchars => 4)
+----
+c0w3
+
+# Bounding boxes: the smallest cell that holds them, possibly none
+query T
+SELECT ST_GeoHash('LINESTRING(1 1,1.0001 1.0001)'::geometry)
+----
+s00twy0
+
+query T
+SELECT ST_GeoHash('LINESTRING(-10 0,10 1)'::geometry)
+----
+(empty)
+
+query T
+SELECT ST_GeoHash('LINESTRING(-126 48,-126.1 48.1)'::geometry, 10)
+----
+c0w37ejpw1
+
+query T
+SELECT ST_GeoHash('MULTIPOINT(-126 48,-126 48)'::geometry)
+----
+c0w3hf1s70w3hf1s70w3
+
+query T
+SELECT ST_GeoHash('GEOMETRYCOLLECTION(POINT EMPTY,POINT(1 2))'::geometry)
+----
+s02equ04ven09qv80meq
+
+# Cell boundaries and the corners of the world
+query T
+SELECT ST_GeoHash('POINT(0 0)'::geometry)
+----
+s0000000000000000000
+
+query T
+SELECT ST_GeoHash('POINT(180 90)'::geometry)
+----
+zzzzzzzzzzzzzzzzzzzz
+
+query T
+SELECT ST_GeoHash('POINT(-180 -90)'::geometry)
+----
+00000000000000000000
+
+# Coordinates outside longitude/latitude bounds are an error
+statement error
+SELECT ST_GeoHash('POINT(200 48)'::geometry)
+
+statement error
+SELECT ST_GeoHash('LINESTRING(0 0,0 90.5)'::geometry)
+
 # EMPTY and NULL
 query T
 SELECT ST_GeoHash('POINT EMPTY'::geometry)
@@ -36,6 +105,11 @@ NULL
 
 query T
 SELECT ST_GeoHash(NULL::geometry)
+----
+NULL
+
+query T
+SELECT ST_GeoHash('POINT(-126 48)'::geometry, NULL)
 ----
 NULL
 
