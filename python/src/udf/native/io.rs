@@ -1,6 +1,6 @@
 use geodatafusion::udf::native::io::{
-    AsBinary, AsEWKB, AsEWKT, AsHEXEWKB, AsText, Box2DFromGeoHash, GeoHash, GeomFromEWKT,
-    GeomFromGeoHash, GeomFromText, GeomFromWKB, PointFromGeoHash,
+    AsBinary, AsEWKB, AsEWKT, AsHEXEWKB, AsText, Box2DFromGeoHash, GeoHash, GeomFromEWKB,
+    GeomFromEWKT, GeomFromGeoHash, GeomFromText, GeomFromWKB, PointFromGeoHash,
 };
 
 use crate::impl_udf;
@@ -10,6 +10,7 @@ impl_udf!(AsEWKB, PyAsEWKB, "AsEWKB");
 impl_udf!(AsHEXEWKB, PyAsHEXEWKB, "AsHEXEWKB");
 impl_udf!(AsEWKT, PyAsEWKT, "AsEWKT");
 impl_udf!(AsText, PyAsText, "AsText");
+impl_udf!(GeomFromEWKB, PyGeomFromEWKB, "GeomFromEWKB");
 impl_udf!(GeomFromEWKT, PyGeomFromEWKT, "GeomFromEWKT");
 
 impl_udf!(GeomFromWKB, PyGeomFromWKB, "GeomFromWKB");

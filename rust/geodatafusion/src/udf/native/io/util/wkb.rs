@@ -54,7 +54,6 @@ pub(crate) fn write_ewkb(
 
 /// The SRID in an EWKB header, if it has one. `None` for ISO WKB and for input too short to
 /// have a header; the WKB reader reports those.
-#[cfg_attr(not(test), expect(dead_code, reason = "used by ST_GeomFromEWKB"))]
 pub(crate) fn ewkb_srid(buf: &[u8]) -> Option<i32> {
     let read_u32 = |bytes: &[u8]| -> Option<u32> {
         let bytes: [u8; 4] = bytes.try_into().ok()?;
