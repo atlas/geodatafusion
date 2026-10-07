@@ -1,0 +1,117 @@
+# Edge cases for ST_LineMerge, not covered by the PostGIS docs examples.
+
+# Merging
+query T
+SELECT ST_LineMerge('MULTILINESTRING((0 0,1 1),(1 1,2 2))'::geometry)
+----
+LINESTRING(0 0,1 1,2 2)
+
+query T
+SELECT ST_LineMerge('MULTILINESTRING((0 0,1 1),(2 2,1 1))'::geometry)
+----
+LINESTRING(0 0,1 1,2 2)
+
+query T
+SELECT ST_LineMerge('MULTILINESTRING((0 0,1 1),(5 5,6 6))'::geometry)
+----
+MULTILINESTRING((0 0,1 1),(5 5,6 6))
+
+query T
+SELECT ST_LineMerge('LINESTRING(0 0,1 1)'::geometry)
+----
+LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_LineMerge('GEOMETRYCOLLECTION(LINESTRING(0 0,1 1),LINESTRING(1 1,2 2))'::geometry)
+----
+LINESTRING(0 0,1 1,2 2)
+
+# Directed
+query T
+SELECT ST_LineMerge('MULTILINESTRING((0 0,1 1),(2 2,1 1))'::geometry, true)
+----
+MULTILINESTRING((0 0,1 1),(2 2,1 1))
+
+query T
+SELECT ST_LineMerge('MULTILINESTRING((0 0,1 1),(2 2,1 1))'::geometry, false)
+----
+LINESTRING(0 0,1 1,2 2)
+
+query T
+SELECT ST_LineMerge('MULTILINESTRING((0 0,1 1),(1 1,2 2))'::geometry, NULL)
+----
+NULL
+
+# Z kept, M dropped
+query T
+SELECT ST_LineMerge('MULTILINESTRING Z ((0 0 1,1 1 2),(1 1 2,2 2 3))'::geometry)
+----
+LINESTRING Z (0 0 1,1 1 2,2 2 3)
+
+query T
+SELECT ST_LineMerge('MULTILINESTRING M ((0 0 1,1 1 2),(1 1 2,2 2 3))'::geometry)
+----
+LINESTRING(0 0,1 1,2 2)
+
+query T
+SELECT ST_LineMerge('MULTILINESTRING ZM ((0 0 1 5,1 1 2 6),(1 1 2 6,2 2 3 7))'::geometry)
+----
+LINESTRING Z (0 0 1,1 1 2,2 2 3)
+
+# Non-lineal input
+query T
+SELECT ST_LineMerge('POINT(1 2)'::geometry)
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_LineMerge('POLYGON((0 0,1 0,1 1,0 0))'::geometry)
+----
+LINESTRING(0 0,1 0,1 1,0 0)
+
+query T
+SELECT ST_LineMerge('MULTIPOINT(1 2,3 4)'::geometry)
+----
+GEOMETRYCOLLECTION EMPTY
+
+# SRID
+query T
+SELECT ST_LineMerge('SRID=4326;MULTILINESTRING((0 0,1 1),(1 1,2 2))'::geometry)
+----
+SRID=4326;LINESTRING(0 0,1 1,2 2)
+
+# EMPTY and NULL
+query T
+SELECT ST_LineMerge('MULTILINESTRING EMPTY'::geometry)
+----
+MULTILINESTRING EMPTY
+
+query T
+SELECT ST_LineMerge('LINESTRING M EMPTY'::geometry)
+----
+LINESTRING M EMPTY
+
+query T
+SELECT ST_LineMerge('POINT EMPTY'::geometry)
+----
+POINT EMPTY
+
+query T
+SELECT ST_LineMerge(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_LineMerge(g) FROM (VALUES ('MULTILINESTRING((0 0,1 1),(1 1,2 2))'::geometry), (NULL::geometry), ('LINESTRING(5 5,6 6)'::geometry)) AS t(g)
+----
+LINESTRING(0 0,1 1,2 2)
+LINESTRING(5 5,6 6)
+NULL
+
+# A column-valued directed argument
+query T rowsort
+SELECT ST_LineMerge(g, d) FROM (VALUES ('MULTILINESTRING((0 0,1 1),(2 2,1 1))'::geometry, true), ('MULTILINESTRING((0 0,1 1),(2 2,1 1))'::geometry, false)) AS t(g, d)
+----
+LINESTRING(0 0,1 1,2 2)
+MULTILINESTRING((0 0,1 1),(2 2,1 1))

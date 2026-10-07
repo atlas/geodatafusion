@@ -6,7 +6,7 @@ mod geo_hash;
 mod geom_from_geo_hash;
 mod geom_from_text;
 mod geom_from_wkb;
-mod util;
+pub(crate) mod util;
 
 pub use as_binary::{AsBinary, AsEWKB, AsHEXEWKB};
 pub use as_text::{AsEWKT, AsText};

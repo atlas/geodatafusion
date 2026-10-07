@@ -2,7 +2,7 @@
 
 use arrow_array::cast::AsArray;
 use arrow_array::types::Int32Type;
-use arrow_array::{Int32Array, StringArray};
+use arrow_array::{BooleanArray, Int32Array, StringArray};
 use arrow_schema::DataType;
 use datafusion::common::{ScalarValue, internal_err, plan_err};
 use datafusion::error::Result;
@@ -24,6 +24,26 @@ pub(crate) fn optional_int_arg(
         .cast_to(&DataType::Int32, None)?
         .to_array(args.number_rows)?;
     Ok(array.as_primitive::<Int32Type>().clone())
+}
+
+/// Optional `boolean` argument `index`, one value per row (constants are broadcast), or
+/// `default` in every row if the call doesn't have it.
+#[cfg_attr(
+    not(feature = "geos-3_11"),
+    expect(dead_code, reason = "only GEOS-backed UDFs take a boolean so far")
+)]
+pub(crate) fn optional_bool_arg(
+    args: &ScalarFunctionArgs,
+    index: usize,
+    default: bool,
+) -> Result<BooleanArray> {
+    let Some(arg) = args.args.get(index) else {
+        return Ok(BooleanArray::from(vec![default; args.number_rows]));
+    };
+    let array = arg
+        .cast_to(&DataType::Boolean, None)?
+        .to_array(args.number_rows)?;
+    Ok(array.as_boolean().clone())
 }
 
 /// Optional `text` argument `index`, one value per row (constants are broadcast), or `default`
