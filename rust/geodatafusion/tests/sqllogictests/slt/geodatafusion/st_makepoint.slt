@@ -1,0 +1,41 @@
+# Edge cases for ST_MakePoint, not covered by the PostGIS docs examples.
+
+# Every dimension
+query T
+SELECT ST_MakePoint(1.5, 2.5)
+----
+POINT(1.5 2.5)
+
+query T
+SELECT ST_MakePoint(1, 2, 3)
+----
+POINT Z (1 2 3)
+
+query T
+SELECT ST_MakePoint(1, 2, 3, 4)
+----
+POINT ZM (1 2 3 4)
+
+# Integer and NULL coordinates
+query T
+SELECT ST_MakePoint(1, 2)
+----
+POINT(1 2)
+
+query T
+SELECT ST_MakePoint(1, NULL)
+----
+NULL
+
+query T
+SELECT ST_MakePoint(1, 2, NULL)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_MakePoint(x, y) FROM (VALUES (1.0, 2.0), (NULL, 3.0), (4.0, 5.0)) AS t(x, y)
+----
+NULL
+POINT(1 2)
+POINT(4 5)

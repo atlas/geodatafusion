@@ -10,7 +10,7 @@ use datafusion::common::{internal_datafusion_err, internal_err};
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
-    TypeSignature, Volatility,
+    Volatility,
 };
 use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
@@ -331,6 +331,17 @@ fn point_impl(args: &ScalarFunctionArgs, dim: Dimension) -> GeoDataFusionResult<
     )?))
 }
 
+/// PostGIS: ST_MakePoint(float8 x, float8 y), with an optional z and m. PostGIS doesn't name
+/// the parameters.
+static MAKEPOINT_ARGUMENTS: &[&[Arg]] = &[
+    &[Arg::Float, Arg::Float],
+    &[Arg::Float, Arg::Float, Arg::Float],
+    &[Arg::Float, Arg::Float, Arg::Float, Arg::Float],
+];
+
+static MAKEPOINT_SIGNATURE: LazyLock<Signature> =
+    LazyLock::new(|| Signature::user_defined(Volatility::Immutable));
+
 #[user_doc(
     doc_section(label = "Geometry Constructors"),
     description = "Creates a 2D XY or 3D XYZ or 4D XYZM Point geometry. Use ST_MakePointM to make points with XYM coordinates",
@@ -344,31 +355,11 @@ fn point_impl(args: &ScalarFunctionArgs, dim: Dimension) -> GeoDataFusionResult<
     related_udf(name = "st_makepointm")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct MakePoint {
-    signature: Signature,
-}
+pub struct MakePoint;
 
 impl MakePoint {
     pub fn new() -> Self {
-        Self {
-            signature: Signature::one_of(
-                vec![
-                    TypeSignature::Exact(vec![DataType::Float64, DataType::Float64]),
-                    TypeSignature::Exact(vec![
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                    TypeSignature::Exact(vec![
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Float64,
-                        DataType::Float64,
-                    ]),
-                ],
-                Volatility::Immutable,
-            ),
-        }
+        Self
     }
 }
 
@@ -384,7 +375,11 @@ impl ScalarUDFImpl for MakePoint {
     }
 
     fn signature(&self) -> &Signature {
-        &self.signature
+        &MAKEPOINT_SIGNATURE
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, MAKEPOINT_ARGUMENTS)
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
@@ -410,6 +405,12 @@ impl ScalarUDFImpl for MakePoint {
     }
 }
 
+/// PostGIS: ST_MakePointM(float8 x, float8 y, float8 m).
+static MAKEPOINTM_ARGUMENTS: &[&[Arg]] = &[&[Arg::Float, Arg::Float, Arg::Float]];
+
+static MAKEPOINTM_SIGNATURE: LazyLock<Signature> =
+    LazyLock::new(|| Signature::user_defined(Volatility::Immutable));
+
 #[user_doc(
     doc_section(label = "Geometry Constructors"),
     description = "Creates a point with X, Y and M (measure) ordinates. Use ST_MakePoint to make points with XY, XYZ, or XYZM coordinates.",
@@ -422,18 +423,11 @@ impl ScalarUDFImpl for MakePoint {
     related_udf(name = "st_makepoint")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct MakePointM {
-    signature: Signature,
-}
+pub struct MakePointM;
 
 impl MakePointM {
     pub fn new() -> Self {
-        Self {
-            signature: Signature::exact(
-                vec![DataType::Float64, DataType::Float64, DataType::Float64],
-                Volatility::Immutable,
-            ),
-        }
+        Self
     }
 }
 
@@ -449,7 +443,11 @@ impl ScalarUDFImpl for MakePointM {
     }
 
     fn signature(&self) -> &Signature {
-        &self.signature
+        &MAKEPOINTM_SIGNATURE
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, MAKEPOINTM_ARGUMENTS)
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
