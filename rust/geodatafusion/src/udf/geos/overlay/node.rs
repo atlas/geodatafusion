@@ -17,7 +17,7 @@ use wkt::Wkt;
 use wkt::types::{Dimension, LineString, MultiLineString};
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{empty_like, from_geos, to_geos};
+use crate::udf::geos::util::{empty_like, from_geos, has_z, to_geos};
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
@@ -104,6 +104,8 @@ impl GeometryKernel for NodeKernel {
         geom: &impl GeometryTrait<T = f64>,
         _row: usize,
     ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        // PostGIS keeps a Z from GEOS only when the input has Z.
+        let want_z = has_z(geom);
         // PostGIS checks the input type itself, and only nodes linestrings.
         match geom.as_type() {
             geo_traits::GeometryType::LineString(_)
@@ -128,7 +130,7 @@ impl GeometryKernel for NodeKernel {
         // lines, and split those again at the endpoints of the input lines.
         let merged = to_geos(geom)?.unary_union()?.line_merge()?;
         let endpoints = endpoints(geom);
-        let lines = match from_geos(&merged)? {
+        let lines = match from_geos(&merged, want_z)? {
             Wkt::LineString(line) => vec![line],
             Wkt::MultiLineString(lines) => lines.into_inner().0,
             other => return Ok(Some(other)),

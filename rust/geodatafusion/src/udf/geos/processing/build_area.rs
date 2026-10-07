@@ -17,7 +17,7 @@ use wkt::Wkt;
 use wkt::types::{Dimension, Polygon};
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{from_geos, to_geos};
+use crate::udf::geos::util::{from_geos, has_z, to_geos};
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
@@ -104,6 +104,8 @@ impl GeometryKernel for BuildAreaKernel {
         geom: &impl GeometryTrait<T = f64>,
         _row: usize,
     ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        // PostGIS keeps a Z from GEOS only when the input has Z.
+        let want_z = has_z(geom);
         // PostGIS returns an empty polygon for EMPTY input, and NULL when no area is built.
         if is_geometry_topologically_empty(geom) {
             return Ok(Some(Wkt::Polygon(Polygon::empty(Dimension::XY))));
@@ -112,6 +114,6 @@ impl GeometryKernel for BuildAreaKernel {
         if area.is_empty()? {
             return Ok(None);
         }
-        Ok(Some(from_geos(&area)?))
+        Ok(Some(from_geos(&area, want_z)?))
     }
 }

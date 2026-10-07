@@ -17,7 +17,7 @@ use geos::{Geom, Precision};
 use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{empty_like, from_geos, to_geos};
+use crate::udf::geos::util::{empty_like, from_geos, has_z, to_geos};
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
 use crate::util::args::optional_float_arg;
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
@@ -110,6 +110,8 @@ impl GeometryKernel for ReducePrecisionKernel {
         geom: &impl GeometryTrait<T = f64>,
         row: usize,
     ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        // PostGIS keeps a Z from GEOS only when the input has Z.
+        let want_z = has_z(geom);
         // ST_ReducePrecision is STRICT: SQL NULL in any argument gives SQL NULL.
         if self.grid_size.is_null(row) {
             return Ok(None);
@@ -120,6 +122,6 @@ impl GeometryKernel for ReducePrecisionKernel {
         }
         let grid_size = self.grid_size.value(row);
         let reduced = to_geos(geom)?.set_precision(grid_size, Precision::ValidOutput)?;
-        Ok(Some(from_geos(&reduced)?))
+        Ok(Some(from_geos(&reduced, want_z)?))
     }
 }
