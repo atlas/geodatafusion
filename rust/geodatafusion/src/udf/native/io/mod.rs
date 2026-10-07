@@ -16,7 +16,10 @@ pub use geom_from_text::{
     GeomCollFromText, GeomFromEWKT, GeomFromText, LineFromText, MLineFromText, MPointFromText,
     MPolyFromText, PointFromText, PolygonFromText,
 };
-pub use geom_from_wkb::{GeomFromEWKB, GeomFromWKB};
+pub use geom_from_wkb::{
+    GeomCollFromWKB, GeomFromEWKB, GeomFromWKB, LineFromWKB, MLineFromWKB, MPointFromWKB,
+    MPolyFromWKB, PointFromWKB, PolyFromWKB,
+};
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(AsBinary.into());
@@ -24,6 +27,13 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(AsHEXEWKB.into());
     session_context.register_udf(GeomFromWKB::default().into());
     session_context.register_udf(GeomFromEWKB.into());
+    session_context.register_udf(PointFromWKB.into());
+    session_context.register_udf(LineFromWKB::default().into());
+    session_context.register_udf(PolyFromWKB::default().into());
+    session_context.register_udf(MPointFromWKB::default().into());
+    session_context.register_udf(MLineFromWKB::default().into());
+    session_context.register_udf(MPolyFromWKB::default().into());
+    session_context.register_udf(GeomCollFromWKB.into());
     session_context.register_udf(AsText.into());
     session_context.register_udf(AsEWKT.into());
     session_context.register_udf(GeoHash.into());

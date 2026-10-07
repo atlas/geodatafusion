@@ -1,0 +1,43 @@
+# Edge cases for ST_MPolyFromWKB, not covered by the PostGIS docs examples.
+
+# The right type, with and without SRID
+query T
+SELECT ST_MPolyFromWKB(ST_AsBinary('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))'::geometry))
+----
+MULTIPOLYGON(((0 0,1 0,1 1,0 0)))
+
+query T
+SELECT ST_MPolyFromWKB(ST_AsBinary('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))'::geometry), 4326)
+----
+SRID=4326;MULTIPOLYGON(((0 0,1 0,1 1,0 0)))
+
+query T
+SELECT ST_MPolyFromWKB(ST_AsEWKB('SRID=3857;MULTIPOLYGON(((0 0,1 0,1 1,0 0)))'::geometry))
+----
+SRID=3857;MULTIPOLYGON(((0 0,1 0,1 1,0 0)))
+
+query T
+SELECT ST_MPolyFromWKB(ST_AsBinary('MULTIPOLYGON EMPTY'::geometry))
+----
+MULTIPOLYGON EMPTY
+
+# Another type is NULL
+query T
+SELECT ST_MPolyFromWKB(ST_AsBinary('POLYGON((0 0,1 0,1 1,0 0))'::geometry))
+----
+NULL
+
+# Truncated input is an error
+statement error
+SELECT ST_MPolyFromWKB(decode('0101', 'hex'))
+
+# NULL
+query T
+SELECT ST_MPolyFromWKB(NULL)
+----
+NULL
+
+query T
+SELECT ST_MPolyFromWKB(ST_AsBinary('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))'::geometry), NULL)
+----
+NULL

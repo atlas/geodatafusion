@@ -1,4 +1,5 @@
-//! Constructors from Well-Known Binary: ST_GeomFromWKB and ST_GeomFromEWKB.
+//! Constructors from Well-Known Binary: ST_GeomFromWKB, ST_GeomFromEWKB and the type-checked
+//! ST_PointFromWKB family, which return NULL when the WKB holds another geometry type.
 
 use std::sync::{Arc, LazyLock};
 
@@ -17,6 +18,7 @@ use geoarrow_array::builder::WkbBuilder;
 use geoarrow_schema::{GeoArrowType, Metadata};
 
 use crate::error::GeoDataFusionResult;
+use crate::udf::native::io::util::expected_type::ExpectedType;
 use crate::udf::native::io::util::wkb::ewkb_srid;
 use crate::util::args::scalar_srid;
 use crate::util::field::{input_metadata, wkb_return_field};
@@ -88,7 +90,7 @@ impl ScalarUDFImpl for GeomFromWKB {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(geom_from_wkb_impl(self.name(), args)?)
+        Ok(geom_from_wkb_impl(self.name(), args, None)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -148,7 +150,474 @@ impl ScalarUDFImpl for GeomFromEWKB {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(geom_from_wkb_impl(self.name(), args)?)
+        Ok(geom_from_wkb_impl(self.name(), args, None)?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a POINT from Well-Known Binary (WKB), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a POINT from the OGC Well-Known Binary representation, or returns NULL if the WKB holds another geometry type. EWKB is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_PointFromWKB(geom, srid)",
+    argument(name = "geom", description = "bytea"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromwkb")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct PointFromWKB;
+
+impl PointFromWKB {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for PointFromWKB {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for PointFromWKB {
+    fn name(&self) -> &str {
+        "st_pointfromwkb"
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        Ok(wkb_return_field(
+            self.name(),
+            output_metadata(self.name(), &args)?,
+        ))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_wkb_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::Point),
+        )?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a LINESTRING from Well-Known Binary (WKB), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a LINESTRING from the OGC Well-Known Binary representation, or returns NULL if the WKB holds another geometry type. EWKB is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_LineFromWKB(WKB, srid)",
+    argument(name = "WKB", description = "bytea"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromwkb")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct LineFromWKB {
+    aliases: Vec<String>,
+}
+
+impl LineFromWKB {
+    pub fn new() -> Self {
+        Self {
+            aliases: vec!["st_linestringfromwkb".to_string()],
+        }
+    }
+}
+
+impl Default for LineFromWKB {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for LineFromWKB {
+    fn name(&self) -> &str {
+        "st_linefromwkb"
+    }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        Ok(wkb_return_field(
+            self.name(),
+            output_metadata(self.name(), &args)?,
+        ))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_wkb_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::LineString),
+        )?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a POLYGON from Well-Known Binary (WKB), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a POLYGON from the OGC Well-Known Binary representation, or returns NULL if the WKB holds another geometry type. EWKB is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_PolyFromWKB(WKB, srid)",
+    argument(name = "WKB", description = "bytea"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromwkb")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct PolyFromWKB {
+    aliases: Vec<String>,
+}
+
+impl PolyFromWKB {
+    pub fn new() -> Self {
+        Self {
+            aliases: vec!["st_polygonfromwkb".to_string()],
+        }
+    }
+}
+
+impl Default for PolyFromWKB {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for PolyFromWKB {
+    fn name(&self) -> &str {
+        "st_polyfromwkb"
+    }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        Ok(wkb_return_field(
+            self.name(),
+            output_metadata(self.name(), &args)?,
+        ))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_wkb_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::Polygon),
+        )?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a MULTIPOINT from Well-Known Binary (WKB), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a MULTIPOINT from the OGC Well-Known Binary representation, or returns NULL if the WKB holds another geometry type. EWKB is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_MPointFromWKB(WKB, srid)",
+    argument(name = "WKB", description = "bytea"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromwkb")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct MPointFromWKB {
+    aliases: Vec<String>,
+}
+
+impl MPointFromWKB {
+    pub fn new() -> Self {
+        Self {
+            aliases: vec!["st_multipointfromwkb".to_string()],
+        }
+    }
+}
+
+impl Default for MPointFromWKB {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for MPointFromWKB {
+    fn name(&self) -> &str {
+        "st_mpointfromwkb"
+    }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        Ok(wkb_return_field(
+            self.name(),
+            output_metadata(self.name(), &args)?,
+        ))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_wkb_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::MultiPoint),
+        )?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a MULTILINESTRING from Well-Known Binary (WKB), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a MULTILINESTRING from the OGC Well-Known Binary representation, or returns NULL if the WKB holds another geometry type. EWKB is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_MLineFromWKB(WKB, srid)",
+    argument(name = "WKB", description = "bytea"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromwkb")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct MLineFromWKB {
+    aliases: Vec<String>,
+}
+
+impl MLineFromWKB {
+    pub fn new() -> Self {
+        Self {
+            aliases: vec!["st_multilinefromwkb".to_string()],
+        }
+    }
+}
+
+impl Default for MLineFromWKB {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for MLineFromWKB {
+    fn name(&self) -> &str {
+        "st_mlinefromwkb"
+    }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        Ok(wkb_return_field(
+            self.name(),
+            output_metadata(self.name(), &args)?,
+        ))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_wkb_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::MultiLineString),
+        )?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a MULTIPOLYGON from Well-Known Binary (WKB), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a MULTIPOLYGON from the OGC Well-Known Binary representation, or returns NULL if the WKB holds another geometry type. EWKB is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_MPolyFromWKB(WKB, srid)",
+    argument(name = "WKB", description = "bytea"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromwkb")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct MPolyFromWKB {
+    aliases: Vec<String>,
+}
+
+impl MPolyFromWKB {
+    pub fn new() -> Self {
+        Self {
+            aliases: vec!["st_multipolyfromwkb".to_string()],
+        }
+    }
+}
+
+impl Default for MPolyFromWKB {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for MPolyFromWKB {
+    fn name(&self) -> &str {
+        "st_mpolyfromwkb"
+    }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        Ok(wkb_return_field(
+            self.name(),
+            output_metadata(self.name(), &args)?,
+        ))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_wkb_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::MultiPolygon),
+        )?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// Returns a GEOMETRYCOLLECTION from Well-Known Binary (WKB), or NULL for another geometry type.
+#[user_doc(
+    doc_section(label = "Geometry Input"),
+    description = "Constructs a GEOMETRYCOLLECTION from the OGC Well-Known Binary representation, or returns NULL if the WKB holds another geometry type. EWKB is accepted, and the srid argument overrides an embedded SRID.",
+    syntax_example = "ST_GeomCollFromWKB(WKB, srid)",
+    argument(name = "WKB", description = "bytea"),
+    argument(name = "srid", description = "integer"),
+    related_udf(name = "st_geomfromwkb")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct GeomCollFromWKB;
+
+impl GeomCollFromWKB {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for GeomCollFromWKB {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for GeomCollFromWKB {
+    fn name(&self) -> &str {
+        "st_geomcollfromwkb"
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        Ok(wkb_return_field(
+            self.name(),
+            output_metadata(self.name(), &args)?,
+        ))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(geom_from_wkb_impl(
+            self.name(),
+            args,
+            Some(ExpectedType::GeometryCollection),
+        )?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -181,7 +650,12 @@ fn output_metadata(name: &str, args: &ReturnFieldArgs) -> Result<Arc<Metadata>> 
 ///
 /// An optional `srid` argument overrides an embedded SRID, as in PostGIS. Otherwise every
 /// row's EWKB SRID must agree with the output column's.
-fn geom_from_wkb_impl(name: &str, args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+/// A type-checked constructor passes the type it accepts and gets NULL for any other type.
+fn geom_from_wkb_impl(
+    name: &str,
+    args: ScalarFunctionArgs,
+    expected: Option<ExpectedType>,
+) -> GeoDataFusionResult<ColumnarValue> {
     // SQL NULL in, SQL NULL out.
     if matches!(args.args.get(1), Some(ColumnarValue::Scalar(srid)) if srid.is_null()) {
         let nulls = new_null_array(args.return_field.data_type(), args.number_rows);
@@ -213,7 +687,8 @@ fn geom_from_wkb_impl(name: &str, args: ScalarFunctionArgs) -> GeoDataFusionResu
         }
         let geometry = wkb::reader::read_wkb(buffer)
             .map_err(|e| exec_datafusion_err!("{name}: invalid WKB: {e}"))?;
-        builder.push_geometry(Some(&geometry))?;
+        let accepted = expected.is_none_or(|expected| expected.matches(&geometry));
+        builder.push_geometry(accepted.then_some(&geometry))?;
     }
     Ok(ColumnarValue::Array(builder.finish().into_array_ref()))
 }
