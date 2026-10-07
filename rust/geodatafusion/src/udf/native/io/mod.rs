@@ -12,7 +12,10 @@ pub use as_binary::{AsBinary, AsEWKB, AsHEXEWKB};
 pub use as_text::{AsEWKT, AsText};
 pub use geo_hash::GeoHash;
 pub use geom_from_geo_hash::{Box2DFromGeoHash, GeomFromGeoHash, PointFromGeoHash};
-pub use geom_from_text::{GeomFromEWKT, GeomFromText};
+pub use geom_from_text::{
+    GeomCollFromText, GeomFromEWKT, GeomFromText, LineFromText, MLineFromText, MPointFromText,
+    MPolyFromText, PointFromText, PolygonFromText,
+};
 pub use geom_from_wkb::{GeomFromEWKB, GeomFromWKB};
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
@@ -29,4 +32,11 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(Box2DFromGeoHash.into());
     session_context.register_udf(GeomFromText::default().into());
     session_context.register_udf(GeomFromEWKT.into());
+    session_context.register_udf(PointFromText.into());
+    session_context.register_udf(LineFromText.into());
+    session_context.register_udf(PolygonFromText::default().into());
+    session_context.register_udf(MPointFromText::default().into());
+    session_context.register_udf(MLineFromText::default().into());
+    session_context.register_udf(MPolyFromText::default().into());
+    session_context.register_udf(GeomCollFromText.into());
 }

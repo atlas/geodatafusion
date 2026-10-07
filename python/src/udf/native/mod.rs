@@ -57,6 +57,13 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<io::PyGeomFromEWKB>()?;
     m.add_class::<io::PyGeomFromEWKT>()?;
     m.add_class::<io::PyGeomFromText>()?;
+    m.add_class::<io::PyPointFromText>()?;
+    m.add_class::<io::PyLineFromText>()?;
+    m.add_class::<io::PyPolygonFromText>()?;
+    m.add_class::<io::PyMPointFromText>()?;
+    m.add_class::<io::PyMLineFromText>()?;
+    m.add_class::<io::PyMPolyFromText>()?;
+    m.add_class::<io::PyGeomCollFromText>()?;
     m.add_class::<io::PyGeomFromWKB>()?;
     m.add_class::<io::PyGeoHash>()?;
     m.add_class::<io::PyPointFromGeoHash>()?;

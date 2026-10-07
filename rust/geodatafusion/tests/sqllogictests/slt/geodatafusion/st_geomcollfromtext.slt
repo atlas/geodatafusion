@@ -1,0 +1,56 @@
+# Edge cases for ST_GeomCollFromText, not covered by the PostGIS docs examples.
+
+# The right type, with and without SRID
+query T
+SELECT ST_GeomCollFromText('GEOMETRYCOLLECTION(POINT(1 2))')
+----
+GEOMETRYCOLLECTION(POINT(1 2))
+
+query T
+SELECT ST_GeomCollFromText('GEOMETRYCOLLECTION(POINT(1 2))', 4326)
+----
+SRID=4326;GEOMETRYCOLLECTION(POINT(1 2))
+
+query T
+SELECT ST_GeomCollFromText('SRID=3857;GEOMETRYCOLLECTION(POINT(1 2))')
+----
+SRID=3857;GEOMETRYCOLLECTION(POINT(1 2))
+
+query T
+SELECT ST_GeomCollFromText('GEOMETRYCOLLECTION EMPTY')
+----
+GEOMETRYCOLLECTION EMPTY
+
+# Another type is NULL
+query T
+SELECT ST_GeomCollFromText('MULTIPOINT((1 2))')
+----
+NULL
+
+query T
+SELECT ST_GeomCollFromText('GEOMETRYCOLLECTION EMPTY')
+----
+GEOMETRYCOLLECTION EMPTY
+
+# Invalid text is an error
+statement error
+SELECT ST_GeomCollFromText('nonsense')
+
+# NULL
+query T
+SELECT ST_GeomCollFromText(NULL)
+----
+NULL
+
+query T
+SELECT ST_GeomCollFromText('GEOMETRYCOLLECTION(POINT(1 2))', NULL)
+----
+NULL
+
+# A column, including NULL and another type
+query T rowsort
+SELECT ST_GeomCollFromText(t) FROM (VALUES ('GEOMETRYCOLLECTION(POINT(1 2))'), (NULL), ('MULTIPOINT((1 2))')) AS v(t)
+----
+GEOMETRYCOLLECTION(POINT(1 2))
+NULL
+NULL

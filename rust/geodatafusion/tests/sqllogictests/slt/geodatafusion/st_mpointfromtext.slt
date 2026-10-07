@@ -1,0 +1,56 @@
+# Edge cases for ST_MPointFromText, not covered by the PostGIS docs examples.
+
+# The right type, with and without SRID
+query T
+SELECT ST_MPointFromText('MULTIPOINT((1 2),(3 4))')
+----
+MULTIPOINT((1 2),(3 4))
+
+query T
+SELECT ST_MPointFromText('MULTIPOINT((1 2),(3 4))', 4326)
+----
+SRID=4326;MULTIPOINT((1 2),(3 4))
+
+query T
+SELECT ST_MPointFromText('SRID=3857;MULTIPOINT((1 2),(3 4))')
+----
+SRID=3857;MULTIPOINT((1 2),(3 4))
+
+query T
+SELECT ST_MPointFromText('MULTIPOINT EMPTY')
+----
+MULTIPOINT EMPTY
+
+# Another type is NULL
+query T
+SELECT ST_MPointFromText('POINT(1 2)')
+----
+NULL
+
+query T
+SELECT ST_MPointFromText('GEOMETRYCOLLECTION EMPTY')
+----
+NULL
+
+# Invalid text is an error
+statement error
+SELECT ST_MPointFromText('nonsense')
+
+# NULL
+query T
+SELECT ST_MPointFromText(NULL)
+----
+NULL
+
+query T
+SELECT ST_MPointFromText('MULTIPOINT((1 2),(3 4))', NULL)
+----
+NULL
+
+# A column, including NULL and another type
+query T rowsort
+SELECT ST_MPointFromText(t) FROM (VALUES ('MULTIPOINT((1 2),(3 4))'), (NULL), ('POINT(1 2)')) AS v(t)
+----
+MULTIPOINT((1 2),(3 4))
+NULL
+NULL

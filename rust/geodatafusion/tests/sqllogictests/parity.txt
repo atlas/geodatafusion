@@ -21,6 +21,7 @@ geodatafusion/st_distance 5/5
 geodatafusion/st_endpoint 16/16
 geodatafusion/st_extent 8/8
 geodatafusion/st_geohash 23/23
+geodatafusion/st_geomcollfromtext 10/10
 geodatafusion/st_geometrytype 18/18
 geodatafusion/st_geomfromewkb 12/12
 geodatafusion/st_geomfromewkt 13/13
@@ -29,10 +30,14 @@ geodatafusion/st_geomfromtext 59/59
 geodatafusion/st_geomfromwkb 16/16
 geodatafusion/st_intersects 5/5
 geodatafusion/st_isclosed 26/26
+geodatafusion/st_linefromtext 10/10
 geodatafusion/st_m 10/10
 geodatafusion/st_makebox2d 7/7
 geodatafusion/st_makepoint 7/7
 geodatafusion/st_makepointm 4/4
+geodatafusion/st_mlinefromtext 10/10
+geodatafusion/st_mpointfromtext 10/10
+geodatafusion/st_mpolyfromtext 10/10
 geodatafusion/st_ndims 11/11
 geodatafusion/st_npoints 15/15
 geodatafusion/st_numinteriorring 2/2
@@ -40,6 +45,8 @@ geodatafusion/st_numinteriorrings 11/11
 geodatafusion/st_numpoints 15/15
 geodatafusion/st_point 6/6
 geodatafusion/st_pointfromgeohash 13/13
+geodatafusion/st_pointfromtext 10/10
+geodatafusion/st_polygonfromtext 10/10
 geodatafusion/st_setsrid 11/11
 geodatafusion/st_simplify 3/3
 geodatafusion/st_srid 5/5
@@ -167,7 +174,7 @@ postgis_docs/st_frechetdistance 0/1
 postgis_docs/st_generatepoints 0/1
 postgis_docs/st_geogfromwkb 0/1
 postgis_docs/st_geohash 3/3
-postgis_docs/st_geomcollfromtext 0/1
+postgis_docs/st_geomcollfromtext 1/1
 postgis_docs/st_geometricmedian 0/1
 postgis_docs/st_geometry_above 0/1
 postgis_docs/st_geometry_below 0/1
@@ -217,7 +224,7 @@ postgis_docs/st_linecrossingdirection 0/3
 postgis_docs/st_lineextend 0/1
 postgis_docs/st_linefromencodedpolyline 0/2
 postgis_docs/st_linefrommultipoint 0/1
-postgis_docs/st_linefromtext 0/1
+postgis_docs/st_linefromtext 1/1
 postgis_docs/st_linefromwkb 0/1
 postgis_docs/st_lineinterpolatepoint 0/3
 postgis_docs/st_linelocatepoint 0/2
@@ -242,9 +249,9 @@ postgis_docs/st_minimumboundingcircle 0/1
 postgis_docs/st_minimumboundingradius 0/1
 postgis_docs/st_minimumclearance 0/1
 postgis_docs/st_minimumclearanceline 0/1
-postgis_docs/st_mlinefromtext 0/1
-postgis_docs/st_mpointfromtext 0/2
-postgis_docs/st_mpolyfromtext 0/2
+postgis_docs/st_mlinefromtext 1/1
+postgis_docs/st_mpointfromtext 2/2
+postgis_docs/st_mpolyfromtext 2/2
 postgis_docs/st_multi 0/1
 postgis_docs/st_ndims 1/1
 postgis_docs/st_node 0/2
@@ -262,7 +269,7 @@ postgis_docs/st_patchn 0/1
 postgis_docs/st_perimeter 0/4
 postgis_docs/st_point 3/6
 postgis_docs/st_pointfromgeohash 3/3
-postgis_docs/st_pointfromtext 0/2
+postgis_docs/st_pointfromtext 2/2
 postgis_docs/st_pointfromwkb 0/2
 postgis_docs/st_pointinsidecircle 0/1
 postgis_docs/st_pointm 3/3
@@ -271,7 +278,7 @@ postgis_docs/st_pointonsurface 3/5
 postgis_docs/st_pointz 3/3
 postgis_docs/st_pointzm 3/3
 postgis_docs/st_polygon 0/2
-postgis_docs/st_polygonfromtext 0/2
+postgis_docs/st_polygonfromtext 2/2
 postgis_docs/st_polygonize 0/1
 postgis_docs/st_project 0/1
 postgis_docs/st_quantizecoordinates 0/2
