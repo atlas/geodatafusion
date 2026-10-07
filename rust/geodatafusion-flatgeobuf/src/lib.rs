@@ -33,7 +33,7 @@ mod tests {
     use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor};
     use geoarrow_schema::{CoordType, Dimension, PointType};
     use geodatafusion::udf::geo::processing::Centroid;
-    use geodatafusion::udf::geo::relationships::Intersects;
+    use geodatafusion::udf::geos::relationships::Intersects;
     use geodatafusion::udf::native::bounding_box::Box2D;
     use geodatafusion::udf::native::io::GeomFromText;
     use wkt::wkt;

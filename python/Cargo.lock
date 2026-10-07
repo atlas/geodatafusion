@@ -1530,7 +1530,6 @@ dependencies = [
  "datafusion",
  "datafusion-doc",
  "datafusion-macros",
- "geo",
  "geo-traits",
  "geoarrow-array",
  "geoarrow-expr-geo",

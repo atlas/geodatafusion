@@ -44,3 +44,108 @@ FROM (VALUES ('POINT(5 5)'::geometry), ('POINT(20 20)'::geometry)) AS t(g)
 ----
 NULL
 NULL
+
+# Point, line and polygon pairs
+query T
+SELECT ST_Within('POINT(5 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+true
+
+query T
+SELECT ST_Within('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POINT(5 5)'::geometry)
+----
+false
+
+query T
+SELECT ST_Within('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POINT(10 5)'::geometry)
+----
+false
+
+query T
+SELECT ST_Within('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'LINESTRING(-5 5,15 5)'::geometry)
+----
+false
+
+query T
+SELECT ST_Within('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POLYGON((5 5,15 5,15 15,5 15,5 5))'::geometry)
+----
+false
+
+query T
+SELECT ST_Within('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POLYGON((10 0,20 0,20 10,10 10,10 0))'::geometry)
+----
+false
+
+query T
+SELECT ST_Within('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POLYGON((0 0,0 10,10 10,10 0,0 0))'::geometry)
+----
+true
+
+query T
+SELECT ST_Within('LINESTRING(0 0,10 10)'::geometry, 'LINESTRING(0 10,10 0)'::geometry)
+----
+false
+
+query T
+SELECT ST_Within('MULTIPOINT((1 1),(20 20))'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+false
+
+query T
+SELECT ST_Within('GEOMETRYCOLLECTION(POINT(5 5),LINESTRING(1 1,2 2))'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+true
+
+query T
+SELECT ST_Within('POINT Z (5 5 1)'::geometry, 'POLYGON M ((0 0 1,10 0 1,10 10 1,0 10 1,0 0 1))'::geometry)
+----
+true
+
+# EMPTY inputs
+query T
+SELECT ST_Within('POINT EMPTY'::geometry, 'POINT(1 1)'::geometry)
+----
+false
+
+query T
+SELECT ST_Within('POINT(1 1)'::geometry, 'POLYGON EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_Within('POINT EMPTY'::geometry, 'POINT EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_Within('GEOMETRYCOLLECTION(POINT EMPTY,POINT(1 1))'::geometry, 'POINT(1 1)'::geometry)
+----
+true
+
+query T
+SELECT ST_Within('POLYGON EMPTY'::geometry, 'GEOMETRYCOLLECTION(LINESTRING EMPTY,POINT(1 1))'::geometry)
+----
+false
+
+# SRID
+query T
+SELECT ST_Within('SRID=4326;POINT(1 1)'::geometry, 'SRID=4326;POINT(1 1)'::geometry)
+----
+true
+
+statement error
+SELECT ST_Within('SRID=4326;POINT(1 1)'::geometry, 'SRID=3857;POINT(1 1)'::geometry)
+
+# NULL
+query T
+SELECT ST_Within(NULL::geometry, 'POINT(1 1)'::geometry)
+----
+NULL
+
+# Columns on both sides
+query T rowsort
+SELECT ST_Within(a, b) FROM (VALUES ('POINT(5 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry), ('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POINT(5 5)'::geometry), ('POINT(1 1)'::geometry, NULL::geometry)) AS t(a, b)
+----
+NULL
+false
+true
