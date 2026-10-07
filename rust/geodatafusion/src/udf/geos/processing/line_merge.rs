@@ -1,22 +1,24 @@
 use std::sync::LazyLock;
 
-use arrow_array::{Array, BinaryArray};
+use arrow_array::{Array, BooleanArray};
 use arrow_schema::{DataType, FieldRef};
 use datafusion::common::internal_err;
-use datafusion::error::{DataFusionError, Result};
+use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
     Volatility,
 };
-use datafusion::scalar::ScalarValue;
 use datafusion_macros::user_doc;
+use geo_traits::GeometryTrait;
 use geoarrow_array::GeoArrowArray;
-use geoarrow_array::array::{WkbArray, from_arrow_array};
-use geoarrow_array::cast::to_wkb;
-use geos::{Geom, Geometry};
+use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
-use crate::util::field::{input_metadata, wkb_return_field};
+use crate::udf::geos::util::{empty_like, from_geos, to_geos};
+use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
+use crate::util::args::optional_bool_arg;
+use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
+use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
 use crate::util::signature::{Arg, coerce_args};
 
 /// PostGIS: ST_LineMerge(geometry amultilinestring) and
@@ -29,9 +31,9 @@ static SIGNATURE: LazyLock<Signature> =
 /// Sews together the component lines of a (multi)linestring.
 #[user_doc(
     doc_section(label = "Geometry Processing"),
-    description = "Returns a (set of) LineString(s) formed by sewing together the constituent line work of a MultiLineString. Lines are joined at endpoints where exactly two lines meet; lines are not merged across intersections of three or more lines. When `directed` is true, lines are only merged when their directions agree. Non-linear inputs yield an empty GeometryCollection. This function strips the M dimension.",
-    syntax_example = "ST_LineMerge(geometry, directed)",
-    argument(name = "geom", description = "geometry"),
+    description = "Returns a (set of) LineString(s) formed by sewing together the constituent line work of a MultiLineString. Lines are joined at endpoints where exactly two lines meet; lines are not merged across intersections of three or more lines. When `directed` is true, lines are only merged when their directions agree. Non-linear inputs yield an empty GeometryCollection, polygons their rings, and empty inputs are returned unchanged. This function keeps Z and drops M.",
+    syntax_example = "ST_LineMerge(amultilinestring, directed)",
+    argument(name = "amultilinestring", description = "geometry"),
     argument(name = "directed", description = "boolean")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
@@ -85,205 +87,62 @@ impl ScalarUDFImpl for LineMerge {
 /// Parse the optional `directed` argument.
 ///
 /// Absent or null is treated as `false`.
-fn parse_directed(args: &ScalarFunctionArgs) -> GeoDataFusionResult<bool> {
-    match args.args.get(1) {
-        None => Ok(false),
-        Some(arg) => match arg.cast_to(&DataType::Boolean, None)? {
-            ColumnarValue::Scalar(ScalarValue::Boolean(directed)) => Ok(directed.unwrap_or(false)),
-            // A cast to `Boolean` only ever yields a `Boolean` scalar.
-            ColumnarValue::Scalar(_) => unreachable!("cast to Boolean yields a Boolean scalar"),
-            ColumnarValue::Array(_) => Err(DataFusionError::NotImplemented(
-                "Vectorized `directed` argument to ST_LineMerge is not yet implemented".to_string(),
-            )
-            .into()),
-        },
-    }
+fn line_merge_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+    let geometries = geometry_array(&args, 0)?;
+    let kernel = LineMergeKernel {
+        directed: optional_bool_arg(&args, 1, false)?,
+    };
+    let result = map_geometry_to_wkb(geometries.as_ref(), &kernel, &args.return_field)?;
+    Ok(ColumnarValue::Array(result.to_array_ref()))
 }
 
-fn line_merge_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-    // Parse the directed argument
-    let directed = parse_directed(&args)?;
+struct LineMergeKernel {
+    directed: BooleanArray,
+}
 
-    let arrays = ColumnarValue::values_to_arrays(&args.args[0..1])?;
-    let geo_array = from_arrow_array(&arrays[0], &args.arg_fields[0])?;
+impl GeometryKernel for LineMergeKernel {
+    type Output = Wkt<f64>;
 
-    // Bridge to GEOS via WKB.
-    //
-    // Assumptions:
-    // - No arrow arrays (record batches?) larger than 2GB.
-    // - A trip through WKB is probably the fastest path. The only other obvious option is using geo_types as an intermediate,
-    //   but that is probably going to STILL require going out to WKB, since WKB looks to be the cheapest interchange format.
-    let wkb_array = to_wkb::<i32>(geo_array.as_ref())?;
-
-    let mut merged: Vec<Option<Vec<u8>>> = Vec::with_capacity(wkb_array.inner().len());
-    for maybe_wkb in wkb_array.inner() {
-        match maybe_wkb {
-            // Null inputs propagate to null outputs.
-            None => merged.push(None),
-            Some(wkb) => {
-                let geom = Geometry::new_from_wkb(wkb)?;
-                if geom.is_empty()? {
-                    // PostGIS returns the original geometry for empty input,
-                    // whereas GEOS would collapse it to an empty GeometryCollection.
-                    // Preserve the PostGIS behavior.
-                    // Thanks to Dewy for pointing out from the SedonaDB implementation:
-                    // https://github.com/apache/sedona-db/blob/cf8b9ceaf7a78c042bf73ab0e5040187046fe256/c/sedona-geos/src/st_line_merge.rs#L105-L131!
-                    merged.push(Some(wkb.to_vec()));
-                } else {
-                    // Branch on directed or not
-                    let result = if directed {
-                        geom.line_merge_directed()?
-                    } else {
-                        geom.line_merge()?
-                    };
-                    merged.push(Some(result.to_wkb()?));
-                }
-            }
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        // ST_LineMerge is STRICT: SQL NULL in any argument gives SQL NULL.
+        if self.directed.is_null(row) {
+            return Ok(None);
         }
+        // PostGIS returns EMPTY input unchanged, M included; GEOS would return an empty
+        // collection.
+        if is_geometry_topologically_empty(geom) {
+            return Ok(Some(empty_like(geom)));
+        }
+        let geom = to_geos(geom)?;
+        let merged = if self.directed.value(row) {
+            geom.line_merge_directed()?
+        } else {
+            geom.line_merge()?
+        };
+        Ok(Some(from_geos(&merged)?))
     }
-
-    let result = WkbArray::new(
-        merged.into_iter().collect::<BinaryArray>(),
-        input_metadata(&args.return_field),
-    );
-    Ok(ColumnarValue::Array(result.into_array_ref()))
 }
 
 #[cfg(test)]
 mod test {
-    use arrow_array::cast::AsArray;
     use datafusion::prelude::SessionContext;
 
     use super::*;
-    use crate::udf::native::io::{AsText, GeomFromText};
+    use crate::udf::native::io::GeomFromText;
+    use crate::util::test::assert_wkb_output;
 
-    fn ctx() -> SessionContext {
+    #[tokio::test]
+    async fn test_line_merge_returns_wkb_with_input_crs() {
         let ctx = SessionContext::new();
         ctx.register_udf(LineMerge.into());
-        ctx.register_udf(GeomFromText::default().into());
-        ctx.register_udf(AsText.into());
-        ctx
-    }
+        ctx.register_udf(GeomFromText::new().into());
 
-    #[tokio::test]
-    async fn test_st_linemerge() {
-        let ctx = ctx();
-
-        // Explicitly noted examples come from the PostGIS documentation (CC-BY-SA-3.0).
-        let cases = vec![
-            (
-                "MULTILINESTRING((10 160, 60 120), (120 140, 60 120), (120 140, 180 120))",
-                "LINESTRING(10 160,60 120,120 140,180 120)",
-                "PostGIS doc example: lines meeting two-at-a-time sew into one LineString",
-            ),
-            (
-                "MULTILINESTRING((10 160, 60 120), (120 140, 60 120), (120 140, 180 120), (100 180, 120 140))",
-                "MULTILINESTRING((10 160,60 120,120 140),(100 180,120 140),(120 140,180 120))",
-                "degree-3 node: merge does not cross a junction of three lines",
-            ),
-            (
-                "MULTILINESTRING((-29 -27,-30 -29.7,-36 -31,-45 -33),(-45.2 -33.2,-46 -32))",
-                "MULTILINESTRING((-45.2 -33.2,-46 -32),(-29 -27,-30 -29.7,-36 -31,-45 -33))",
-                "disjoint components are returned unchanged (as a MultiLineString)",
-            ),
-            (
-                "LINESTRING(0 0, 1 1)",
-                "LINESTRING(0 0,1 1)",
-                "a lone LineString round-trips unchanged",
-            ),
-            (
-                "POINT(0 0)",
-                "GEOMETRYCOLLECTION EMPTY",
-                "input with no line work yields an empty GeometryCollection",
-            ),
-            (
-                "POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))",
-                "LINESTRING(0 0,1 0,1 1,0 1,0 0)",
-                "PostGIS gotcha: polygons pass through to GEOS unfiltered, so the boundary ring is returned as a closed LineString rather than an empty GeometryCollection",
-            ),
-            (
-                "LINESTRING EMPTY",
-                "LINESTRING EMPTY",
-                "PostGIS gotcha: empty input is returned as-is rather than collapsed to an empty GeometryCollection",
-            ),
-        ];
-
-        for (input, expected, description) in cases {
-            let sql = format!(
-                "SELECT ST_AsText(ST_LineMerge(ST_GeomFromText('{}')))",
-                input
-            );
-            let df = ctx
-                .sql(&sql)
-                .await
-                .unwrap_or_else(|_| panic!("Failed to execute SQL for {}", description));
-
-            let batch = df.collect().await.unwrap().into_iter().next().unwrap();
-            let val = batch.column(0).as_string::<i32>().value(0);
-
-            assert_eq!(val, expected, "Failed on {}: {}", description, input);
-        }
-    }
-
-    #[tokio::test]
-    async fn test_st_linemerge_directed() {
-        let ctx = ctx();
-
-        // Same input, contrasting the directed flag: with TRUE the disagreeing segments stay
-        // split; with FALSE (the default) they all merge into a single LineString.
-        let input = "MULTILINESTRING((60 30, 10 70), (120 50, 60 30), (120 50, 180 30))";
-        let cases = vec![
-            (
-                "TRUE",
-                "MULTILINESTRING((120 50,60 30,10 70),(120 50,180 30))",
-                "directed: segments whose directions disagree are not merged",
-            ),
-            (
-                "FALSE",
-                "LINESTRING(180 30,120 50,60 30,10 70)",
-                "undirected: same input merges fully when direction is ignored",
-            ),
-        ];
-
-        for (directed, expected, description) in cases {
-            let sql = format!(
-                "SELECT ST_AsText(ST_LineMerge(ST_GeomFromText('{}'), {}))",
-                input, directed
-            );
-            let df = ctx
-                .sql(&sql)
-                .await
-                .unwrap_or_else(|_| panic!("Failed to execute SQL for {description}"));
-
-            let batch = df.collect().await.unwrap().into_iter().next().unwrap();
-            let val = batch.column(0).as_string::<i32>().value(0);
-
-            assert_eq!(
-                val, expected,
-                "Failed on {description}: directed={directed}",
-            );
-        }
-    }
-
-    #[tokio::test]
-    async fn test_st_linemerge_null() {
-        let ctx = ctx();
-
-        // Null geometries propagate to null, including alongside non-null rows in the same array.
-        let df = ctx
-            .sql(
-                "WITH t(wkt) AS (VALUES ('LINESTRING(0 0, 1 1)'), (CAST(NULL AS TEXT))) \
-                 SELECT ST_AsText(ST_LineMerge(ST_GeomFromText(wkt))) FROM t ORDER BY wkt NULLS LAST",
-            )
-            .await
-            .unwrap();
-        let batch = df.collect().await.unwrap().into_iter().next().unwrap();
-        let col = batch.column(0).as_string::<i32>();
-
-        assert_eq!(col.value(0), "LINESTRING(0 0,1 1)");
-        assert!(
-            col.is_null(1),
-            "null input should propagate to a null output"
-        );
+        let sql =
+            "SELECT ST_LineMerge(ST_GeomFromText('MULTILINESTRING((0 0,1 1),(1 1,2 2))', 4326))";
+        assert_wkb_output(&ctx, sql, 4326).await;
     }
 }

@@ -2,7 +2,7 @@ mod coord_dim;
 mod dump;
 mod geometry_type;
 mod is_closed;
-mod is_empty;
+pub(crate) mod is_empty;
 mod line_string;
 mod npoints;
 mod num_interior_rings;
