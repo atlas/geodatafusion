@@ -1,0 +1,75 @@
+# Edge cases for ST_ReducePrecision, not covered by the PostGIS docs examples.
+
+# Grid sizes
+query T
+SELECT ST_ReducePrecision('POINT(1.412 19.323)'::geometry, 0.1)
+----
+POINT(1.4 19.3)
+
+query T
+SELECT ST_ReducePrecision('POINT(1.412 19.323)'::geometry, 1)
+----
+POINT(1 19)
+
+query T
+SELECT ST_ReducePrecision('POINT(1.412 19.323)'::geometry, 10)
+----
+POINT(0 20)
+
+query T
+SELECT ST_ReducePrecision('POINT(1.412 19.323)'::geometry, 0)
+----
+POINT(1.412 19.323)
+
+query T
+SELECT ST_ReducePrecision('POLYGON((0 0,10 0,10 10,0 10,0 0),(5 5,5.04 5,5.04 5.04,5 5.04,5 5))'::geometry, 0.1)
+----
+POLYGON((0 10,10 10,10 0,0 0,0 10))
+
+query T
+SELECT ST_ReducePrecision('LINESTRING(0 0,0.04 0.04,1 1)'::geometry, 0.1)
+----
+LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_ReducePrecision('MULTIPOINT((1.01 1.01),(1.02 1.02))'::geometry, 0.1)
+----
+MULTIPOINT((1 1),(1 1))
+
+# Z kept, M dropped
+query T
+SELECT ST_ReducePrecision('POINT Z (1.412 19.323 3.33)'::geometry, 0.1)
+----
+POINT Z (1.4 19.3 3.33)
+
+query T
+SELECT ST_ReducePrecision('POINT M (1.412 19.323 3.33)'::geometry, 0.1)
+----
+POINT(1.4 19.3)
+
+# SRID
+query T
+SELECT ST_ReducePrecision('SRID=4326;POINT(1.412 19.323)'::geometry, 0.1)
+----
+SRID=4326;POINT(1.4 19.3)
+
+# EMPTY and NULL
+query T
+SELECT ST_ReducePrecision('POINT M EMPTY'::geometry, 0.1)
+----
+POINT M EMPTY
+
+query T
+SELECT ST_ReducePrecision('POLYGON EMPTY'::geometry, 1)
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_ReducePrecision(NULL::geometry, 0.1)
+----
+NULL
+
+query T
+SELECT ST_ReducePrecision('POINT(1 2)'::geometry, NULL)
+----
+NULL

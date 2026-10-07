@@ -1,0 +1,65 @@
+# Edge cases for ST_BuildArea, not covered by the PostGIS docs examples.
+
+# Rings and lines
+query T
+SELECT ST_BuildArea('MULTILINESTRING((0 0,10 0,10 10,0 10,0 0),(2 2,4 2,4 4,2 4,2 2))'::geometry)
+----
+POLYGON((0 0,0 10,10 10,10 0,0 0),(2 2,4 2,4 4,2 4,2 2))
+
+query T
+SELECT ST_BuildArea('GEOMETRYCOLLECTION(POLYGON((0 0,10 0,10 10,0 10,0 0)),POLYGON((2 2,4 2,4 4,2 4,2 2)))'::geometry)
+----
+POLYGON((0 0,0 10,10 10,10 0,0 0),(2 2,4 2,4 4,2 4,2 2))
+
+query T
+SELECT ST_BuildArea('LINESTRING(0 0,10 0,10 10,0 10,0 0)'::geometry)
+----
+POLYGON((0 0,0 10,10 10,10 0,0 0))
+
+query T
+SELECT ST_BuildArea('LINESTRING(0 0,10 0,10 10)'::geometry)
+----
+NULL
+
+query T
+SELECT ST_BuildArea('POINT(1 2)'::geometry)
+----
+NULL
+
+query T
+SELECT ST_BuildArea('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+POLYGON((0 0,0 10,10 10,10 0,0 0))
+
+# Z kept, M dropped
+query T
+SELECT ST_BuildArea('LINESTRING Z (0 0 1,10 0 1,10 10 1,0 10 1,0 0 1)'::geometry)
+----
+POLYGON Z ((0 0 1,0 10 1,10 10 1,10 0 1,0 0 1))
+
+query T
+SELECT ST_BuildArea('LINESTRING M (0 0 1,10 0 1,10 10 1,0 10 1,0 0 1)'::geometry)
+----
+POLYGON((0 0,0 10,10 10,10 0,0 0))
+
+# SRID
+query T
+SELECT ST_BuildArea('SRID=4326;LINESTRING(0 0,10 0,10 10,0 10,0 0)'::geometry)
+----
+SRID=4326;POLYGON((0 0,0 10,10 10,10 0,0 0))
+
+# EMPTY and NULL
+query T
+SELECT ST_BuildArea('POLYGON EMPTY'::geometry)
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_BuildArea('LINESTRING M EMPTY'::geometry)
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_BuildArea(NULL::geometry)
+----
+NULL

@@ -1,0 +1,60 @@
+# Edge cases for ST_MinimumClearance, not covered by the PostGIS docs examples.
+
+# Every type
+query R
+SELECT ST_MinimumClearance('POLYGON((0 0,1 0,1 1,0.5 3.2e-4,0 0))'::geometry)
+----
+0.00032
+
+query R
+SELECT ST_MinimumClearance('LINESTRING(0 0,1 0,1 1,0.5 0.1)'::geometry)
+----
+0.1
+
+query R
+SELECT ST_MinimumClearance('MULTIPOINT((0 0),(1 0),(5 5))'::geometry)
+----
+1
+
+query R
+SELECT ST_MinimumClearance('POINT(1 2)'::geometry)
+----
+Infinity
+
+query R
+SELECT ST_MinimumClearance('GEOMETRYCOLLECTION(POINT(0 0),POINT(3 4))'::geometry)
+----
+5
+
+# Z and M
+query R
+SELECT ST_MinimumClearance('LINESTRING Z (0 0 1,1 0 2,1 1 3,0.5 0.1 4)'::geometry)
+----
+0.1
+
+query R
+SELECT ST_MinimumClearance('LINESTRING M (0 0 1,1 0 2,1 1 3,0.5 0.1 4)'::geometry)
+----
+0.1
+
+# SRID
+query R
+SELECT ST_MinimumClearance('SRID=4326;MULTIPOINT((0 0),(1 0),(5 5))'::geometry)
+----
+1
+
+# EMPTY and NULL
+query R
+SELECT ST_MinimumClearance('POINT EMPTY'::geometry)
+----
+Infinity
+
+query R
+SELECT ST_MinimumClearance('POLYGON M EMPTY'::geometry)
+----
+Infinity
+
+query R
+SELECT ST_MinimumClearance(NULL::geometry)
+----
+NULL

@@ -1,0 +1,65 @@
+# Edge cases for ST_Normalize, not covered by the PostGIS docs examples.
+
+# Every type
+query T
+SELECT ST_Normalize('POINT(1 2)'::geometry)
+----
+POINT(1 2)
+
+query T
+SELECT ST_Normalize('LINESTRING(5 5,0 0)'::geometry)
+----
+LINESTRING(0 0,5 5)
+
+query T
+SELECT ST_Normalize('POLYGON((0 0,0 10,10 10,10 0,0 0),(2 2,4 2,4 4,2 4,2 2))'::geometry)
+----
+POLYGON((0 0,0 10,10 10,10 0,0 0),(2 2,4 2,4 4,2 4,2 2))
+
+query T
+SELECT ST_Normalize('MULTIPOINT((3 3),(1 1),(2 2))'::geometry)
+----
+MULTIPOINT((3 3),(2 2),(1 1))
+
+query T
+SELECT ST_Normalize('MULTILINESTRING((0 0,1 1),(5 5,2 2))'::geometry)
+----
+MULTILINESTRING((2 2,5 5),(0 0,1 1))
+
+query T
+SELECT ST_Normalize('GEOMETRYCOLLECTION(POINT(2 3),MULTILINESTRING((0 0,1 1),(2 2,3 3)),POLYGON((0 10,0 20,10 20,10 10,0 10)))'::geometry)
+----
+GEOMETRYCOLLECTION(POLYGON((0 10,0 20,10 20,10 10,0 10)),MULTILINESTRING((2 2,3 3),(0 0,1 1)),POINT(2 3))
+
+# Z kept, M dropped
+query T
+SELECT ST_Normalize('LINESTRING Z (5 5 1,0 0 2)'::geometry)
+----
+LINESTRING Z (0 0 2,5 5 1)
+
+query T
+SELECT ST_Normalize('LINESTRING M (5 5 1,0 0 2)'::geometry)
+----
+LINESTRING(0 0,5 5)
+
+# SRID
+query T
+SELECT ST_Normalize('SRID=4326;LINESTRING(5 5,0 0)'::geometry)
+----
+SRID=4326;LINESTRING(0 0,5 5)
+
+# EMPTY and NULL
+query T
+SELECT ST_Normalize('POINT M EMPTY'::geometry)
+----
+POINT EMPTY
+
+query T
+SELECT ST_Normalize('POLYGON EMPTY'::geometry)
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_Normalize(NULL::geometry)
+----
+NULL

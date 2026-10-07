@@ -21,10 +21,19 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     crate::udf::geo::validation::register(session_context);
 
     #[cfg(feature = "geos-3_11")]
+    crate::udf::geos::editors::register(session_context);
+
+    #[cfg(feature = "geos-3_11")]
+    crate::udf::geos::measurement::register(session_context);
+
+    #[cfg(feature = "geos-3_11")]
     crate::udf::geos::overlay::register(session_context);
 
     #[cfg(feature = "geos-3_11")]
     crate::udf::geos::processing::register(session_context);
+
+    #[cfg(feature = "geos-3_11")]
+    crate::udf::geos::validation::register(session_context);
 
     crate::udf::native::accessors::register(session_context);
 
