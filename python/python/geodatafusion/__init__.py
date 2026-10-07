@@ -22,10 +22,6 @@ def register_all_geo(ctx: SessionContext):
     ctx.register_udf(udf(geo.Length()))
 
     # processing
-    ctx.register_udf(udf(geo.Centroid()))
-    ctx.register_udf(udf(geo.ConvexHull()))
-    ctx.register_udf(udf(geo.OrientedEnvelope()))
-    ctx.register_udf(udf(geo.PointOnSurface()))
     ctx.register_udf(udf(geo.Simplify()))
     ctx.register_udf(udf(geo.SimplifyPreserveTopology()))
     ctx.register_udf(udf(geo.SimplifyVW()))

@@ -25,7 +25,8 @@ serde_json = { workspace = true }
 approx = { workspace = true }
 geo-traits = { workspace = true }
 geoarrow-array = { workspace = true, features = ["test-data"] }
-geodatafusion = { workspace = true }
+# The tests use ST_Centroid, which is GEOS-backed.
+geodatafusion = { workspace = true, features = ["geos-3_11"] }
 object_store = { workspace = true, features = ["http"] }
 tokio = { workspace = true, features = ["macros", "fs", "rt-multi-thread"] }
 

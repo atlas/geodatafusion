@@ -16,7 +16,7 @@ mod tests {
 
     use datafusion::execution::SessionStateBuilder;
     use datafusion::prelude::SessionContext;
-    use geodatafusion::udf::geo::processing::Centroid;
+    use geodatafusion::udf::geos::processing::Centroid;
 
     use crate::file_format::GeoParquetFormatFactory;
 

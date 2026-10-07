@@ -158,12 +158,7 @@ impl Converter {
 /// Many GEOS-backed PostGIS functions return EMPTY input unchanged, where GEOS would return
 /// another type or drop M.
 pub(crate) fn empty_like(geom: &impl GeometryTrait<T = f64>) -> Wkt<f64> {
-    let dim = match geom.dim() {
-        Dimensions::Xyz => Dimension::XYZ,
-        Dimensions::Xym => Dimension::XYM,
-        Dimensions::Xyzm => Dimension::XYZM,
-        _ => Dimension::XY,
-    };
+    let dim = dimension(geom);
     match geom.as_type() {
         GeometryType::Point(_) => Wkt::Point(Point::empty(dim)),
         GeometryType::LineString(_) | GeometryType::Line(_) => {
@@ -184,6 +179,21 @@ pub(crate) fn empty_like(geom: &impl GeometryTrait<T = f64>) -> Wkt<f64> {
 /// Whether a geometry has Z.
 pub(crate) fn has_z(geom: &impl GeometryTrait<T = f64>) -> bool {
     matches!(geom.dim(), Dimensions::Xyz | Dimensions::Xyzm)
+}
+
+/// An EMPTY point with the dimension of `geom`, M included, which several GEOS-backed PostGIS
+/// functions return for EMPTY input.
+pub(crate) fn empty_point_like(geom: &impl GeometryTrait<T = f64>) -> Wkt<f64> {
+    Wkt::Point(Point::empty(dimension(geom)))
+}
+
+fn dimension(geom: &impl GeometryTrait<T = f64>) -> Dimension {
+    match geom.dim() {
+        Dimensions::Xyz => Dimension::XYZ,
+        Dimensions::Xym => Dimension::XYM,
+        Dimensions::Xyzm => Dimension::XYZM,
+        _ => Dimension::XY,
+    }
 }
 
 /// Converts a GEOS geometry to an owned geo-traits geometry.

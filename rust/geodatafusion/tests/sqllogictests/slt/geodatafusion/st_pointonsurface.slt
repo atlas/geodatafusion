@@ -1,0 +1,98 @@
+# Edge cases for ST_PointOnSurface, not covered by the PostGIS docs examples.
+
+# Every type
+query T
+SELECT ST_PointOnSurface('POINT(1 2)'::geometry)
+----
+POINT(1 2)
+
+query T
+SELECT ST_PointOnSurface('MULTIPOINT((2 7),(4 2))'::geometry)
+----
+POINT(2 7)
+
+query T
+SELECT ST_PointOnSurface('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry)
+----
+POINT(5 3)
+
+query T
+SELECT ST_PointOnSurface('LINESTRING(3 7,10 20,5 10)'::geometry)
+----
+POINT(10 20)
+
+query T
+SELECT ST_PointOnSurface('POLYGON((0 0,10 0,10 10,0 10,0 0),(2 2,4 2,4 4,2 4,2 2))'::geometry)
+----
+POINT(5 7)
+
+query T
+SELECT ST_PointOnSurface('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5)))'::geometry)
+----
+POINT(0.75 0.5)
+
+query T
+SELECT ST_PointOnSurface('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(2 2,5 2))'::geometry)
+----
+POINT(2 2)
+
+query T
+SELECT ST_PointOnSurface('LINESTRING(0 0,1 1,2 2)'::geometry)
+----
+POINT(1 1)
+
+# Z and M
+query T
+SELECT ST_PointOnSurface('MULTIPOINT Z ((0 0 1),(10 0 2),(5 8 3))'::geometry)
+----
+POINT(5 8)
+
+query T
+SELECT ST_PointOnSurface('MULTIPOINT M ((0 0 1),(10 0 2),(5 8 3))'::geometry)
+----
+POINT(5 8)
+
+query T
+SELECT ST_PointOnSurface('LINESTRING ZM (0 0 1 5,10 0 2 6)'::geometry)
+----
+POINT Z (0 0 1)
+
+# SRID
+query T
+SELECT ST_PointOnSurface('SRID=4326;MULTIPOINT((0 0),(10 0),(5 8))'::geometry)
+----
+SRID=4326;POINT(5 8)
+
+# EMPTY and NULL
+query T
+SELECT ST_PointOnSurface('POINT EMPTY'::geometry)
+----
+POINT EMPTY
+
+query T
+SELECT ST_PointOnSurface('POLYGON M EMPTY'::geometry)
+----
+POINT M EMPTY
+
+query T
+SELECT ST_PointOnSurface('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+POINT EMPTY
+
+query T
+SELECT ST_PointOnSurface('MULTIPOINT(EMPTY,(1 1))'::geometry)
+----
+POINT(1 1)
+
+query T
+SELECT ST_PointOnSurface(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_PointOnSurface(g) FROM (VALUES ('MULTIPOINT((0 0),(10 0),(5 8))'::geometry), (NULL::geometry), ('POINT(1 2)'::geometry)) AS t(g)
+----
+NULL
+POINT(1 2)
+POINT(5 8)
