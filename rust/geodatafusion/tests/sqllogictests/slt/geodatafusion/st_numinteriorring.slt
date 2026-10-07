@@ -1,0 +1,12 @@
+# ST_NumInteriorRing is an alias of ST_NumInteriorRings; the edge cases are in
+# st_numinteriorrings.slt.
+
+query I
+SELECT ST_NumInteriorRing('POLYGON((0 0,10 0,10 10,0 10,0 0),(1 1,2 1,2 2,1 1),(5 5,6 5,6 6,5 5))'::geometry)
+----
+2
+
+query I
+SELECT ST_NumInteriorRing('MULTIPOLYGON(((0 0,10 0,10 10,0 0),(1 1,2 1,2 2,1 1)))'::geometry)
+----
+NULL
