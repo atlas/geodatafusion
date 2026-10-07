@@ -124,7 +124,7 @@ Fix these in the owning group's first batch, each with a hand-written `.slt` reg
 | G4 | `ST_AsText`/`ST_AsBinary` output carries a GeoArrow tag, which breaks pandas/pyarrow and leaks through `UNION ALL` and `CAST` into unreadable Parquet (E4). |
 | G5 | `ST_Extent` fails with partial aggregation (no `state_fields`) and returns an infinite box for no rows. |
 | G6 | The GeoParquet reader turns a missing `crs` into no CRS; GeoParquet defines it as OGC:CRS84 (E4). |
-| Upstream | DataFusion 54/55: `COALESCE(<Binary>, NULL)` fails to plan ("Expect to get struct but got Binary"), which hits WKB geometry columns; CASE, COALESCE, make_array and array_agg drop extension metadata. geoarrow-rs: one-member GEOMETRYCOLLECTION collapses (an 8-line fix is in `experiments/e7-union-outputs/`), mixed-dimension and `MULTIPOLYGON(EMPTY, ...)` panics (still in 0.9.0). GEOS 3.14/3.15: `ST_Relate('POLYGON EMPTY', 'GEOMETRYCOLLECTION(LINESTRING EMPTY, POINT(1 1))')` segfaults. |
+| Upstream | DataFusion 54/55: `COALESCE(<Binary>, NULL)` fails to plan ("Expect to get struct but got Binary"), which hits WKB geometry columns; CASE, COALESCE, make_array and array_agg drop extension metadata. geoarrow-rs: one-member GEOMETRYCOLLECTION collapses (an 8-line fix is in `experiments/e7-union-outputs/`), mixed-dimension and `MULTIPOLYGON(EMPTY, ...)` panics (still in 0.9.0). GEOS 3.14/3.15: `ST_Relate('POLYGON EMPTY', 'GEOMETRYCOLLECTION(LINESTRING EMPTY, POINT(1 1))')` segfaults. PostGIS 3.6.4: `ST_3DExtent` of 2D points under `GROUP BY` returns an uninitialised Z max (6.95e-310). |
 
 ## Phasing
 
@@ -133,8 +133,7 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
 1. **Foundations:** G6 batch 1 (`src/util/` including the kernel drivers and WKB output, errors,
    `#[user_doc]`, SRID helpers, ST_SRID, ST_SetSRID). In parallel: the predicate
    argument-order bug and the panics, which give wrong answers or crash today.
-   *Status:* done, except ST_Extent's partial aggregation, and GeoParquet's PROJJSON
-   expansion and missing-`crs` default. The two remaining panics (ST_EndPoint on
+   *Status:* done, except GeoParquet's PROJJSON expansion and missing-`crs` default. The two remaining panics (ST_EndPoint on
    `LINESTRING EMPTY`, ST_MakePointM with interleaved coordinates) went with phase 3's output
    migration. `util::args` readers beyond `scalar_srid`, and `util::ordinates`/`util::owned`,
    are added with their first user.
@@ -154,9 +153,10 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    first. Parity 265/773 -> 361/865. G1 batch 0 done: every existing G1 function runs on the
    kernel drivers with PostGIS's NULL, EMPTY and dimension rules, checked by hand-written slt
    files recorded from PostGIS (hand-written records 281/287 -> 547/553; the doc examples for
-   these functions fail on curves, surfaces or missing functions). Left: ST_Extent's
-   `state_fields`, the GeoHash rewrite and move, EWKB, the GEOS bridge and backend moves, the
-   G2 kernels (D6), and removing the implicit `geos` feature.
+   these functions fail on curves, surfaces or missing functions). G5 0a done: ST_Extent
+   declares its state and returns NULL for no geometries, and ST_3DExtent is added. Left: the
+   GeoHash rewrite and move, EWKB, the GEOS bridge and backend moves, the G2 kernels (D6), and
+   removing the implicit `geos` feature.
 4. **New functions:** group batches in parallel. Pull forward the most-used cheap ones:
    ST_DWithin, ST_Multi, ST_AsGeoJSON/ST_GeomFromGeoJSON. Then ST_Transform (G3, PROJ),
    ST_Buffer/ST_Union/ST_Intersection (G3), ST_Collect/ST_MakeLine (G1, G5). G6 batches 2–4
