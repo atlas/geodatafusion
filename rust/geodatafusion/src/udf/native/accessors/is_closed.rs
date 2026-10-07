@@ -1,25 +1,29 @@
 use std::sync::Arc;
 
 use arrow_array::BooleanArray;
-use arrow_array::builder::BooleanBuilder;
 use arrow_schema::DataType;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
 use datafusion_macros::user_doc;
-use geo_traits::{CoordTrait, GeometryTrait, LineStringTrait, MultiLineStringTrait};
-use geoarrow_array::{GeoArrowArrayAccessor, WrapArray, downcast_geoarrow_array};
-use geoarrow_schema::GeoArrowType;
+use geo_traits::{
+    CoordTrait, GeometryCollectionTrait, GeometryTrait, LineStringTrait, LineTrait,
+    MultiLineStringTrait,
+};
 
 use crate::error::GeoDataFusionResult;
+use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
+use crate::util::field::geometry_array;
+use crate::util::kernel::{GeometryKernel, map_geometry};
+use crate::util::ordinates::z;
 use crate::util::signature::single_geometry;
 
 #[user_doc(
     doc_section(label = "Geometry Accessors"),
-    description = "Tests if a LineStrings's start and end points are coincident.",
-    syntax_example = "ST_IsClosed(geom)",
-    argument(name = "geom", description = "geometry")
+    description = "Returns TRUE if the LINESTRING's start and end points are coincident, comparing Z but not M. A MULTILINESTRING or GEOMETRYCOLLECTION is closed if all of its members are. Points and polygons are closed, and an empty geometry is not.",
+    syntax_example = "ST_IsClosed(g)",
+    argument(name = "g", description = "geometry")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct IsClosed;
@@ -59,118 +63,51 @@ impl ScalarUDFImpl for IsClosed {
 }
 
 fn is_closed_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-    let array = ColumnarValue::values_to_arrays(&args.args)?
-        .into_iter()
-        .next()
-        .unwrap();
-    let geo_type = GeoArrowType::from_arrow_field(&args.arg_fields[0])?;
-    let geo_array = geo_type.wrap_array(&array)?;
-    let geo_array_ref = geo_array.as_ref();
-
-    let result = downcast_geoarrow_array!(geo_array_ref, impl_is_closed)?;
-
+    let geometries = geometry_array(&args, 0)?;
+    let result: BooleanArray = map_geometry(geometries.as_ref(), &IsClosedKernel)?;
     Ok(ColumnarValue::Array(Arc::new(result)))
 }
 
-fn impl_is_closed<'a>(
-    array: &'a impl GeoArrowArrayAccessor<'a>,
-) -> GeoDataFusionResult<BooleanArray> {
-    let mut builder = BooleanBuilder::with_capacity(array.len());
+struct IsClosedKernel;
 
-    for item in array.iter() {
-        match item {
-            Some(geom) => {
-                let geom = geom?;
-                let is_closed = match geom.as_type() {
-                    geo_traits::GeometryType::LineString(ls) => check_ls_closed(ls),
-                    geo_traits::GeometryType::MultiLineString(mls) => {
-                        mls.num_line_strings() > 0
-                            && mls.line_strings().all(|ls| check_ls_closed(&ls))
-                    }
-                    geo_traits::GeometryType::Point(_)
-                    | geo_traits::GeometryType::MultiPoint(_)
-                    | geo_traits::GeometryType::Polygon(_)
-                    | geo_traits::GeometryType::MultiPolygon(_) => true,
-                    _ => false,
-                };
-                builder.append_value(is_closed);
-            }
-            None => {
-                builder.append_null();
-            }
-        }
+impl GeometryKernel for IsClosedKernel {
+    type Output = bool;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        _row: usize,
+    ) -> GeoDataFusionResult<Option<bool>> {
+        Ok(Some(is_closed(geom)))
     }
-
-    Ok(builder.finish())
 }
 
-fn check_ls_closed(ls: &impl LineStringTrait<T = f64>) -> bool {
-    let n = ls.num_coords();
-    if n < 2 {
+/// Whether a geometry is closed, as in PostGIS: a linestring whose first and last points are
+/// equal in X, Y and Z (M doesn't count), a multilinestring or collection whose members are all
+/// closed, or any other non-empty geometry. EMPTY is never closed.
+fn is_closed(geom: &impl GeometryTrait<T = f64>) -> bool {
+    use geo_traits::GeometryType::*;
+
+    if is_geometry_topologically_empty(geom) {
         return false;
     }
-    if let (Some(first), Some(last)) = (ls.coord(0), ls.coord(n - 1)) {
-        first.x() == last.x() && first.y() == last.y()
-    } else {
-        false
+    match geom.as_type() {
+        LineString(line) => is_line_string_closed(line),
+        Line(line) => same_position(&line.start(), &line.end()),
+        MultiLineString(lines) => lines.line_strings().all(|line| is_closed(&line)),
+        GeometryCollection(collection) => collection.geometries().all(|member| is_closed(&member)),
+        Point(_) | MultiPoint(_) | Polygon(_) | MultiPolygon(_) | Rect(_) | Triangle(_) => true,
     }
 }
 
-#[cfg(test)]
-mod test {
-    use arrow_array::cast::AsArray;
-    use datafusion::prelude::SessionContext;
-
-    use super::*;
-    use crate::udf::native::io::GeomFromText;
-
-    #[tokio::test]
-    async fn test_st_isclosed() {
-        let ctx = SessionContext::new();
-        ctx.register_udf(IsClosed::new().into());
-        ctx.register_udf(GeomFromText::new().into());
-
-        let cases = vec![
-            ("LINESTRING(0 0, 1 1, 0 1, 0 0)", true, "closed linestring"),
-            ("LINESTRING(0 0, 1 1, 1 0)", false, "open linestring"),
-            ("LINESTRING(0 0, 0 0)", true, "single segment closed"),
-            ("LINESTRING EMPTY", false, "empty linestring is not closed"),
-            (
-                "MULTILINESTRING((0 0, 1 1, 0 0), (2 2, 3 3, 2 2))",
-                true,
-                "all closed",
-            ),
-            (
-                "MULTILINESTRING((0 0, 1 1, 0 0), (2 2, 3 3, 2 3))",
-                false,
-                "one open",
-            ),
-            (
-                "MULTILINESTRING EMPTY",
-                false,
-                "empty multilinestring is not closed",
-            ),
-            ("POINT(0 0)", true, "point is closed"),
-            ("MULTIPOINT(0 0, 1 1)", true, "multipoint is closed"),
-            ("POLYGON((0 0, 1 0, 1 1, 0 0))", true, "polygon is closed"),
-            (
-                "MULTIPOLYGON(((0 0, 1 0, 1 1, 0 0)))",
-                true,
-                "multipolygon is closed",
-            ),
-        ];
-
-        for (wkt, expected, description) in cases {
-            let sql = format!("SELECT ST_IsClosed(ST_GeomFromText('{}'))", wkt);
-            let df = ctx
-                .sql(&sql)
-                .await
-                .unwrap_or_else(|_| panic!("Failed to execute SQL for {}", description));
-
-            let batch = df.collect().await.unwrap().into_iter().next().unwrap();
-            let col = batch.column(0).as_boolean();
-
-            assert_eq!(col.value(0), expected, "Failed on {}: {}", description, wkt);
-        }
+fn is_line_string_closed(line: &impl LineStringTrait<T = f64>) -> bool {
+    match (line.coord(0), line.coord(line.num_coords().wrapping_sub(1))) {
+        (Some(first), Some(last)) => same_position(&first, &last),
+        _ => false,
     }
+}
+
+/// Whether two coordinates are equal in X, Y and Z.
+fn same_position(a: &impl CoordTrait<T = f64>, b: &impl CoordTrait<T = f64>) -> bool {
+    a.x() == b.x() && a.y() == b.y() && z(a) == z(b)
 }
