@@ -1,0 +1,97 @@
+# Edge cases for ST_DWithin, not covered by the PostGIS docs examples.
+
+# At, inside and beyond the distance
+query T
+SELECT ST_DWithin('POINT(0 0)'::geometry, 'POINT(3 4)'::geometry, 5)
+----
+true
+
+query T
+SELECT ST_DWithin('POINT(0 0)'::geometry, 'POINT(3 4)'::geometry, 4.9999)
+----
+false
+
+query T
+SELECT ST_DWithin('POINT(0 0)'::geometry, 'POINT(0 0)'::geometry, 0)
+----
+true
+
+query T
+SELECT ST_DWithin('POINT(5 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 0)
+----
+true
+
+query T
+SELECT ST_DWithin('POINT(15 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 5)
+----
+true
+
+query T
+SELECT ST_DWithin('LINESTRING(0 0,10 10)'::geometry, 'LINESTRING(0 10,10 0)'::geometry, 0)
+----
+true
+
+query T
+SELECT ST_DWithin('POINT(0 0)'::geometry, 'POINT(3 4)'::geometry, 1e300)
+----
+true
+
+# Z and M are ignored
+query T
+SELECT ST_DWithin('POINT Z (0 0 0)'::geometry, 'POINT Z (3 4 100)'::geometry, 5)
+----
+true
+
+query T
+SELECT ST_DWithin('POINT M (0 0 0)'::geometry, 'POINT M (3 4 100)'::geometry, 5)
+----
+true
+
+# EMPTY is within no distance
+query T
+SELECT ST_DWithin('POINT EMPTY'::geometry, 'POINT(0 0)'::geometry, 1)
+----
+false
+
+query T
+SELECT ST_DWithin('POINT(0 0)'::geometry, 'GEOMETRYCOLLECTION EMPTY'::geometry, 1e300)
+----
+false
+
+# SRID
+query T
+SELECT ST_DWithin('SRID=4326;POINT(0 0)'::geometry, 'SRID=4326;POINT(1 0)'::geometry, 1)
+----
+true
+
+# NULL
+query T
+SELECT ST_DWithin(NULL::geometry, 'POINT(0 0)'::geometry, 1)
+----
+NULL
+
+query T
+SELECT ST_DWithin('POINT(0 0)'::geometry, NULL::geometry, 1)
+----
+NULL
+
+query T
+SELECT ST_DWithin('POINT(0 0)'::geometry, 'POINT(0 0)'::geometry, NULL::float8)
+----
+NULL
+
+# A negative distance
+statement error
+SELECT ST_DWithin('POINT(0 0)'::geometry, 'POINT(3 4)'::geometry, -1)
+
+# Mixed SRIDs
+statement error
+SELECT ST_DWithin('SRID=4326;POINT(0 0)'::geometry, 'SRID=3857;POINT(1 0)'::geometry, 1)
+
+# A column, including NULL
+query T rowsort
+SELECT ST_DWithin(g, 'POINT(0 0)'::geometry, 5) FROM (VALUES ('POINT(3 4)'::geometry), (NULL::geometry), ('POINT(30 40)'::geometry)) AS t(g)
+----
+NULL
+false
+true

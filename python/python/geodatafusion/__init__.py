@@ -17,7 +17,6 @@ def register_all_geo(ctx: SessionContext):
     from . import geo
 
     # measurement
-    ctx.register_udf(udf(geo.Distance()))
     ctx.register_udf(udf(geo.Length()))
 
     # processing
@@ -103,8 +102,10 @@ def register_all_native(ctx: SessionContext):
 
     # measurement
     ctx.register_udf(udf(native.Area()))
+    ctx.register_udf(udf(native.Distance()))
 
     # relationships
+    ctx.register_udf(udf(native.DWithin()))
     ctx.register_udf(udf(native.RelateMatch()))
 
     # srs
