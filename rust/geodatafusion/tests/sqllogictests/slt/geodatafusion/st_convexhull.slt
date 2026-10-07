@@ -1,0 +1,98 @@
+# Edge cases for ST_ConvexHull, not covered by the PostGIS docs examples.
+
+# Every type
+query T
+SELECT ST_ConvexHull('POINT(1 2)'::geometry)
+----
+POINT(1 2)
+
+query T
+SELECT ST_ConvexHull('MULTIPOINT((2 7),(4 2))'::geometry)
+----
+LINESTRING(2 7,4 2)
+
+query T
+SELECT ST_ConvexHull('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry)
+----
+POLYGON((0 0,5 8,10 0,0 0))
+
+query T
+SELECT ST_ConvexHull('LINESTRING(3 7,10 20,5 10)'::geometry)
+----
+POLYGON((3 7,10 20,5 10,3 7))
+
+query T
+SELECT ST_ConvexHull('POLYGON((0 0,10 0,10 10,0 10,0 0),(2 2,4 2,4 4,2 4,2 2))'::geometry)
+----
+POLYGON((0 0,0 10,10 10,10 0,0 0))
+
+query T
+SELECT ST_ConvexHull('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5)))'::geometry)
+----
+POLYGON((0 0,6 6,6 5,1 0,0 0))
+
+query T
+SELECT ST_ConvexHull('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(2 2,5 2))'::geometry)
+----
+POLYGON((1 1,2 2,5 2,1 1))
+
+query T
+SELECT ST_ConvexHull('LINESTRING(0 0,1 1,2 2)'::geometry)
+----
+LINESTRING(0 0,2 2)
+
+# Z and M
+query T
+SELECT ST_ConvexHull('MULTIPOINT Z ((0 0 1),(10 0 2),(5 8 3))'::geometry)
+----
+POLYGON Z ((0 0 1,5 8 3,10 0 2,0 0 1))
+
+query T
+SELECT ST_ConvexHull('MULTIPOINT M ((0 0 1),(10 0 2),(5 8 3))'::geometry)
+----
+POLYGON((0 0,5 8,10 0,0 0))
+
+query T
+SELECT ST_ConvexHull('LINESTRING ZM (0 0 1 5,10 0 2 6)'::geometry)
+----
+LINESTRING Z (0 0 1,10 0 2)
+
+# SRID
+query T
+SELECT ST_ConvexHull('SRID=4326;MULTIPOINT((0 0),(10 0),(5 8))'::geometry)
+----
+SRID=4326;POLYGON((0 0,5 8,10 0,0 0))
+
+# EMPTY and NULL
+query T
+SELECT ST_ConvexHull('POINT EMPTY'::geometry)
+----
+POINT EMPTY
+
+query T
+SELECT ST_ConvexHull('POLYGON M EMPTY'::geometry)
+----
+POLYGON M EMPTY
+
+query T
+SELECT ST_ConvexHull('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_ConvexHull('MULTIPOINT(EMPTY,(1 1))'::geometry)
+----
+POINT(1 1)
+
+query T
+SELECT ST_ConvexHull(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_ConvexHull(g) FROM (VALUES ('MULTIPOINT((0 0),(10 0),(5 8))'::geometry), (NULL::geometry), ('POINT(1 2)'::geometry)) AS t(g)
+----
+NULL
+POINT(1 2)
+POLYGON((0 0,5 8,10 0,0 0))

@@ -15,8 +15,10 @@ geodatafusion/st_astext 28/28
 geodatafusion/st_box2dfromgeohash 12/12
 geodatafusion/st_buffer 41/41
 geodatafusion/st_buildarea 12/12
+geodatafusion/st_centroid 18/18
 geodatafusion/st_contains 25/25
 geodatafusion/st_containsproperly 20/20
+geodatafusion/st_convexhull 18/18
 geodatafusion/st_coorddim 11/11
 geodatafusion/st_coveredby 25/25
 geodatafusion/st_covers 25/25
@@ -64,11 +66,13 @@ geodatafusion/st_numinteriorring 2/2
 geodatafusion/st_numinteriorrings 11/11
 geodatafusion/st_numpoints 15/15
 geodatafusion/st_offsetcurve 31/31
+geodatafusion/st_orientedenvelope 18/18
 geodatafusion/st_overlaps 20/20
 geodatafusion/st_point 6/6
 geodatafusion/st_pointfromgeohash 13/13
 geodatafusion/st_pointfromtext 10/10
 geodatafusion/st_pointfromwkb 8/8
+geodatafusion/st_pointonsurface 18/18
 geodatafusion/st_polyfromwkb 8/8
 geodatafusion/st_polygonfromtext 10/10
 geodatafusion/st_reduceprecision 14/14
@@ -297,7 +301,7 @@ postgis_docs/st_numpatches 0/1
 postgis_docs/st_numpoints 1/1
 postgis_docs/st_offsetcurve 2/6
 postgis_docs/st_orderingequals 0/3
-postgis_docs/st_orientedenvelope 0/2
+postgis_docs/st_orientedenvelope 1/2
 postgis_docs/st_overlaps 2/3
 postgis_docs/st_patchn 0/1
 postgis_docs/st_perimeter 0/4
@@ -308,7 +312,7 @@ postgis_docs/st_pointfromwkb 2/2
 postgis_docs/st_pointinsidecircle 0/1
 postgis_docs/st_pointm 3/3
 postgis_docs/st_pointn 0/3
-postgis_docs/st_pointonsurface 3/5
+postgis_docs/st_pointonsurface 5/5
 postgis_docs/st_pointz 3/3
 postgis_docs/st_pointzm 3/3
 postgis_docs/st_polygon 0/2
