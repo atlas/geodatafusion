@@ -72,6 +72,8 @@ geodatafusion/st_pointfromwkb 8/8
 geodatafusion/st_polyfromwkb 8/8
 geodatafusion/st_polygonfromtext 10/10
 geodatafusion/st_reduceprecision 14/14
+geodatafusion/st_relate 21/21
+geodatafusion/st_relatematch 7/7
 geodatafusion/st_setsrid 11/11
 geodatafusion/st_sharedpaths 9/9
 geodatafusion/st_simplify 3/3
@@ -315,8 +317,8 @@ postgis_docs/st_polygonize 0/1
 postgis_docs/st_project 0/1
 postgis_docs/st_quantizecoordinates 0/2
 postgis_docs/st_reduceprecision 5/5
-postgis_docs/st_relate 0/3
-postgis_docs/st_relatematch 0/2
+postgis_docs/st_relate 2/3
+postgis_docs/st_relatematch 2/2
 postgis_docs/st_removeirrelevantpointsforview 0/5
 postgis_docs/st_removerepeatedpoints 0/4
 postgis_docs/st_removesmallparts 0/2

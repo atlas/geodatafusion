@@ -1,0 +1,112 @@
+# Edge cases for ST_Relate, not covered by the PostGIS docs examples.
+
+# Matrices
+query T
+SELECT ST_Relate('POINT(5 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+0FFFFF212
+
+query T
+SELECT ST_Relate('LINESTRING(0 0,10 10)'::geometry, 'LINESTRING(0 10,10 0)'::geometry)
+----
+0F1FF0102
+
+query T
+SELECT ST_Relate('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POLYGON((5 5,15 5,15 15,5 15,5 5))'::geometry)
+----
+212101212
+
+query T
+SELECT ST_Relate('MULTILINESTRING((0 0,1 1),EMPTY)'::geometry, 'POINT(5 5)'::geometry)
+----
+FF1FF00F2
+
+query T
+SELECT ST_Relate('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(2 2,3 3))'::geometry, 'POINT(1 1)'::geometry)
+----
+0F1FF0FF2
+
+query T
+SELECT ST_Relate('POINT Z (1 1 5)'::geometry, 'POINT M (1 1 7)'::geometry)
+----
+0FFFFFFF2
+
+# EMPTY inputs
+query T
+SELECT ST_Relate('POINT EMPTY'::geometry, 'POINT(1 1)'::geometry)
+----
+FFFFFF0F2
+
+query T
+SELECT ST_Relate('POINT(1 1)'::geometry, 'LINESTRING EMPTY'::geometry)
+----
+FF0FFFFF2
+
+query T
+SELECT ST_Relate('POINT EMPTY'::geometry, 'POLYGON EMPTY'::geometry)
+----
+FFFFFFFF2
+
+query T
+SELECT ST_Relate('LINESTRING EMPTY'::geometry, 'POLYGON((0 0,1 0,1 1,0 0))'::geometry)
+----
+FFFFFF212
+
+query T
+SELECT ST_Relate('POLYGON((0 0,1 0,1 1,0 0))'::geometry, 'GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+FF2FF1FF2
+
+query T
+SELECT ST_Relate('LINESTRING EMPTY'::geometry, 'LINESTRING(0 0,1 1)'::geometry)
+----
+FFFFFF102
+
+query T
+SELECT ST_Relate('LINESTRING EMPTY'::geometry, 'LINESTRING(0 0,1 1,1 0,0 0)'::geometry)
+----
+FFFFFF1F2
+
+# PostGIS (GEOS) crashes on POINT or POLYGON EMPTY against a collection holding
+# LINESTRING EMPTY, so that case can't be recorded; the unit tests cover it.
+
+# Patterns
+query T
+SELECT ST_Relate('LINESTRING(0 0,1 1)'::geometry, 'LINESTRING(0 0,1 1)'::geometry, 'T*F**FFF*')
+----
+true
+
+query T
+SELECT ST_Relate('POINT EMPTY'::geometry, 'POINT(1 1)'::geometry, 'FF*FF****')
+----
+true
+
+query T
+SELECT ST_Relate('POINT(1 1)'::geometry, 'POINT(1 1)'::geometry, 't********')
+----
+true
+
+query T
+SELECT ST_Relate('POINT(1 1)'::geometry, 'POINT(1 1)'::geometry, NULL)
+----
+NULL
+
+statement error
+SELECT ST_Relate('POINT(1 1)'::geometry, 'POINT(1 1)'::geometry, 'TTTX')
+
+# SRID and NULL
+statement error
+SELECT ST_Relate('SRID=4326;POINT(1 1)'::geometry, 'SRID=3857;POINT(1 1)'::geometry)
+
+query T
+SELECT ST_Relate(NULL::geometry, 'POINT(1 1)'::geometry)
+----
+NULL
+
+# Columns
+query T
+SELECT ST_Relate(a, b) FROM (VALUES ('POINT(5 5)'::geometry, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry), ('POINT EMPTY'::geometry, 'POINT(1 1)'::geometry), (NULL::geometry, 'POINT(1 1)'::geometry)) AS t(a, b)
+----
+0FFFFF212
+FFFFFF0F2
+NULL

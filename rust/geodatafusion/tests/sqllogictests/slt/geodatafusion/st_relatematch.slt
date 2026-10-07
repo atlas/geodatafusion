@@ -1,0 +1,34 @@
+# Edge cases for ST_RelateMatch, not covered by the PostGIS docs examples.
+
+query T
+SELECT ST_RelateMatch('101202FFF', 'TTTTTTFFF')
+----
+true
+
+query T
+SELECT ST_RelateMatch('101202FFF', '1*1***FF*')
+----
+true
+
+query T
+SELECT ST_RelateMatch('101202FFF', 'F********')
+----
+false
+
+query T
+SELECT ST_RelateMatch('FF1FF0102', 't*******2')
+----
+false
+
+query T
+SELECT ST_RelateMatch('FF1FF0102', NULL)
+----
+NULL
+
+query T
+SELECT ST_RelateMatch(NULL, 'T********')
+----
+NULL
+
+statement error
+SELECT ST_RelateMatch('101202FFF', 'TTTX')

@@ -246,8 +246,8 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_LineCrossingDirection |             | Returns a number indicating the crossing behavior of two LineStrings.                                                                   |
 | ST_OrderingEquals        |             | Tests if two geometries represent the same geometry and have points in the same directional order.                                      |
 | ST_Overlaps              | ✅          | Tests if two geometries have the same dimension and intersect, but each has at least one point not in the other.                        |
-| ST_Relate                |             | Tests if two geometries have a topological relationship matching an Intersection Matrix pattern, or computes their Intersection Matrix. |
-| ST_RelateMatch           |             | Tests if a DE-9IM Intersection Matrix matches an Intersection Matrix pattern.                                                           |
+| ST_Relate                | ✅          | Tests if two geometries have a topological relationship matching an Intersection Matrix pattern, or computes their Intersection Matrix. |
+| ST_RelateMatch           | ✅          | Tests if a DE-9IM Intersection Matrix matches an Intersection Matrix pattern.                                                           |
 | ST_Touches               | ✅          | Tests if two geometries have at least one point in common, but their interiors do not intersect.                                        |
 | ST_Within                | ✅          | Tests if every point of A lies in B, and their interiors have a point in common.                                                        |
 
