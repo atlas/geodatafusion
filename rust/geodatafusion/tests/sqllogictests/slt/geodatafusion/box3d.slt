@@ -1,0 +1,87 @@
+# Edge cases for Box3D, not covered by the PostGIS docs examples.
+
+# Every type
+query T
+SELECT Box3D('POINT(1 2)'::geometry)
+----
+BOX3D(1 2 0,1 2 0)
+
+query T
+SELECT Box3D('LINESTRING(0 0,3 4)'::geometry)
+----
+BOX3D(0 0 0,3 4 0)
+
+query T
+SELECT Box3D('POLYGON((0 0,10 0,10 10,0 0),(1 1,2 1,2 2,1 1))'::geometry)
+----
+BOX3D(0 0 0,10 10 0)
+
+query T
+SELECT Box3D('MULTIPOINT(1 2,-3 4)'::geometry)
+----
+BOX3D(-3 2 0,1 4 0)
+
+query T
+SELECT Box3D('GEOMETRYCOLLECTION(POINT(5 6),LINESTRING(0 0,1 -1))'::geometry)
+----
+BOX3D(0 -1 0,5 6 0)
+
+# Every dimension
+query T
+SELECT Box3D('LINESTRING Z (1 2 3,4 5 -6)'::geometry)
+----
+BOX3D(1 2 -6,4 5 3)
+
+query T
+SELECT Box3D('LINESTRING M (1 2 3,4 5 6)'::geometry)
+----
+BOX3D(1 2 0,4 5 0)
+
+query T
+SELECT Box3D('LINESTRING ZM (1 2 3 4,4 5 6 7)'::geometry)
+----
+BOX3D(1 2 3,4 5 6)
+
+query T
+SELECT Box3D('SRID=4326;POINT(1 2)'::geometry)
+----
+BOX3D(1 2 0,1 2 0)
+
+# EMPTY and NULL
+query T
+SELECT Box3D('POINT EMPTY'::geometry)
+----
+NULL
+
+query T
+SELECT Box3D('LINESTRING Z EMPTY'::geometry)
+----
+NULL
+
+query T
+SELECT Box3D('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+NULL
+
+query T
+SELECT Box3D('MULTIPOINT(EMPTY,(1 1))'::geometry)
+----
+BOX3D(1 1 0,1 1 0)
+
+query T
+SELECT Box3D('GEOMETRYCOLLECTION(POINT EMPTY,POINT(3 4))'::geometry)
+----
+BOX3D(3 4 0,3 4 0)
+
+query T
+SELECT Box3D(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT Box3D(g) FROM (VALUES ('LINESTRING Z (1 2 3,4 5 6)'::geometry), (NULL::geometry), ('POINT EMPTY'::geometry)) AS t(g)
+----
+BOX3D(1 2 3,4 5 6)
+NULL
+NULL

@@ -1,0 +1,87 @@
+# Edge cases for Box2D, not covered by the PostGIS docs examples.
+
+# Every type
+query T
+SELECT Box2D('POINT(1 2)'::geometry)
+----
+BOX(1 2,1 2)
+
+query T
+SELECT Box2D('LINESTRING(0 0,3 4)'::geometry)
+----
+BOX(0 0,3 4)
+
+query T
+SELECT Box2D('POLYGON((0 0,10 0,10 10,0 0),(1 1,2 1,2 2,1 1))'::geometry)
+----
+BOX(0 0,10 10)
+
+query T
+SELECT Box2D('MULTIPOINT(1 2,-3 4)'::geometry)
+----
+BOX(-3 2,1 4)
+
+query T
+SELECT Box2D('GEOMETRYCOLLECTION(POINT(5 6),LINESTRING(0 0,1 -1))'::geometry)
+----
+BOX(0 -1,5 6)
+
+# Every dimension
+query T
+SELECT Box2D('LINESTRING Z (1 2 3,4 5 -6)'::geometry)
+----
+BOX(1 2,4 5)
+
+query T
+SELECT Box2D('LINESTRING M (1 2 3,4 5 6)'::geometry)
+----
+BOX(1 2,4 5)
+
+query T
+SELECT Box2D('LINESTRING ZM (1 2 3 4,4 5 6 7)'::geometry)
+----
+BOX(1 2,4 5)
+
+query T
+SELECT Box2D('SRID=4326;POINT(1 2)'::geometry)
+----
+BOX(1 2,1 2)
+
+# EMPTY and NULL
+query T
+SELECT Box2D('POINT EMPTY'::geometry)
+----
+NULL
+
+query T
+SELECT Box2D('LINESTRING Z EMPTY'::geometry)
+----
+NULL
+
+query T
+SELECT Box2D('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+NULL
+
+query T
+SELECT Box2D('MULTIPOINT(EMPTY,(1 1))'::geometry)
+----
+BOX(1 1,1 1)
+
+query T
+SELECT Box2D('GEOMETRYCOLLECTION(POINT EMPTY,POINT(3 4))'::geometry)
+----
+BOX(3 4,3 4)
+
+query T
+SELECT Box2D(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT Box2D(g) FROM (VALUES ('LINESTRING Z (1 2 3,4 5 6)'::geometry), (NULL::geometry), ('POINT EMPTY'::geometry)) AS t(g)
+----
+BOX(1 2,4 5)
+NULL
+NULL

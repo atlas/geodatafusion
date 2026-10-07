@@ -1,25 +1,25 @@
 use std::sync::Arc;
 
+use arrow_array::Float64Array;
 use arrow_schema::DataType;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
 use datafusion_macros::user_doc;
-use geo_traits::{CoordTrait, RectTrait};
-use geoarrow_array::array::from_arrow_array;
-use geoarrow_array::scalar::Rect;
+use geo_traits::GeometryTrait;
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::native::bounding_box::util::bounds::impl_extrema;
+use crate::udf::native::bounding_box::util::bounds::BoundsKernel;
+use crate::util::field::geometry_array;
+use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::signature::single_geometry;
 
 #[user_doc(
     doc_section(label = "Bounding Box Functions"),
-    description = "Returns X minima of a bounding box 2d or 3d or a geometry",
-    syntax_example = "ST_XMin(geometry)",
-    argument(name = "box", description = "geometry"),
-    related_udf(name = "st_xmin"),
+    description = "Returns the X minimum of a 2D or 3D bounding box or a geometry. Returns NULL for an empty geometry.",
+    syntax_example = "ST_XMin(aGeomorBox2DorBox3D)",
+    argument(name = "aGeomorBox2DorBox3D", description = "box3d"),
     related_udf(name = "st_ymin"),
     related_udf(name = "st_zmin"),
     related_udf(name = "st_xmax"),
@@ -55,7 +55,7 @@ impl ScalarUDFImpl for XMin {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(extrema_impl(args, false, |rect| rect.min().x())?)
+        Ok(extrema_impl(args, Extremum::XMin)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -65,11 +65,10 @@ impl ScalarUDFImpl for XMin {
 
 #[user_doc(
     doc_section(label = "Bounding Box Functions"),
-    description = "Returns Y minima of a bounding box 2d or 3d or a geometry",
-    syntax_example = "ST_YMin(geometry)",
-    argument(name = "box", description = "geometry"),
+    description = "Returns the Y minimum of a 2D or 3D bounding box or a geometry. Returns NULL for an empty geometry.",
+    syntax_example = "ST_YMin(aGeomorBox2DorBox3D)",
+    argument(name = "aGeomorBox2DorBox3D", description = "box3d"),
     related_udf(name = "st_xmin"),
-    related_udf(name = "st_ymin"),
     related_udf(name = "st_zmin"),
     related_udf(name = "st_xmax"),
     related_udf(name = "st_ymax"),
@@ -104,7 +103,7 @@ impl ScalarUDFImpl for YMin {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(extrema_impl(args, false, |rect| rect.min().y())?)
+        Ok(extrema_impl(args, Extremum::YMin)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -114,12 +113,11 @@ impl ScalarUDFImpl for YMin {
 
 #[user_doc(
     doc_section(label = "Bounding Box Functions"),
-    description = "Returns the Z minima of a 2D or 3D bounding box or a geometry",
-    syntax_example = "ST_ZMin(geometry)",
-    argument(name = "box", description = "geometry"),
+    description = "Returns the Z minimum of a 2D or 3D bounding box or a geometry. Returns NULL for an empty geometry. The Z of a geometry without Z is 0.",
+    syntax_example = "ST_ZMin(aGeomorBox2DorBox3D)",
+    argument(name = "aGeomorBox2DorBox3D", description = "box3d"),
     related_udf(name = "st_xmin"),
     related_udf(name = "st_ymin"),
-    related_udf(name = "st_zmin"),
     related_udf(name = "st_xmax"),
     related_udf(name = "st_ymax"),
     related_udf(name = "st_zmax")
@@ -153,9 +151,7 @@ impl ScalarUDFImpl for ZMin {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(extrema_impl(args, true, |rect| {
-            rect.min().nth(2).unwrap_or(f64::MIN)
-        })?)
+        Ok(extrema_impl(args, Extremum::ZMin)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -165,13 +161,12 @@ impl ScalarUDFImpl for ZMin {
 
 #[user_doc(
     doc_section(label = "Bounding Box Functions"),
-    description = "Returns X maxima of a bounding box 2d or 3d or a geometry",
-    syntax_example = "ST_XMax(geometry)",
-    argument(name = "box", description = "geometry"),
+    description = "Returns the X maximum of a 2D or 3D bounding box or a geometry. Returns NULL for an empty geometry.",
+    syntax_example = "ST_XMax(aGeomorBox2DorBox3D)",
+    argument(name = "aGeomorBox2DorBox3D", description = "box3d"),
     related_udf(name = "st_xmin"),
     related_udf(name = "st_ymin"),
     related_udf(name = "st_zmin"),
-    related_udf(name = "st_xmax"),
     related_udf(name = "st_ymax"),
     related_udf(name = "st_zmax")
 )]
@@ -204,7 +199,7 @@ impl ScalarUDFImpl for XMax {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(extrema_impl(args, false, |rect| rect.max().x())?)
+        Ok(extrema_impl(args, Extremum::XMax)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -214,14 +209,13 @@ impl ScalarUDFImpl for XMax {
 
 #[user_doc(
     doc_section(label = "Bounding Box Functions"),
-    description = "Returns Y maxima of a bounding box 2d or 3d or a geometry",
-    syntax_example = "ST_YMax(geometry)",
-    argument(name = "box", description = "geometry"),
+    description = "Returns the Y maximum of a 2D or 3D bounding box or a geometry. Returns NULL for an empty geometry.",
+    syntax_example = "ST_YMax(aGeomorBox2DorBox3D)",
+    argument(name = "aGeomorBox2DorBox3D", description = "box3d"),
     related_udf(name = "st_xmin"),
     related_udf(name = "st_ymin"),
     related_udf(name = "st_zmin"),
     related_udf(name = "st_xmax"),
-    related_udf(name = "st_ymax"),
     related_udf(name = "st_zmax")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
@@ -253,7 +247,7 @@ impl ScalarUDFImpl for YMax {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(extrema_impl(args, false, |rect| rect.max().y())?)
+        Ok(extrema_impl(args, Extremum::YMax)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -263,15 +257,14 @@ impl ScalarUDFImpl for YMax {
 
 #[user_doc(
     doc_section(label = "Bounding Box Functions"),
-    description = "Returns Z maxima of a bounding box 2d or 3d or a geometry",
-    syntax_example = "ST_ZMax(geometry)",
-    argument(name = "box", description = "geometry"),
+    description = "Returns the Z maximum of a 2D or 3D bounding box or a geometry. Returns NULL for an empty geometry. The Z of a geometry without Z is 0.",
+    syntax_example = "ST_ZMax(aGeomorBox2DorBox3D)",
+    argument(name = "aGeomorBox2DorBox3D", description = "box3d"),
     related_udf(name = "st_xmin"),
     related_udf(name = "st_ymin"),
     related_udf(name = "st_zmin"),
     related_udf(name = "st_xmax"),
-    related_udf(name = "st_ymax"),
-    related_udf(name = "st_zmax")
+    related_udf(name = "st_ymax")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct ZMax;
@@ -302,9 +295,7 @@ impl ScalarUDFImpl for ZMax {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(extrema_impl(args, true, |rect| {
-            rect.max().nth(2).unwrap_or(f64::MAX)
-        })?)
+        Ok(extrema_impl(args, Extremum::ZMax)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -314,13 +305,42 @@ impl ScalarUDFImpl for ZMax {
 
 fn extrema_impl(
     args: ScalarFunctionArgs,
-    include_z: bool,
-    cb: impl Fn(Rect) -> f64,
+    extremum: Extremum,
 ) -> GeoDataFusionResult<ColumnarValue> {
-    let arrays = ColumnarValue::values_to_arrays(&args.args)?;
-    let geo_array = from_arrow_array(&arrays[0], &args.arg_fields[0])?;
-    let result = impl_extrema(&geo_array, include_z, cb)?;
+    let geometries = geometry_array(&args, 0)?;
+    let result: Float64Array = map_geometry(geometries.as_ref(), &extremum)?;
     Ok(ColumnarValue::Array(Arc::new(result)))
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Extremum {
+    XMin,
+    YMin,
+    ZMin,
+    XMax,
+    YMax,
+    ZMax,
+}
+
+impl GeometryKernel for Extremum {
+    type Output = f64;
+
+    /// NULL for an EMPTY geometry; the Z of a geometry without Z is 0, as in PostGIS.
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<f64>> {
+        let kernel = BoundsKernel { include_z: true };
+        Ok(kernel.eval(geom, row)?.map(|rect| match self {
+            Extremum::XMin => rect.minx(),
+            Extremum::YMin => rect.miny(),
+            Extremum::ZMin => rect.minz(),
+            Extremum::XMax => rect.maxx(),
+            Extremum::YMax => rect.maxy(),
+            Extremum::ZMax => rect.maxz(),
+        }))
+    }
 }
 
 #[cfg(test)]

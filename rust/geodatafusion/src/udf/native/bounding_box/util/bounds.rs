@@ -1,25 +1,25 @@
-//! Note: This is copied and updated from the geoparquet crate.
+//! Bounding boxes of geometries, as PostGIS computes them for box2d and box3d.
+//!
+//! Note: This started as a copy of the bounds code in the geoparquet crate.
 
-use std::ops::Add;
-
-use arrow_array::Float64Array;
-use arrow_array::builder::Float64Builder;
 use geo_traits::{
-    CoordTrait, GeometryCollectionTrait, GeometryTrait, GeometryType, LineStringTrait,
+    CoordTrait, GeometryCollectionTrait, GeometryTrait, GeometryType, LineStringTrait, LineTrait,
     MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait,
-    UnimplementedGeometryCollection, UnimplementedLine, UnimplementedLineString,
+    TriangleTrait, UnimplementedGeometryCollection, UnimplementedLine, UnimplementedLineString,
     UnimplementedMultiLineString, UnimplementedMultiPoint, UnimplementedMultiPolygon,
     UnimplementedPoint, UnimplementedPolygon, UnimplementedTriangle,
 };
-use geoarrow_array::array::RectArray;
-use geoarrow_array::builder::RectBuilder;
-use geoarrow_array::cast::AsGeoArrowArray;
-use geoarrow_array::scalar::Rect;
 use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor, downcast_geoarrow_array};
 use geoarrow_schema::error::GeoArrowResult;
-use geoarrow_schema::{BoxType, Dimension, GeoArrowType};
 use wkt::types::Coord;
 
+use crate::error::GeoDataFusionResult;
+use crate::util::kernel::GeometryKernel;
+use crate::util::ordinates::z;
+
+/// The bounding box of the coordinates added to it.
+///
+/// A box nothing was added to is empty: PostGIS has no box for an EMPTY geometry. M never counts.
 #[derive(Debug, Clone, Copy)]
 pub struct BoundingRect {
     pub(crate) minx: f64,
@@ -28,15 +28,13 @@ pub struct BoundingRect {
     pub(crate) maxx: f64,
     pub(crate) maxy: f64,
     pub(crate) maxz: f64,
-    /// If `True`, expose itself as a 3D bounding box through geo-traits APIs, otherwise 2D. This
-    /// is needed because the coord builders currently require that the declare dimension of the
-    /// added coordinate matches the stated dimension when the builder is created.
-    /// See <https://github.com/geoarrow/geoarrow-rs/issues/1300>
+    /// If `true`, expose itself as a 3D box through geo-traits, with Z 0 when no coordinate had
+    /// a Z, as PostGIS's box3d does. Otherwise 2D. The GeoArrow builders need the dimension of
+    /// every box to match the column's.
     include_z: bool,
 }
 
 impl BoundingRect {
-    /// New
     pub fn new(include_z: bool) -> Self {
         BoundingRect {
             minx: f64::INFINITY,
@@ -49,6 +47,11 @@ impl BoundingRect {
         }
     }
 
+    /// Whether no coordinate was added.
+    pub fn is_empty(&self) -> bool {
+        self.minx > self.maxx
+    }
+
     pub fn minx(&self) -> f64 {
         self.minx
     }
@@ -57,11 +60,12 @@ impl BoundingRect {
         self.miny
     }
 
-    fn minz(&self) -> Option<f64> {
-        if self.minz == f64::INFINITY {
-            None
+    /// The smallest Z, or 0 if no coordinate had a Z.
+    pub fn minz(&self) -> f64 {
+        if self.minz > self.maxz {
+            0.0
         } else {
-            Some(self.minz)
+            self.minz
         }
     }
 
@@ -73,47 +77,23 @@ impl BoundingRect {
         self.maxy
     }
 
-    fn maxz(&self) -> Option<f64> {
-        if self.maxz == -f64::INFINITY {
-            None
+    /// The largest Z, or 0 if no coordinate had a Z.
+    pub fn maxz(&self) -> f64 {
+        if self.minz > self.maxz {
+            0.0
         } else {
-            Some(self.maxz)
+            self.maxz
         }
     }
 
     fn add_coord(&mut self, coord: &impl CoordTrait<T = f64>) {
-        let x = coord.x();
-        let y = coord.y();
-        let z = coord.nth(2);
-
-        if x < self.minx {
-            self.minx = x;
-        }
-        if y < self.miny {
-            self.miny = y;
-        }
-        if let Some(z) = z
-            && z < self.minz
-        {
-            self.minz = z;
-        }
-
-        if x > self.maxx {
-            self.maxx = x;
-        }
-        if y > self.maxy {
-            self.maxy = y;
-        }
-        if let Some(z) = z
-            && z > self.maxz
-        {
-            self.maxz = z;
-        }
-    }
-
-    fn add_point(&mut self, point: &impl PointTrait<T = f64>) {
-        if let Some(coord) = point.coord() {
-            self.add_coord(&coord);
+        self.minx = self.minx.min(coord.x());
+        self.miny = self.miny.min(coord.y());
+        self.maxx = self.maxx.max(coord.x());
+        self.maxy = self.maxy.max(coord.y());
+        if let Some(z) = z(coord) {
+            self.minz = self.minz.min(z);
+            self.maxz = self.maxz.max(z);
         }
     }
 
@@ -124,112 +104,80 @@ impl BoundingRect {
     }
 
     fn add_polygon(&mut self, polygon: &impl PolygonTrait<T = f64>) {
-        if let Some(exterior_ring) = polygon.exterior() {
-            self.add_line_string(&exterior_ring);
+        if let Some(exterior) = polygon.exterior() {
+            self.add_line_string(&exterior);
         }
-
-        for exterior in polygon.interiors() {
-            self.add_line_string(&exterior)
-        }
-    }
-
-    fn add_multi_point(&mut self, multi_point: &impl MultiPointTrait<T = f64>) {
-        for point in multi_point.points() {
-            self.add_point(&point);
+        for interior in polygon.interiors() {
+            self.add_line_string(&interior);
         }
     }
 
-    fn add_multi_line_string(&mut self, multi_line_string: &impl MultiLineStringTrait<T = f64>) {
-        for linestring in multi_line_string.line_strings() {
-            self.add_line_string(&linestring);
-        }
-    }
-
-    fn add_multi_polygon(&mut self, multi_polygon: &impl MultiPolygonTrait<T = f64>) {
-        for polygon in multi_polygon.polygons() {
-            self.add_polygon(&polygon);
-        }
-    }
-
-    fn add_geometry(&mut self, geometry: &impl GeometryTrait<T = f64>) {
+    pub(crate) fn add_geometry(&mut self, geometry: &impl GeometryTrait<T = f64>) {
         use GeometryType::*;
 
         match geometry.as_type() {
-            Point(g) => self.add_point(g),
-            LineString(g) => self.add_line_string(g),
-            Polygon(g) => self.add_polygon(g),
-            MultiPoint(g) => self.add_multi_point(g),
-            MultiLineString(g) => self.add_multi_line_string(g),
-            MultiPolygon(g) => self.add_multi_polygon(g),
-            GeometryCollection(g) => self.add_geometry_collection(g),
-            Rect(g) => self.add_rect(g),
-            Triangle(_) | Line(_) => unreachable!(),
+            Point(point) => {
+                if let Some(coord) = point.coord() {
+                    self.add_coord(&coord);
+                }
+            }
+            LineString(line_string) => self.add_line_string(line_string),
+            Polygon(polygon) => self.add_polygon(polygon),
+            MultiPoint(points) => points.points().for_each(|point| self.add_geometry(&point)),
+            MultiLineString(line_strings) => line_strings
+                .line_strings()
+                .for_each(|line_string| self.add_line_string(&line_string)),
+            MultiPolygon(polygons) => polygons
+                .polygons()
+                .for_each(|polygon| self.add_polygon(&polygon)),
+            GeometryCollection(collection) => collection
+                .geometries()
+                .for_each(|member| self.add_geometry(&member)),
+            Rect(rect) => {
+                self.add_coord(&rect.min());
+                self.add_coord(&rect.max());
+            }
+            Triangle(triangle) => triangle
+                .coords()
+                .iter()
+                .for_each(|coord| self.add_coord(coord)),
+            Line(line) => {
+                self.add_coord(&line.start());
+                self.add_coord(&line.end());
+            }
         }
     }
 
-    fn add_geometry_collection(
-        &mut self,
-        geometry_collection: &impl GeometryCollectionTrait<T = f64>,
-    ) {
-        for geometry in geometry_collection.geometries() {
-            self.add_geometry(&geometry);
-        }
-    }
-
-    fn add_rect(&mut self, rect: &impl RectTrait<T = f64>) {
-        self.add_coord(&rect.min());
-        self.add_coord(&rect.max());
-    }
-
+    /// Grows this box to cover `other`.
     pub fn update(&mut self, other: &BoundingRect) {
-        self.add_rect(other)
-    }
-}
-
-impl Add for BoundingRect {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        assert_eq!(self.include_z, rhs.include_z);
-        BoundingRect {
-            minx: self.minx.min(rhs.minx),
-            miny: self.miny.min(rhs.miny),
-            minz: self.minz.min(rhs.minz),
-            maxx: self.maxx.max(rhs.maxx),
-            maxy: self.maxy.max(rhs.maxy),
-            maxz: self.maxz.max(rhs.maxz),
-            include_z: self.include_z,
-        }
+        self.minx = self.minx.min(other.minx);
+        self.miny = self.miny.min(other.miny);
+        self.minz = self.minz.min(other.minz);
+        self.maxx = self.maxx.max(other.maxx);
+        self.maxy = self.maxy.max(other.maxy);
+        self.maxz = self.maxz.max(other.maxz);
     }
 }
 
 impl RectTrait for BoundingRect {
-    type CoordType<'a> = wkt::types::Coord;
+    type CoordType<'a> = Coord;
 
     fn min(&self) -> Self::CoordType<'_> {
-        let mut c = Coord {
+        Coord {
             x: self.minx,
             y: self.miny,
-            z: None,
+            z: self.include_z.then(|| self.minz()),
             m: None,
-        };
-        if self.include_z && self.minz != f64::INFINITY {
-            c.z = Some(self.minz);
         }
-        c
     }
 
     fn max(&self) -> Self::CoordType<'_> {
-        let mut c = Coord {
+        Coord {
             x: self.maxx,
             y: self.maxy,
-            z: None,
+            z: self.include_z.then(|| self.maxz()),
             m: None,
-        };
-        if self.include_z && self.maxz != -f64::INFINITY {
-            c.z = Some(self.maxz);
         }
-        c
     }
 }
 
@@ -277,7 +225,7 @@ impl GeometryTrait for BoundingRect {
         Self: 'a;
 
     fn dim(&self) -> geo_traits::Dimensions {
-        if self.include_z && self.minz().is_some() && self.maxz().is_some() {
+        if self.include_z {
             geo_traits::Dimensions::Xyz
         } else {
             geo_traits::Dimensions::Xy
@@ -303,46 +251,25 @@ impl GeometryTrait for BoundingRect {
     }
 }
 
-/// Create a new RectArray using the bounding box of each geometry.
+/// The bounding box of each geometry; NULL for an EMPTY geometry, as in PostGIS.
 ///
 /// Note that this is fully planar and **does not** handle the antimeridian for geographic
 /// coordinates.
-pub(crate) fn bounding_rect(arr: &dyn GeoArrowArray, include_z: bool) -> GeoArrowResult<RectArray> {
-    if let Some(rect_arr) = arr.as_rect_opt() {
-        Ok(rect_arr.clone())
-    } else {
-        downcast_geoarrow_array!(arr, impl_array_accessor, include_z)
-    }
+pub(crate) struct BoundsKernel {
+    pub(crate) include_z: bool,
 }
 
-/// The actual implementation of computing the bounding rect
-fn impl_array_accessor<'a>(
-    arr: &'a impl GeoArrowArrayAccessor<'a>,
-    include_z: bool,
-) -> GeoArrowResult<RectArray> {
-    match arr.data_type() {
-        GeoArrowType::Rect(_) => unreachable!(),
-        _ => {
-            let dim = if include_z {
-                Dimension::XYZ
-            } else {
-                Dimension::XY
-            };
-            let mut builder = RectBuilder::with_capacity(
-                BoxType::new(dim, arr.data_type().metadata().clone()),
-                arr.len(),
-            );
-            for item in arr.iter() {
-                if let Some(item) = item {
-                    let mut rect = BoundingRect::new(include_z);
-                    rect.add_geometry(&item?);
-                    builder.push_rect(Some(&rect));
-                } else {
-                    builder.push_null();
-                }
-            }
-            Ok(builder.finish())
-        }
+impl GeometryKernel for BoundsKernel {
+    type Output = BoundingRect;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        _row: usize,
+    ) -> GeoDataFusionResult<Option<BoundingRect>> {
+        let mut rect = BoundingRect::new(self.include_z);
+        rect.add_geometry(geom);
+        Ok((!rect.is_empty()).then_some(rect))
     }
 }
 
@@ -360,26 +287,4 @@ fn impl_total_bounds<'a>(arr: &'a impl GeoArrowArrayAccessor<'a>) -> GeoArrowRes
     }
 
     Ok(rect)
-}
-
-/// The actual implementation of computing the bounding rect
-///
-/// include_z: If true, the Z dimension is included in the initial bounding box calculations.
-pub(crate) fn impl_extrema(
-    arr: &dyn GeoArrowArray,
-    include_z: bool,
-    cb: impl Fn(Rect) -> f64,
-) -> GeoArrowResult<Float64Array> {
-    let rect_array = bounding_rect(arr, include_z)?;
-
-    let mut output_array = Float64Builder::with_capacity(arr.len());
-    for rect in rect_array.iter() {
-        if let Some(rect) = rect {
-            output_array.append_value(cb(rect?));
-        } else {
-            output_array.append_null();
-        }
-    }
-
-    Ok(output_array.finish())
 }
