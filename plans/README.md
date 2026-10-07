@@ -151,9 +151,12 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    *Status:* outputs done: every geometry-returning UDF returns WKB with no `coord_type`,
    ST_AsText/ST_AsBinary return untagged Utf8/Binary, and return types map to the PostGIS SQL
    types (D2, D3). The consumers that only read native points were moved to the kernel drivers
-   first. Parity 265/773 -> 361/865. Left: the G1 kernel migrations, ST_Extent's
-   `state_fields`, the GeoHash rewrite and move, EWKB, the GEOS bridge and backend moves, and
-   removing the implicit `geos` feature.
+   first. Parity 265/773 -> 361/865. G1 batch 0 done: every existing G1 function runs on the
+   kernel drivers with PostGIS's NULL, EMPTY and dimension rules, checked by hand-written slt
+   files recorded from PostGIS (hand-written records 281/287 -> 547/553; the doc examples for
+   these functions fail on curves, surfaces or missing functions). Left: ST_Extent's
+   `state_fields`, the GeoHash rewrite and move, EWKB, the GEOS bridge and backend moves, the
+   G2 kernels (D6), and removing the implicit `geos` feature.
 4. **New functions:** group batches in parallel. Pull forward the most-used cheap ones:
    ST_DWithin, ST_Multi, ST_AsGeoJSON/ST_GeomFromGeoJSON. Then ST_Transform (G3, PROJ),
    ST_Buffer/ST_Union/ST_Intersection (G3), ST_Collect/ST_MakeLine (G1, G5). G6 batches 2–4
