@@ -1,4 +1,5 @@
-use geodatafusion::udf::geohash::{Box2DFromGeoHash, GeoHash, PointFromGeoHash};
+use geodatafusion::udf::geohash::{Box2DFromGeoHash, PointFromGeoHash};
+use geodatafusion::udf::native::io::GeoHash;
 use pyo3::prelude::*;
 
 use crate::impl_udf;

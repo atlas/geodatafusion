@@ -16,7 +16,7 @@ geodatafusion/st_covers 5/5
 geodatafusion/st_distance 5/5
 geodatafusion/st_endpoint 16/16
 geodatafusion/st_extent 8/8
-geodatafusion/st_geohash 2/8
+geodatafusion/st_geohash 23/23
 geodatafusion/st_geometrytype 18/18
 geodatafusion/st_geomfromewkt 13/13
 geodatafusion/st_geomfromtext 59/59
@@ -158,7 +158,7 @@ postgis_docs/st_forcerhr 0/1
 postgis_docs/st_frechetdistance 0/1
 postgis_docs/st_generatepoints 0/1
 postgis_docs/st_geogfromwkb 0/1
-postgis_docs/st_geohash 0/3
+postgis_docs/st_geohash 3/3
 postgis_docs/st_geomcollfromtext 0/1
 postgis_docs/st_geometricmedian 0/1
 postgis_docs/st_geometry_above 0/1
