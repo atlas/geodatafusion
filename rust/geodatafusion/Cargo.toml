@@ -17,6 +17,10 @@ rust-version = { workspace = true }
 # (with higher version targets implying lower version ones
 # in a chain.)
 geos-3_11 = ["dep:geos", "geos/v3_11_0"]
+# Builds GEOS from source and links it statically, instead of linking the system library.
+# The bundled version (geos-src 0.2.4, GEOS 3.14.1) is pinned to the PostGIS image the parity
+# tests are recorded with; see tests/sqllogictests/README.md.
+geos-static = ["geos-3_11", "geos/static"]
 
 [dependencies]
 arrow-arith = { workspace = true }
@@ -67,4 +71,5 @@ path = "tests/sqllogictests/main.rs"
 harness = false
 
 [package.metadata.docs.rs]
-all-features = true
+# Not geos-static, which would build GEOS from source; geos/dox skips linking it.
+features = ["geos-3_11", "geos/dox"]

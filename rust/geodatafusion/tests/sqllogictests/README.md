@@ -39,6 +39,15 @@ cargo slt --complete geodatafusion/st_area  # (re)record expected output from Po
 cargo slt --postgis                         # check every expectation still holds on PostGIS
 ```
 
+## Library versions
+
+The expected results were recorded with PostGIS 3.6.4 and GEOS 3.14.1 (`dev/postgis.sh`). GEOS
+output changes between minor versions (buffer vertices, Voronoi order, MakeValid), so
+`--all-features` builds the same GEOS from source through the `geos-static` feature
+(`geos-src` 0.2.4, pinned in `Cargo.lock`). Don't record or update parity with a system GEOS.
+When the PostGIS image moves to a new GEOS, update `geos-src` and `geos-sys`, re-record
+(`cargo slt --complete`) and update `parity.txt` together.
+
 ## How values are compared
 
 Both engines render results through `render.rs`, so neither side's native text output gets

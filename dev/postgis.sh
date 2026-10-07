@@ -11,7 +11,9 @@
 set -euo pipefail
 
 NAME="${POSTGIS_CONTAINER:-geodatafusion-postgis}"
-IMAGE="${POSTGIS_IMAGE:-docker.io/postgis/postgis:18-3.6}"
+# Pinned by digest: PostGIS 3.6.4 with GEOS 3.14.1, the versions the parity tests are recorded
+# with. Move it together with geos-src (see tests/sqllogictests/README.md).
+IMAGE="${POSTGIS_IMAGE:-docker.io/postgis/postgis:18-3.6@sha256:7e00e8c3539fdd43f513b98806c8204714dcd09dea683c259e333d7690317119}"
 PORT="${POSTGIS_PORT:-54329}"
 
 if command -v docker >/dev/null 2>&1; then

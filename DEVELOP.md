@@ -10,7 +10,7 @@ This is a Rust workspace with multiple crates:
     - Internally, each _provider_ of functions is organized in submodules:
         - `native/` - Operations that are natively implemented, without the use of other dependencies like `geo`
         - `geo/` - Operations implemented using the `geo` crate
-        - `geos/` - Operations implemented using the `geos` crate (bindings to the native GEOS library), gated behind the optional `geos` feature
+        - `geos/` - Operations implemented using the `geos` crate (bindings to the native GEOS library), gated behind the `geos-3_11` feature (and `geos-static` to build GEOS from source)
 - `rust/geodatafusion-flatgeobuf` - FlatGeobuf format support
 - `rust/geodatafusion-geoparquet` - GeoParquet format support
 - `rust/geodatafusion-geojson` - GeoJSON format support
@@ -119,17 +119,11 @@ like `geos-3_11` (GEOS >=3.11).
 
 #### GEOS linking
 
-This crate will try to link the system-provided GEOS library by default.
-If you want to statically link GEOS from a source build,
-add a direct dependency on the `geos` crate to your project,
-and enable the `static` feature like so:
-
-```toml
-geos = { version = "11.1.1", features = ["static"] }
-```
-
-If you're using cargo workspaces, make sure that
-the crates using geodatafusion directly reference `geos`.
+This crate links the system-provided GEOS library by default. The `geos-static` feature builds
+GEOS from source (`geos-src`, which needs cmake and a C++ compiler) and links it statically.
+`--all-features` includes it, so `cargo test --all-features` and `cargo slt` run against the
+bundled GEOS 3.14.1, the version the parity tests are recorded with (see
+`rust/geodatafusion/tests/sqllogictests/README.md`). The first build takes a minute or two.
 
 ### Code Style
 

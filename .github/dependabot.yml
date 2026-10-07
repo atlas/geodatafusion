@@ -6,6 +6,11 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 10
+    ignore:
+      # The bundled GEOS must match the PostGIS image the parity tests are recorded with
+      # (GEOS 3.14.1). Move these together with the image and re-record.
+      - dependency-name: "geos-src"
+      - dependency-name: "geos-sys"
     groups:
       # DataFusion, Arrow, and object_store are released and bumped together
       datafusion:
