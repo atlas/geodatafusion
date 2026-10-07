@@ -7,7 +7,6 @@ use pyo3::prelude::*;
 #[pymodule]
 pub(crate) fn geo(m: &Bound<PyModule>) -> PyResult<()> {
     // measurement
-    m.add_class::<measurement::PyArea>()?;
     m.add_class::<measurement::PyDistance>()?;
     m.add_class::<measurement::PyLength>()?;
 

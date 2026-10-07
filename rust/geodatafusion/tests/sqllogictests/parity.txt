@@ -7,6 +7,7 @@ geodatafusion/box3d 16/16
 geodatafusion/geometrytype 18/18
 geodatafusion/st_3dextent 10/10
 geodatafusion/st_3dmakebox 5/5
+geodatafusion/st_area 21/21
 geodatafusion/st_asbinary 17/17
 geodatafusion/st_asewkb 17/17
 geodatafusion/st_asewkt 35/35
