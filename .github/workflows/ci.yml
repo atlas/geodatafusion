@@ -23,16 +23,35 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgeos-dev
+      # --all-features builds the pinned GEOS from source (geos-static), so the parity tests
+      # run against the GEOS they were recorded with.
       - name: Clippy
         run: cargo clippy --all-features --tests -- -D warnings
       - name: Check
         run: cargo check --all-features
       - name: Test
         run: cargo test --all-features
+
+  check-features:
+    name: Check feature gating
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: "recursive"
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgeos-dev
+      # Without GEOS, and against the system GEOS at the lowest supported feature, so a UDF
+      # behind the wrong feature fails here rather than for a user.
+      - name: Check without features
+        run: cargo check -p geodatafusion
+      - name: Check with the system GEOS
+        run: cargo check -p geodatafusion --features geos-3_11
 
   fmt:
     name: Fmt
@@ -58,10 +77,6 @@ jobs:
           submodules: "recursive"
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgeos-dev
       # Note: in the future expand to all crates in the workspace
       - name: Test that docs build without warnings
         run: cargo doc --all-features --document-private-items
