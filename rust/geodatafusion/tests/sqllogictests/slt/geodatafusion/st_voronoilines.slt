@@ -1,0 +1,61 @@
+# Edge cases for ST_VoronoiLines, not covered by the PostGIS docs examples.
+
+query T
+SELECT ST_VoronoiLines('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry)
+----
+MULTILINESTRING((-10 11.8125,0.1 5.5),(0.1 5.5,5 -2.66666666667),(5 -2.66666666667,5 -10),(20 11.8125,9.9 5.5),(9.9 5.5,0.1 5.5),(9.9 5.5,5 -2.66666666667))
+
+query T
+SELECT ST_VoronoiLines('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry, 0)
+----
+MULTILINESTRING((-10 11.8125,0.1 5.5),(0.1 5.5,5 -2.66666666667),(5 -2.66666666667,5 -10),(20 11.8125,9.9 5.5),(9.9 5.5,0.1 5.5),(9.9 5.5,5 -2.66666666667))
+
+query error
+SELECT ST_VoronoiLines('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry, 3)
+
+query T
+SELECT ST_VoronoiLines('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry, 0, 'POLYGON((-50 -50,50 -50,50 50,-50 50,-50 -50))'::geometry)
+----
+MULTILINESTRING((-50 36.8125,0.1 5.5),(0.1 5.5,5 -2.66666666667),(5 -2.66666666667,5 -50),(50 30.5625,9.9 5.5),(9.9 5.5,0.1 5.5),(9.9 5.5,5 -2.66666666667))
+
+query T
+SELECT ST_VoronoiLines('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry, 0, NULL::geometry)
+----
+MULTILINESTRING((-10 11.8125,0.1 5.5),(0.1 5.5,5 -2.66666666667),(5 -2.66666666667,5 -10),(20 11.8125,9.9 5.5),(9.9 5.5,0.1 5.5),(9.9 5.5,5 -2.66666666667))
+
+query T
+SELECT ST_VoronoiLines('MULTIPOINT Z ((0 0 1),(10 0 2),(5 8 3))'::geometry)
+----
+MULTILINESTRING((-10 11.8125,5 2.4375),(5 2.4375,5 -10),(20 11.8125,5 2.4375))
+
+query T
+SELECT ST_VoronoiLines('POINT(1 1)'::geometry)
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_VoronoiLines('MULTIPOINT((1 1),(1 1))'::geometry)
+----
+MULTILINESTRING EMPTY
+
+query T
+SELECT ST_VoronoiLines('MULTIPOINT EMPTY'::geometry)
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_VoronoiLines('SRID=3857;MULTIPOINT((0 0),(10 0),(5 8))'::geometry)
+----
+SRID=3857;MULTILINESTRING((-10 11.8125,5 2.4375),(5 2.4375,5 -10),(20 11.8125,5 2.4375))
+
+query T
+SELECT ST_VoronoiLines(NULL::geometry)
+----
+NULL
+
+# A NULL or negative tolerance is an error
+statement error
+SELECT ST_VoronoiLines('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry, NULL)
+
+statement error
+SELECT ST_VoronoiLines('MULTIPOINT((0 0),(10 0),(5 8),(5 3))'::geometry, -1)

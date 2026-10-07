@@ -1,0 +1,59 @@
+# Edge cases for ST_Snap, not covered by the PostGIS docs examples.
+
+query T
+SELECT ST_Snap('LINESTRING(0 0,10 0)'::geometry, 'POINT(5 0.5)'::geometry, 1)
+----
+LINESTRING(0 0,5 0.5,10 0)
+
+query T
+SELECT ST_Snap('LINESTRING(0 0,10 0)'::geometry, 'POINT(5 0.5)'::geometry, 0.1)
+----
+LINESTRING(0 0,10 0)
+
+query T
+SELECT ST_Snap('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'LINESTRING(0.2 -0.1,10.1 0.3)'::geometry, 0.5)
+----
+POLYGON((0.2 -0.1,10.1 0.3,10 10,0 10,0.2 -0.1))
+
+query T
+SELECT ST_Snap('LINESTRING Z (0 0 1,10 0 2)'::geometry, 'POINT(5 0.5)'::geometry, 1)
+----
+LINESTRING Z (0 0 1,5 0.5 NaN,10 0 2)
+
+query T
+SELECT ST_Snap('LINESTRING M (0 0 1,10 0 2)'::geometry, 'POINT(5 0.5)'::geometry, 1)
+----
+LINESTRING(0 0,5 0.5,10 0)
+
+query T
+SELECT ST_Snap('LINESTRING M (0 0 1,10 0 2)'::geometry, 'POINT EMPTY'::geometry, 1)
+----
+LINESTRING(0 0,10 0)
+
+query T
+SELECT ST_Snap('POINT EMPTY'::geometry, 'POINT(5 0.5)'::geometry, 1)
+----
+POINT EMPTY
+
+query T
+SELECT ST_Snap('SRID=3857;LINESTRING(0 0,10 0)'::geometry, 'SRID=3857;POINT(5 0.5)'::geometry, 1)
+----
+SRID=3857;LINESTRING(0 0,5 0.5,10 0)
+
+query T
+SELECT ST_Snap(NULL::geometry, 'POINT(5 0.5)'::geometry, 1)
+----
+NULL
+
+query T
+SELECT ST_Snap('LINESTRING(0 0,10 0)'::geometry, NULL::geometry, 1)
+----
+NULL
+
+query T
+SELECT ST_Snap('LINESTRING(0 0,10 0)'::geometry, 'POINT(5 0.5)'::geometry, NULL)
+----
+NULL
+
+statement error
+SELECT ST_Snap('SRID=4326;POINT(1 1)'::geometry, 'SRID=3857;POINT(1 1)'::geometry, 1)

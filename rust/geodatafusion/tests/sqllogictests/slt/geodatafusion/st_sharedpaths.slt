@@ -1,0 +1,43 @@
+# Edge cases for ST_SharedPaths, not covered by the PostGIS docs examples.
+
+query T
+SELECT ST_SharedPaths('MULTILINESTRING((0 0,10 0),(20 0,30 0))'::geometry, 'LINESTRING(5 0,25 0)'::geometry)
+----
+GEOMETRYCOLLECTION(MULTILINESTRING((5 0,10 0),(20 0,25 0)),MULTILINESTRING EMPTY)
+
+query T
+SELECT ST_SharedPaths('LINESTRING(0 0,10 0)'::geometry, 'LINESTRING(10 0,5 0)'::geometry)
+----
+GEOMETRYCOLLECTION(MULTILINESTRING EMPTY,MULTILINESTRING((5 0,10 0)))
+
+query T
+SELECT ST_SharedPaths('LINESTRING(0 0,10 0)'::geometry, 'LINESTRING(0 5,10 5)'::geometry)
+----
+GEOMETRYCOLLECTION(MULTILINESTRING EMPTY,MULTILINESTRING EMPTY)
+
+query error
+SELECT ST_SharedPaths('LINESTRING Z (0 0 1,10 0 2)'::geometry, 'LINESTRING(5 0,15 0)'::geometry)
+
+query T
+SELECT ST_SharedPaths('LINESTRING M (0 0 1,10 0 2)'::geometry, 'LINESTRING(5 0,15 0)'::geometry)
+----
+GEOMETRYCOLLECTION(MULTILINESTRING((5 0,10 0)),MULTILINESTRING EMPTY)
+
+query T
+SELECT ST_SharedPaths('LINESTRING EMPTY'::geometry, 'LINESTRING(5 0,15 0)'::geometry)
+----
+GEOMETRYCOLLECTION(MULTILINESTRING EMPTY,MULTILINESTRING EMPTY)
+
+query T
+SELECT ST_SharedPaths('SRID=3857;LINESTRING(0 0,10 0)'::geometry, 'SRID=3857;LINESTRING(5 0,15 0)'::geometry)
+----
+SRID=3857;GEOMETRYCOLLECTION(MULTILINESTRING((5 0,10 0)),MULTILINESTRING EMPTY)
+
+query T
+SELECT ST_SharedPaths(NULL::geometry, 'LINESTRING(0 0,10 0)'::geometry)
+----
+NULL
+
+# GEOS errors for non-lineal input
+statement error
+SELECT ST_SharedPaths('POINT(1 1)'::geometry, 'LINESTRING(0 0,10 0)'::geometry)
