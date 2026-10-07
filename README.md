@@ -106,7 +106,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_ForceRHR                      |             | Force the orientation of the vertices in a polygon to follow the Right-Hand-Rule.                   |
 | ST_LineExtend                    |             | Returns a line extended forwards and backwards by specified distances.                              |
 | ST_Multi                         |             | Return the geometry as a MULTI\* geometry.                                                          |
-| ST_Normalize                     |             | Return the geometry in its canonical form.                                                          |
+| ST_Normalize                     | ✅          | Return the geometry in its canonical form.                                                          |
 | ST_Project                       |             | Returns a point projected from a start point by a distance and bearing (azimuth).                   |
 | ST_QuantizeCoordinates           |             | Sets least significant bits of coordinates to zero                                                  |
 | ST_RemovePoint                   |             | Remove a point from a linestring.                                                                   |
@@ -129,7 +129,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_IsValid       | ✅          | Tests if a geometry is well-formed in 2D.                                                    |
 | ST_IsValidDetail |             | Returns a valid_detail row stating if a geometry is valid or if not a reason and a location. |
 | ST_IsValidReason | ✅          | Returns text stating if a geometry is valid, or a reason for invalidity.                     |
-| ST_MakeValid     |             | Attempts to make an invalid geometry valid without losing vertices.                          |
+| ST_MakeValid     | ✅          | Attempts to make an invalid geometry valid without losing vertices.                          |
 
 ### Spatial Reference System Functions
 
@@ -274,8 +274,8 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_3DLongestLine        |             | Returns the 3D longest line between two geometries                                                                             |
 | ST_MaxDistance          |             | Returns the 2D largest distance between two geometries in projected units.                                                     |
 | ST_3DMaxDistance        |             | Returns the 3D cartesian maximum distance (based on spatial ref) between two geometries in projected units.                    |
-| ST_MinimumClearance     |             | Returns the minimum clearance of a geometry, a measure of a geometry's robustness.                                             |
-| ST_MinimumClearanceLine |             | Returns the two-point LineString spanning a geometry's minimum clearance.                                                      |
+| ST_MinimumClearance     | ✅          | Returns the minimum clearance of a geometry, a measure of a geometry's robustness.                                             |
+| ST_MinimumClearanceLine | ✅          | Returns the two-point LineString spanning a geometry's minimum clearance.                                                      |
 | ST_Perimeter            |             | Returns the length of the boundary of a polygonal geometry or geography.                                                       |
 | ST_Perimeter2D          |             | Returns the 2D perimeter of a polygonal geometry. Alias for ST_Perimeter.                                                      |
 | ST_3DPerimeter          |             | Returns the 3D perimeter of a polygonal geometry.                                                                              |
@@ -290,7 +290,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_Difference    | ✅          | Computes a geometry representing the part of geometry A that does not intersect geometry B. |
 | ST_Intersection  | ✅          | Computes a geometry representing the shared portion of geometries A and B.                  |
 | ST_MemUnion      |             | Aggregate function which unions geometries in a memory-efficent but slower way              |
-| ST_Node          |             | Nodes a collection of lines.                                                                |
+| ST_Node          | ✅          | Nodes a collection of lines.                                                                |
 | ST_Split         |             | Returns a collection of geometries created by splitting a geometry by another geometry.     |
 | ST_Subdivide     |             | Computes a rectilinear subdivision of a geometry.                                           |
 | ST_SymDifference | ✅          | Computes a geometry representing the portions of geometries A and B that do not intersect.  |
@@ -302,7 +302,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | Name                        | Implemented | Description                                                                                       |
 | --------------------------- | ----------- | ------------------------------------------------------------------------------------------------- |
 | ST_Buffer                   |             | Computes a geometry covering all points within a given distance from a geometry.                  |
-| ST_BuildArea                |             | Creates a polygonal geometry formed by the linework of a geometry.                                |
+| ST_BuildArea                | ✅          | Creates a polygonal geometry formed by the linework of a geometry.                                |
 | ST_Centroid                 | ✅          | Returns the geometric center of a geometry.                                                       |
 | ST_ChaikinSmoothing         |             | Returns a smoothed version of a geometry, using the Chaikin algorithm                             |
 | ST_ConcaveHull              |             | Computes a possibly concave geometry that contains all input geometry vertices                    |
@@ -320,7 +320,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_OffsetCurve              |             | Returns an offset line at a given distance and side from an input line.                           |
 | ST_PointOnSurface           | ✅          | Computes a point guaranteed to lie in a polygon, or on a geometry.                                |
 | ST_Polygonize               |             | Computes a collection of polygons formed from the linework of a set of geometries.                |
-| ST_ReducePrecision          |             | Returns a valid geometry with points rounded to a grid tolerance.                                 |
+| ST_ReducePrecision          | ✅          | Returns a valid geometry with points rounded to a grid tolerance.                                 |
 | ST_SharedPaths              |             | Returns a collection containing paths shared by the two input linestrings/multilinestrings.       |
 | ST_Simplify                 | ✅          | Returns a simplified representation of a geometry, using the Douglas-Peucker algorithm.           |
 | ST_SimplifyPreserveTopology | ✅          | Returns a simplified and valid representation of a geometry, using the Douglas-Peucker algorithm. |

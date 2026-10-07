@@ -1,0 +1,137 @@
+# Edge cases for ST_MakeValid, not covered by the PostGIS docs examples.
+
+# Invalid inputs
+query T
+SELECT ST_MakeValid('POLYGON((0 0,10 10,10 0,0 10,0 0))'::geometry)
+----
+MULTIPOLYGON(((0 10,5 5,0 0,0 10)),((10 0,5 5,10 10,10 0)))
+
+query T
+SELECT ST_MakeValid('POLYGON((0 0,10 0,10 10,0 10,0 0),(5 5,15 5,15 15,5 15,5 5))'::geometry)
+----
+MULTIPOLYGON(((0 10,5 10,5 5,10 5,10 0,0 0,0 10)),((5 15,15 15,15 5,10 5,10 10,5 10,5 15)))
+
+query T
+SELECT ST_MakeValid('LINESTRING(0 0,0 0)'::geometry)
+----
+POINT(0 0)
+
+query T
+SELECT ST_MakeValid('POLYGON((0 0,1 1,1 1,0 0))'::geometry)
+----
+LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_MakeValid('MULTIPOLYGON(((0 0,2 0,2 2,0 2,0 0)),((1 1,3 1,3 3,1 3,1 1)))'::geometry)
+----
+MULTIPOLYGON(((0 2,1 2,1 1,2 1,2 0,0 0,0 2)),((1 3,3 3,3 1,2 1,2 2,1 2,1 3)))
+
+# Valid input is unchanged
+query T
+SELECT ST_MakeValid('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry)
+----
+POLYGON((0 0,10 0,10 10,0 10,0 0))
+
+query T
+SELECT ST_MakeValid('POINT(1 2)'::geometry)
+----
+POINT(1 2)
+
+# Collections stay collections
+query T
+SELECT ST_MakeValid('MULTIPOLYGON(((0 0,10 0,10 10,0 10,0 0)))'::geometry)
+----
+MULTIPOLYGON(((0 0,10 0,10 10,0 10,0 0)))
+
+query T
+SELECT ST_MakeValid('MULTILINESTRING((0 0,0 0))'::geometry)
+----
+MULTIPOINT((0 0))
+
+query T
+SELECT ST_MakeValid('GEOMETRYCOLLECTION(POLYGON((0 0,10 0,10 10,0 10,0 0)))'::geometry)
+----
+GEOMETRYCOLLECTION(POLYGON((0 0,10 0,10 10,0 10,0 0)))
+
+query T
+SELECT ST_MakeValid('MULTIPOLYGON(((0 0,10 0,10 10,0 10,0 0)),((2 2,3 2,3 3,2 3,2 2)))'::geometry, 'method=structure')
+----
+MULTIPOLYGON(((0 10,10 10,10 0,0 0,0 10)))
+
+# Parameters
+query T
+SELECT ST_MakeValid('POLYGON((0 0,10 10,10 0,0 10,0 0))'::geometry, 'method=structure')
+----
+MULTIPOLYGON(((5 5,10 10,10 0,5 5)),((0 0,0 10,5 5,0 0)))
+
+query T
+SELECT ST_MakeValid('POLYGON((0 0,10 10,10 0,0 10,0 0))'::geometry, 'method=linework')
+----
+MULTIPOLYGON(((0 10,5 5,0 0,0 10)),((10 0,5 5,10 10,10 0)))
+
+query T
+SELECT ST_MakeValid('LINESTRING(0 0,0 0)'::geometry, 'method=structure keepcollapsed=true')
+----
+POINT(0 0)
+
+query T
+SELECT ST_MakeValid('LINESTRING(0 0,0 0)'::geometry, 'method=structure keepcollapsed=false')
+----
+LINESTRING EMPTY
+
+query T
+SELECT ST_MakeValid('POLYGON((0 0,10 10,10 0,0 10,0 0))'::geometry, 'unknown=1')
+----
+MULTIPOLYGON(((0 10,5 5,0 0,0 10)),((10 0,5 5,10 10,10 0)))
+
+query T
+SELECT ST_MakeValid('POLYGON((0 0,10 10,10 0,0 10,0 0))'::geometry, '')
+----
+MULTIPOLYGON(((0 10,5 5,0 0,0 10)),((10 0,5 5,10 10,10 0)))
+
+query T
+SELECT ST_MakeValid('POLYGON((0 0,10 10,10 0,0 10,0 0))'::geometry, NULL)
+----
+NULL
+
+# Z kept, M dropped
+query T
+SELECT ST_MakeValid('POLYGON Z ((0 0 1,10 10 2,10 0 3,0 10 4,0 0 1))'::geometry)
+----
+MULTIPOLYGON Z (((0 10 4,5 5 2.5,0 0 1,0 10 4)),((10 0 3,5 5 2.5,10 10 2,10 0 3)))
+
+query T
+SELECT ST_MakeValid('POLYGON M ((0 0 1,10 10 2,10 0 3,0 10 4,0 0 1))'::geometry)
+----
+MULTIPOLYGON(((0 10,5 5,0 0,0 10)),((10 0,5 5,10 10,10 0)))
+
+query T
+SELECT ST_MakeValid('POINT M (1 2 3)'::geometry)
+----
+POINT(1 2)
+
+# SRID
+query T
+SELECT ST_MakeValid('SRID=4326;POLYGON((0 0,10 10,10 0,0 10,0 0))'::geometry)
+----
+SRID=4326;MULTIPOLYGON(((0 10,5 5,0 0,0 10)),((10 0,5 5,10 10,10 0)))
+
+# EMPTY and NULL
+query T
+SELECT ST_MakeValid('POLYGON M EMPTY'::geometry)
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_MakeValid('POINT EMPTY'::geometry)
+----
+POINT EMPTY
+
+query T
+SELECT ST_MakeValid(NULL::geometry)
+----
+NULL
+
+# An invalid method is an error
+statement error
+SELECT ST_MakeValid('POLYGON((0 0,10 10,10 0,0 10,0 0))'::geometry, 'method=nonsense')
