@@ -16,6 +16,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<accessors::PyGeometryType>()?;
     m.add_class::<accessors::PyNDims>()?;
     m.add_class::<accessors::PyNPoints>()?;
+    m.add_class::<accessors::PyNumPoints>()?;
     m.add_class::<accessors::PyNumInteriorRings>()?;
     m.add_class::<accessors::PyStartPoint>()?;
     m.add_class::<accessors::PySTGeometryType>()?;

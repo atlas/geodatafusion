@@ -1,26 +1,29 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::Arc;
 
-use arrow_array::builder::Int32Builder;
-use arrow_array::{ArrayRef, Int32Array};
+use arrow_array::Int32Array;
 use arrow_schema::DataType;
+use datafusion::common::exec_datafusion_err;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
 use datafusion_macros::user_doc;
-use geo_traits::*;
-use geoarrow_array::array::from_arrow_array;
-use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor, downcast_geoarrow_array};
-use geoarrow_schema::error::GeoArrowResult;
+use geo_traits::{
+    GeometryCollectionTrait, GeometryTrait, GeometryType, LineStringTrait, MultiLineStringTrait,
+    MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait,
+};
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::geometry_array;
+use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::signature::single_geometry;
 
 #[user_doc(
     doc_section(label = "Geometry Accessors"),
-    description = "Return the number of points in a geometry. Works for all geometries.",
-    syntax_example = "ST_NPoints(geometry)",
-    argument(name = "g1", description = "geometry")
+    description = "Returns the number of points (vertices) in a geometry. Works for all geometries; an empty geometry has 0.",
+    syntax_example = "ST_NPoints(g1)",
+    argument(name = "g1", description = "geometry"),
+    related_udf(name = "st_numpoints")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct NPoints;
@@ -37,8 +40,6 @@ impl Default for NPoints {
     }
 }
 
-static ALIASES: LazyLock<Vec<String>> = LazyLock::new(|| vec!["st_numpoints".to_string()]);
-
 impl ScalarUDFImpl for NPoints {
     fn name(&self) -> &str {
         "st_npoints"
@@ -48,16 +49,12 @@ impl ScalarUDFImpl for NPoints {
         single_geometry()
     }
 
-    fn aliases(&self) -> &[String] {
-        &ALIASES
-    }
-
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
         Ok(DataType::Int32)
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(coord_dim_impl(args)?)
+        Ok(npoints_impl(args, Mode::All)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -65,94 +62,115 @@ impl ScalarUDFImpl for NPoints {
     }
 }
 
-fn coord_dim_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-    let arrays = ColumnarValue::values_to_arrays(&args.args)?;
-    let geo_array = from_arrow_array(&arrays[0], &args.arg_fields[0])?;
-    let result = Arc::new(num_points(&geo_array)?) as ArrayRef;
-    Ok(ColumnarValue::Array(result))
+#[user_doc(
+    doc_section(label = "Geometry Accessors"),
+    description = "Returns the number of points in a LINESTRING. Returns NULL for any other geometry type; use ST_NPoints to count the points of any geometry.",
+    syntax_example = "ST_NumPoints(g1)",
+    argument(name = "g1", description = "geometry"),
+    related_udf(name = "st_npoints")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct NumPoints;
+
+impl NumPoints {
+    pub fn new() -> Self {
+        Self
+    }
 }
 
-fn num_points(array: &dyn GeoArrowArray) -> GeoArrowResult<Int32Array> {
-    downcast_geoarrow_array!(array, _num_points_impl)
+impl Default for NumPoints {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
-fn _num_points_impl<'a>(array: &'a impl GeoArrowArrayAccessor<'a>) -> GeoArrowResult<Int32Array> {
-    let mut builder = Int32Builder::with_capacity(array.len());
-
-    for item in array.iter() {
-        if let Some(geom) = item {
-            builder.append_value(num_coords_geometry(&geom?));
-        } else {
-            builder.append_null();
-        }
+impl ScalarUDFImpl for NumPoints {
+    fn name(&self) -> &str {
+        "st_numpoints"
     }
 
-    Ok(builder.finish())
+    fn signature(&self) -> &Signature {
+        single_geometry()
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        Ok(DataType::Int32)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(npoints_impl(args, Mode::LineString)?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
 }
 
-#[inline]
-fn num_coords_geometry(geom: &impl GeometryTrait) -> i32 {
-    use geo_traits::GeometryType::*;
+fn npoints_impl(args: ScalarFunctionArgs, mode: Mode) -> GeoDataFusionResult<ColumnarValue> {
+    let geometries = geometry_array(&args, 0)?;
+    let result: Int32Array = map_geometry(geometries.as_ref(), &mode)?;
+    Ok(ColumnarValue::Array(Arc::new(result)))
+}
 
+#[derive(Debug, Clone, Copy)]
+enum Mode {
+    /// ST_NPoints: the points of any geometry.
+    All,
+    /// ST_NumPoints: the points of a linestring, NULL otherwise.
+    LineString,
+}
+
+impl GeometryKernel for Mode {
+    type Output = i32;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        _row: usize,
+    ) -> GeoDataFusionResult<Option<i32>> {
+        let count = match (self, geom.as_type()) {
+            (Mode::All, _) => num_points(geom),
+            (Mode::LineString, GeometryType::LineString(line)) => line.num_coords(),
+            (Mode::LineString, GeometryType::Line(_)) => 2,
+            (Mode::LineString, _) => return Ok(None),
+        };
+        let count = i32::try_from(count)
+            .map_err(|_| exec_datafusion_err!("too many points for an integer: {count}"))?;
+        Ok(Some(count))
+    }
+}
+
+/// The number of coordinates of a geometry; EMPTY points count 0.
+fn num_points(geom: &impl GeometryTrait<T = f64>) -> usize {
     match geom.as_type() {
-        Point(geom) => num_coords_point(geom),
-        LineString(geom) => num_coords_line_string(geom),
-        Polygon(geom) => num_coords_polygon(geom),
-        MultiPoint(geom) => num_coords_multi_point(geom),
-        MultiLineString(geom) => num_coords_multi_line_string(geom),
-        MultiPolygon(geom) => num_coords_multi_polygon(geom),
-        GeometryCollection(geom) => num_coords_geometry_collection(geom),
-        // Check what postgis says for a Rect
-        Rect(_) => 4,
-        Line(_) => 2,
-        Triangle(_) => 3,
+        GeometryType::Point(point) => usize::from(point.coord().is_some()),
+        GeometryType::LineString(line) => line.num_coords(),
+        GeometryType::Polygon(polygon) => polygon_points(polygon),
+        GeometryType::MultiPoint(points) => points.points().map(|point| num_points(&point)).sum(),
+        GeometryType::MultiLineString(lines) => {
+            lines.line_strings().map(|line| line.num_coords()).sum()
+        }
+        GeometryType::MultiPolygon(polygons) => polygons
+            .polygons()
+            .map(|polygon| polygon_points(&polygon))
+            .sum(),
+        GeometryType::GeometryCollection(collection) => collection
+            .geometries()
+            .map(|member| num_points(&member))
+            .sum(),
+        // As polygons with a closed ring.
+        GeometryType::Rect(_) => 5,
+        GeometryType::Triangle(_) => 4,
+        GeometryType::Line(_) => 2,
     }
 }
 
-#[inline]
-fn num_coords_point(geom: &impl PointTrait) -> i32 {
-    if geom.coord().is_some() { 1 } else { 0 }
-}
-
-#[inline]
-fn num_coords_line_string(geom: &impl LineStringTrait) -> i32 {
-    geom.num_coords() as i32
-}
-
-#[inline]
-fn num_coords_polygon(geom: &impl PolygonTrait) -> i32 {
-    let exterior_coords = geom
-        .exterior()
-        .map(|ext| num_coords_line_string(&ext))
-        .unwrap_or(0);
-    geom.interiors().fold(exterior_coords, |acc, interior| {
-        acc + num_coords_line_string(&interior)
-    })
-}
-
-#[inline]
-fn num_coords_multi_point(geom: &impl MultiPointTrait) -> i32 {
-    geom.points()
-        .fold(0, |acc, point| acc + num_coords_point(&point))
-}
-
-#[inline]
-fn num_coords_multi_line_string(geom: &impl MultiLineStringTrait) -> i32 {
-    geom.line_strings().fold(0, |acc, line_string| {
-        acc + num_coords_line_string(&line_string)
-    })
-}
-
-#[inline]
-fn num_coords_multi_polygon(geom: &impl MultiPolygonTrait) -> i32 {
-    geom.polygons()
-        .fold(0, |acc, polygon| acc + num_coords_polygon(&polygon))
-}
-
-#[inline]
-fn num_coords_geometry_collection(geom: &impl GeometryCollectionTrait) -> i32 {
-    geom.geometries()
-        .fold(0, |acc, g| acc + num_coords_geometry(&g))
+fn polygon_points(polygon: &impl PolygonTrait<T = f64>) -> usize {
+    polygon.exterior().map_or(0, |ring| ring.num_coords())
+        + polygon
+            .interiors()
+            .map(|ring| ring.num_coords())
+            .sum::<usize>()
 }
 
 #[cfg(test)]

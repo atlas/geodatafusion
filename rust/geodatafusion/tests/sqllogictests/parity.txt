@@ -21,6 +21,8 @@ geodatafusion/st_isclosed 26/26
 geodatafusion/st_m 10/10
 geodatafusion/st_makebox2d 7/7
 geodatafusion/st_ndims 11/11
+geodatafusion/st_npoints 15/15
+geodatafusion/st_numpoints 15/15
 geodatafusion/st_point 6/6
 geodatafusion/st_setsrid 11/11
 geodatafusion/st_simplify 3/3

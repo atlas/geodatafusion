@@ -1,0 +1,81 @@
+# Edge cases for ST_NPoints, not covered by the PostGIS docs examples.
+
+# Every type
+query I
+SELECT ST_NPoints('POINT(1 2)'::geometry)
+----
+1
+
+query I
+SELECT ST_NPoints('LINESTRING(0 0,1 1,2 2)'::geometry)
+----
+3
+
+query I
+SELECT ST_NPoints('LINESTRING ZM (0 0 0 0,1 1 1 1)'::geometry)
+----
+2
+
+query I
+SELECT ST_NPoints('POLYGON((0 0,1 0,1 1,0 0),(0.1 0.1,0.2 0.1,0.2 0.2,0.1 0.1))'::geometry)
+----
+8
+
+query I
+SELECT ST_NPoints('MULTIPOINT(1 2,3 4)'::geometry)
+----
+2
+
+query I
+SELECT ST_NPoints('MULTILINESTRING((0 0,1 1),(2 2,3 3,4 4))'::geometry)
+----
+5
+
+query I
+SELECT ST_NPoints('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5)))'::geometry)
+----
+8
+
+query I
+SELECT ST_NPoints('GEOMETRYCOLLECTION(POINT(1 2),LINESTRING(0 0,1 1))'::geometry)
+----
+3
+
+# EMPTY and NULL
+query I
+SELECT ST_NPoints('POINT EMPTY'::geometry)
+----
+0
+
+query I
+SELECT ST_NPoints('LINESTRING EMPTY'::geometry)
+----
+0
+
+query I
+SELECT ST_NPoints('POLYGON EMPTY'::geometry)
+----
+0
+
+query I
+SELECT ST_NPoints('MULTIPOINT(EMPTY,(1 1))'::geometry)
+----
+1
+
+query I
+SELECT ST_NPoints('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+0
+
+query I
+SELECT ST_NPoints(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query I rowsort
+SELECT ST_NPoints(g) FROM (VALUES ('LINESTRING(0 0,1 1)'::geometry), (NULL::geometry), ('LINESTRING(0 0,1 1,2 2)'::geometry)) AS t(g)
+----
+2
+3
+NULL
