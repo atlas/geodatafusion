@@ -1,26 +1,24 @@
 use std::sync::Arc;
 
-use arrow_array::builder::StringBuilder;
-use arrow_array::{ArrayRef, StringArray};
+use arrow_array::StringArray;
 use arrow_schema::DataType;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
 use datafusion_macros::user_doc;
-use geo_traits::*;
-use geoarrow_array::array::from_arrow_array;
-use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor, downcast_geoarrow_array};
-use geoarrow_schema::error::GeoArrowResult;
+use geo_traits::{Dimensions, GeometryTrait};
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::geometry_array;
+use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::signature::single_geometry;
 
 #[user_doc(
     doc_section(label = "Geometry Accessors"),
-    description = "Returns the type of the geometry as a string. Eg: 'LINESTRING', 'POLYGON', 'MULTIPOINT', etc.",
-    syntax_example = "GeometryType(geometry)",
-    argument(name = "g1", description = "geometry")
+    description = "Returns the type of the geometry as a string, for example 'LINESTRING', 'POLYGON' or 'MULTIPOINT'. Geometries with M but no Z get an M suffix ('POINTM').",
+    syntax_example = "GeometryType(geomA)",
+    argument(name = "geomA", description = "geometry")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct GeometryType;
@@ -51,7 +49,7 @@ impl ScalarUDFImpl for GeometryType {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(geometry_type_impl(args)?)
+        Ok(geometry_type_impl(args, Style::Upper)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -61,8 +59,8 @@ impl ScalarUDFImpl for GeometryType {
 
 #[user_doc(
     doc_section(label = "Geometry Accessors"),
-    description = "Returns the type of the geometry as a string. Eg: 'LINESTRING', 'POLYGON', 'MULTIPOINT', etc.",
-    syntax_example = "ST_GeometryType(geometry)",
+    description = "Returns the type of the geometry as a string, for example 'ST_LineString', 'ST_Polygon' or 'ST_MultiPolygon'. Unlike GeometryType, the string has an ST_ prefix and no dimension suffix.",
+    syntax_example = "ST_GeometryType(g1)",
     argument(name = "g1", description = "geometry")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
@@ -95,7 +93,7 @@ impl ScalarUDFImpl for ST_GeometryType {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(geometry_type_impl_st(args)?)
+        Ok(geometry_type_impl(args, Style::Prefixed)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
@@ -103,110 +101,59 @@ impl ScalarUDFImpl for ST_GeometryType {
     }
 }
 
-fn geometry_type_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-    let arrays = ColumnarValue::values_to_arrays(&args.args)?;
-    let geo_array = from_arrow_array(&arrays[0], &args.arg_fields[0])?;
-
-    let result = Arc::new(geometry_type_array(&geo_array)?) as ArrayRef;
-    Ok(ColumnarValue::Array(result))
+fn geometry_type_impl(
+    args: ScalarFunctionArgs,
+    style: Style,
+) -> GeoDataFusionResult<ColumnarValue> {
+    let geometries = geometry_array(&args, 0)?;
+    let result: StringArray = map_geometry(geometries.as_ref(), &style)?;
+    Ok(ColumnarValue::Array(Arc::new(result)))
 }
 
-fn geometry_type_array(array: &dyn GeoArrowArray) -> GeoArrowResult<StringArray> {
-    downcast_geoarrow_array!(array, _geometry_type_impl)
+/// How the type name is spelled.
+#[derive(Debug, Clone, Copy)]
+enum Style {
+    /// GeometryType: `MULTILINESTRING`, with an `M` suffix for XYM geometries only.
+    Upper,
+    /// ST_GeometryType: `ST_MultiLineString`, without a dimension suffix.
+    Prefixed,
 }
 
-fn _geometry_type_impl<'a>(
-    array: &'a impl GeoArrowArrayAccessor<'a>,
-) -> GeoArrowResult<StringArray> {
-    let mut builder = StringBuilder::with_capacity(array.len(), 0);
+impl GeometryKernel for Style {
+    type Output = &'static str;
 
-    for item in array.iter() {
-        if let Some(geom) = item {
-            let geom = geom?;
-            // TODO: should be possible to write to the underlying buffer directly instead of
-            // allocating a String?
-            let s = format!("{}{}", geometry_type_str(&geom), geometry_suffix_str(&geom));
-            builder.append_value(s);
-        } else {
-            builder.append_null();
-        }
-    }
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        _row: usize,
+    ) -> GeoDataFusionResult<Option<&'static str>> {
+        use geo_traits::GeometryType::*;
 
-    Ok(builder.finish())
-}
-
-#[inline]
-fn geometry_type_str(geom: &impl GeometryTrait) -> &'static str {
-    use geo_traits::GeometryType::*;
-
-    match geom.as_type() {
-        Point(_) => "POINT",
-        LineString(_) => "LINESTRING",
-        Polygon(_) => "POLYGON",
-        MultiPoint(_) => "MULTIPOINT",
-        MultiLineString(_) => "MULTILINESTRING",
-        MultiPolygon(_) => "MULTIPOLYGON",
-        GeometryCollection(_) => "GEOMETRYCOLLECTION",
-        Rect(_) => "POLYGON",
-        Line(_) => "LINESTRING",
-        Triangle(_) => "POLYGON",
-    }
-}
-
-fn geometry_type_impl_st(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-    let arrays = ColumnarValue::values_to_arrays(&args.args)?;
-    let geo_array = from_arrow_array(&arrays[0], &args.arg_fields[0])?;
-
-    let result = Arc::new(geometry_type_array_st(&geo_array)?) as ArrayRef;
-    Ok(ColumnarValue::Array(result))
-}
-
-fn geometry_type_array_st(array: &dyn GeoArrowArray) -> GeoArrowResult<StringArray> {
-    downcast_geoarrow_array!(array, _geometry_type_impl_st)
-}
-
-fn _geometry_type_impl_st<'a>(
-    array: &'a impl GeoArrowArrayAccessor<'a>,
-) -> GeoArrowResult<StringArray> {
-    let mut builder = StringBuilder::with_capacity(array.len(), 0);
-
-    for item in array.iter() {
-        if let Some(geom) = item {
-            builder.append_value(geometry_type_str_st(&geom?));
-        } else {
-            builder.append_null();
-        }
-    }
-
-    Ok(builder.finish())
-}
-
-#[inline]
-fn geometry_type_str_st(geom: &impl GeometryTrait) -> &'static str {
-    use geo_traits::GeometryType::*;
-
-    match geom.as_type() {
-        Point(_) => "ST_Point",
-        LineString(_) => "ST_LineString",
-        Polygon(_) => "ST_Polygon",
-        MultiPoint(_) => "ST_MultiPoint",
-        MultiLineString(_) => "ST_MultilineString",
-        MultiPolygon(_) => "ST_MultiPolygon",
-        GeometryCollection(_) => "ST_GeometryCollection",
-        Rect(_) => "ST_Polygon",
-        Line(_) => "ST_LineString",
-        Triangle(_) => "ST_Polygon",
-    }
-}
-
-#[inline]
-fn geometry_suffix_str(geom: &impl GeometryTrait) -> &'static str {
-    match geom.dim() {
-        geo_traits::Dimensions::Xy | geo_traits::Dimensions::Unknown(2) => "",
-        geo_traits::Dimensions::Xyz => "Z",
-        geo_traits::Dimensions::Xym => "M",
-        geo_traits::Dimensions::Xyzm | geo_traits::Dimensions::Unknown(4) => "ZM",
-        geo_traits::Dimensions::Unknown(_) => "",
+        let measured = geom.dim() == Dimensions::Xym;
+        let name = match (self, geom.as_type()) {
+            (Style::Upper, Point(_)) if measured => "POINTM",
+            (Style::Upper, Point(_)) => "POINT",
+            (Style::Upper, LineString(_) | Line(_)) if measured => "LINESTRINGM",
+            (Style::Upper, LineString(_) | Line(_)) => "LINESTRING",
+            (Style::Upper, Polygon(_) | Rect(_) | Triangle(_)) if measured => "POLYGONM",
+            (Style::Upper, Polygon(_) | Rect(_) | Triangle(_)) => "POLYGON",
+            (Style::Upper, MultiPoint(_)) if measured => "MULTIPOINTM",
+            (Style::Upper, MultiPoint(_)) => "MULTIPOINT",
+            (Style::Upper, MultiLineString(_)) if measured => "MULTILINESTRINGM",
+            (Style::Upper, MultiLineString(_)) => "MULTILINESTRING",
+            (Style::Upper, MultiPolygon(_)) if measured => "MULTIPOLYGONM",
+            (Style::Upper, MultiPolygon(_)) => "MULTIPOLYGON",
+            (Style::Upper, GeometryCollection(_)) if measured => "GEOMETRYCOLLECTIONM",
+            (Style::Upper, GeometryCollection(_)) => "GEOMETRYCOLLECTION",
+            (Style::Prefixed, Point(_)) => "ST_Point",
+            (Style::Prefixed, LineString(_) | Line(_)) => "ST_LineString",
+            (Style::Prefixed, Polygon(_) | Rect(_) | Triangle(_)) => "ST_Polygon",
+            (Style::Prefixed, MultiPoint(_)) => "ST_MultiPoint",
+            (Style::Prefixed, MultiLineString(_)) => "ST_MultiLineString",
+            (Style::Prefixed, MultiPolygon(_)) => "ST_MultiPolygon",
+            (Style::Prefixed, GeometryCollection(_)) => "ST_GeometryCollection",
+        };
+        Ok(Some(name))
     }
 }
 
