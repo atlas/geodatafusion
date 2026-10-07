@@ -7,6 +7,7 @@ geodatafusion/st_3dmakebox 5/5
 geodatafusion/st_asewkt 35/35
 geodatafusion/st_astext 28/28
 geodatafusion/st_contains 5/5
+geodatafusion/st_coorddim 11/11
 geodatafusion/st_coveredby 5/5
 geodatafusion/st_covers 5/5
 geodatafusion/st_distance 5/5
@@ -18,6 +19,7 @@ geodatafusion/st_geomfromtext 59/59
 geodatafusion/st_intersects 5/5
 geodatafusion/st_m 10/10
 geodatafusion/st_makebox2d 7/7
+geodatafusion/st_ndims 11/11
 geodatafusion/st_point 6/6
 geodatafusion/st_setsrid 11/11
 geodatafusion/st_simplify 3/3
