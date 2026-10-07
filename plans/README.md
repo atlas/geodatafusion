@@ -154,9 +154,12 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    kernel drivers with PostGIS's NULL, EMPTY and dimension rules, checked by hand-written slt
    files recorded from PostGIS (hand-written records 281/287 -> 547/553; the doc examples for
    these functions fail on curves, surfaces or missing functions). G5 0a done: ST_Extent
-   declares its state and returns NULL for no geometries, and ST_3DExtent is added. Left: the
-   GeoHash rewrite and move, EWKB, the GEOS bridge and backend moves, the G2 kernels (D6), and
-   removing the implicit `geos` feature.
+   declares its state and returns NULL for no geometries, and ST_3DExtent is added. G4 R5
+   done: native GeoHash in `native/io` (20-character points, any geometry, `maxchars` and
+   `precision`, ST_GeomFromGeoHash), checked against 2,877 PostGIS cases; the `geohash` crate
+   is gone. Parity 715/1201, every hand-written record passing. Left: EWKB and the typed
+   constructors, the GEOS bridge and backend moves, the G2 kernels (D6), and removing the
+   implicit `geos` feature.
 4. **New functions:** group batches in parallel. Pull forward the most-used cheap ones:
    ST_DWithin, ST_Multi, ST_AsGeoJSON/ST_GeomFromGeoJSON. Then ST_Transform (G3, PROJ),
    ST_Buffer/ST_Union/ST_Intersection (G3), ST_Collect/ST_MakeLine (G1, G5). G6 batches 2–4
