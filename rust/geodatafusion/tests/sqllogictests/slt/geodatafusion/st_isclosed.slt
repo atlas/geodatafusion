@@ -1,0 +1,138 @@
+# Edge cases for ST_IsClosed, not covered by the PostGIS docs examples.
+
+# Linestrings
+query T
+SELECT ST_IsClosed('LINESTRING(0 0,1 1,0 1,0 0)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsClosed('LINESTRING(0 0,1 1,1 0)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsClosed('LINESTRING(0 0,0 0)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsClosed('LINESTRING Z (0 0 0,1 1 1,0 0 1)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsClosed('LINESTRING Z (0 0 0,1 1 1,0 0 0)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsClosed('LINESTRING M (0 0 0,1 1 1,0 0 1)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsClosed('LINESTRING ZM (0 0 0 0,1 1 1 1,0 0 0 5)'::geometry)
+----
+true
+
+# Multilinestrings
+query T
+SELECT ST_IsClosed('MULTILINESTRING((0 0,1 1,0 0),(2 2,3 3,2 2))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsClosed('MULTILINESTRING((0 0,1 1,0 0),(2 2,3 3))'::geometry)
+----
+false
+
+query T
+SELECT ST_IsClosed('MULTILINESTRING((0 0,1 1,0 0),EMPTY)'::geometry)
+----
+false
+
+# Other types
+query T
+SELECT ST_IsClosed('POINT(1 2)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsClosed('MULTIPOINT(1 2,3 4)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsClosed('POLYGON((0 0,1 0,1 1,0 0))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsClosed('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsClosed('GEOMETRYCOLLECTION(POINT(1 1))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsClosed('GEOMETRYCOLLECTION(LINESTRING(0 0,1 1,0 0),POINT(1 1))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsClosed('GEOMETRYCOLLECTION(LINESTRING(0 0,1 1))'::geometry)
+----
+false
+
+query T
+SELECT ST_IsClosed('GEOMETRYCOLLECTION(MULTILINESTRING((0 0,1 1)))'::geometry)
+----
+false
+
+# EMPTY and NULL
+query T
+SELECT ST_IsClosed('POINT EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_IsClosed('LINESTRING EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_IsClosed('POLYGON EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_IsClosed('MULTILINESTRING EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_IsClosed('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_IsClosed('GEOMETRYCOLLECTION(LINESTRING EMPTY)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsClosed(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_IsClosed(g) FROM (VALUES ('LINESTRING(0 0,1 1,0 0)'::geometry), (NULL::geometry), ('LINESTRING(0 0,1 1)'::geometry)) AS t(g)
+----
+NULL
+false
+true
