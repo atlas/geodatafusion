@@ -92,7 +92,7 @@ versions; a missing helper is added to the shared module.
 | Errors | DataFusion's error macros, messages prefixed with `self.name()` (G6 R3). | G1/G4's "`ST_Name:` prefix" |
 | Documentation | `#[user_doc]` with PostGIS chapter sections, and a test that checks every UDF (G6 R4, E5 H5). Migrated in one PR in G6 batch 1. | `Documentation::builder` + `OnceLock` |
 | SRIDs | Column-level CRS. Convert only with `util::srid`. Read every CRS form producers write (PROJJSON, `OGC:CRS84`, authority codes, missing GeoParquet `crs` = OGC:CRS84). In memory, write `EPSG:n`/`ESRI:n` authority codes (from a table generated from PostGIS's `spatial_ref_sys`), which round-trip in Arrow hand-offs; expand to full PROJJSON when writing GeoParquet, the one place E4 saw authority codes dropped. Per-row SRIDs that contradict the column are an execution error. | |
-| `geo` kernels | Owned by geodatafusion, `geoarrow-expr-geo` dropped, keeping its shortcuts for point inputs (E1 H6, pending confirmation). | |
+| `geo` kernels | Owned by geodatafusion, `geoarrow-expr-geo` dropped, keeping its shortcuts for point inputs (E1 H6, D6). | |
 | Macros | `macro_rules!` only for a family of five or more near-identical UDFs in one file, expanding to the standard anatomy (the predicates). | |
 | Scalar/aggregate name clash | Drive the upstream DataFusion fallback from a scalar to a same-named aggregate first: the aggregate forms of ST_Union and ST_Collect are 82–88% of their use (E6 H8). `st_<name>_agg` names only if upstream stalls. | G5's interim `_agg` names as the default |
 
@@ -170,7 +170,7 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
 | D3 | Breaking changes | One release: WKB outputs, signed and plain return types, untagged text/binary, GeoHash moved, implicit `geos` feature removed. | E6 H3a, E4 H3b. |
 | D4 | Builds without GEOS | No `geo` fallbacks; wheels bundle GEOS. | E3 H13. |
 | D5 | `#[user_doc]` | Migrate. | E5 H5. |
-| D6 | `geoarrow-expr-geo` | Drop it, keeping the point shortcuts. **Needs your confirmation:** H6 failed as written because it re-measured D1's conversion cost; without that confound the owned kernels are within 3%. | E1 H6. |
+| D6 | `geoarrow-expr-geo` | Drop it, keeping the point shortcuts. H6 failed as written because it re-measured D1's conversion cost; without that confound the owned typed kernels are within 3% on polygons. The only large gap, point inputs in native encoding (area 10x), is a shortcut the owned kernels keep, and with WKB outputs (D2) most inputs are WKB, where the owned kernels are 0.86–1.03. Owning the kernels also puts PostGIS's EMPTY, NULL and dimension rules in geodatafusion, where they belong whatever the backend, and unblocks `geo` 0.33 (`geoarrow-expr-geo` 0.8 pins `geo ^0.31`). Removed as its last users migrate (G2 R1, the E2 backend moves). | E1 H6. |
 | D7 | GEOS pinning | Pin 3.14.1 with a static build in CI; floor stays 3.11. | E3 H7a, H7b. |
 | D8 | Scalar/aggregate names | Upstream fallback first, `_agg` names only if it stalls. | E6 H8. |
 | D9 | CRS form | Read every form. `EPSG:n` in memory, full PROJJSON when writing GeoParquet (your choice of the three options E4 identified; no vendored PROJJSON or PROJ dependency). | E4 H9. |
