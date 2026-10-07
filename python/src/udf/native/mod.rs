@@ -2,6 +2,7 @@ mod accessors;
 mod bounding_box;
 mod constructors;
 mod io;
+mod measurement;
 mod relationships;
 mod srs;
 
@@ -77,6 +78,9 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<io::PyPointFromGeoHash>()?;
     m.add_class::<io::PyGeomFromGeoHash>()?;
     m.add_class::<io::PyBox2DFromGeoHash>()?;
+
+    // measurement
+    m.add_class::<measurement::PyArea>()?;
 
     // relationships
     m.add_class::<relationships::PyRelateMatch>()?;

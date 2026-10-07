@@ -17,7 +17,6 @@ def register_all_geo(ctx: SessionContext):
     from . import geo
 
     # measurement
-    ctx.register_udf(udf(geo.Area()))
     ctx.register_udf(udf(geo.Distance()))
     ctx.register_udf(udf(geo.Length()))
 
@@ -101,6 +100,9 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.PointFromGeoHash()))
     ctx.register_udf(udf(native.GeomFromGeoHash()))
     ctx.register_udf(udf(native.Box2DFromGeoHash()))
+
+    # measurement
+    ctx.register_udf(udf(native.Area()))
 
     # relationships
     ctx.register_udf(udf(native.RelateMatch()))
