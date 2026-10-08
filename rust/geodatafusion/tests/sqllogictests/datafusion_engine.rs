@@ -1,5 +1,6 @@
 //! A sqllogictest engine backed by DataFusion with all geodatafusion UDFs registered.
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use arrow_array::cast::AsArray;
@@ -7,12 +8,14 @@ use arrow_array::types::*;
 use arrow_array::{Array, RecordBatch};
 use arrow_schema::{DataType, Field};
 use datafusion::arrow::util::display::array_value_to_string;
+use datafusion::execution::SessionStateBuilder;
 use datafusion::prelude::SessionContext;
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_array::cast::{AsGeoArrowArray, to_wkb};
 use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor};
 use geoarrow_schema::GeoArrowType;
 use geoarrow_schema::crs::CrsType;
+use geodatafusion::sql::GeoTypePlanner;
 use sqllogictest::{AsyncDB, DBOutput, DefaultColumnType};
 
 use crate::{EngineError, render};
@@ -26,7 +29,11 @@ pub struct GeoDataFusion {
 
 impl GeoDataFusion {
     pub fn new() -> Self {
-        let ctx = SessionContext::new();
+        let state = SessionStateBuilder::new()
+            .with_default_features()
+            .with_type_planner(Arc::new(GeoTypePlanner::new()))
+            .build();
+        let ctx = SessionContext::new_with_state(state);
         geodatafusion::register(&ctx);
         Self { ctx }
     }

@@ -8,7 +8,8 @@
 use std::fmt;
 
 use wkt::Wkt;
-use wkt::types::{Coord, LineString, Point, Polygon};
+
+use crate::udf::native::util::box_geometry::box_geometry;
 
 /// The GeoHash alphabet: the digits and the lowercase letters except a, i, l and o.
 const BASE32: &[u8; 32] = b"0123456789bcdefghjkmnpqrstuvwxyz";
@@ -156,34 +157,13 @@ pub(crate) fn center(bounds: &Bounds) -> (f64, f64) {
 /// point, as PostGIS's ST_GeomFromGeoHash returns.
 pub(crate) fn cell_geometry(bounds: &Bounds) -> Wkt<f64> {
     let [xmin, ymin, xmax, ymax] = *bounds;
-    let coord = |x, y| Coord {
-        x,
-        y,
-        z: None,
-        m: None,
-    };
-    match (xmin == xmax, ymin == ymax) {
-        (true, true) => Wkt::Point(Point::from_coord(coord(xmin, ymin))),
-        (true, false) | (false, true) => Wkt::LineString(
-            LineString::from_coords([coord(xmin, ymin), coord(xmax, ymax)])
-                .expect("two XY coordinates make a line"),
-        ),
-        (false, false) => {
-            let ring = LineString::from_coords([
-                coord(xmin, ymin),
-                coord(xmin, ymax),
-                coord(xmax, ymax),
-                coord(xmax, ymin),
-                coord(xmin, ymin),
-            ])
-            .expect("five XY coordinates make a ring");
-            Wkt::Polygon(Polygon::from_rings([ring]).expect("one XY ring makes a polygon"))
-        }
-    }
+    box_geometry(&[xmin, ymin], &[xmax, ymax]).expect("a 2D box is a point, line or polygon")
 }
 
 #[cfg(test)]
 mod test {
+    use wkt::types::{Coord, Point};
+
     use super::*;
     use crate::udf::native::io::util::wkt::{WktFlavor, write_wkt};
 

@@ -4,6 +4,7 @@
 # improvements are recorded.
 geodatafusion/box2d 16/16
 geodatafusion/box3d 16/16
+geodatafusion/geometry 49/50
 geodatafusion/geometrytype 18/18
 geodatafusion/st_3dextent 10/10
 geodatafusion/st_3dmakebox 5/5
@@ -160,7 +161,7 @@ postgis_docs/st_asewkb 2/2
 postgis_docs/st_asgeobuf 0/1
 postgis_docs/st_asgeojson 0/4
 postgis_docs/st_asgml 0/5
-postgis_docs/st_ashexewkb 1/2
+postgis_docs/st_ashexewkb 2/2
 postgis_docs/st_askml 0/2
 postgis_docs/st_aslatlontext 0/6
 postgis_docs/st_asmarc21 0/3

@@ -1,0 +1,246 @@
+# The geometry type and its casts: text and bytea input, type modifiers, casts out, and geometry
+# columns in VALUES and tables.
+
+# Text input: WKT, EWKT and hex-encoded (E)WKB
+query T
+SELECT 'POINT(1 2)'::geometry
+----
+POINT(1 2)
+
+query T
+SELECT 'SRID=4326;POINT(1 2)'::geometry
+----
+SRID=4326;POINT(1 2)
+
+query T
+SELECT 'point z (1 2 3)'::geometry
+----
+POINT Z (1 2 3)
+
+query T
+SELECT 'POINT EMPTY'::geometry
+----
+POINT EMPTY
+
+query T
+SELECT '0101000000000000000000F03F0000000000000040'::geometry
+----
+POINT(1 2)
+
+query T
+SELECT '0101000020E6100000000000000000F03F0000000000000040'::geometry
+----
+SRID=4326;POINT(1 2)
+
+query T
+SELECT CAST('LINESTRING(0 0,1 1)' AS geometry)
+----
+LINESTRING(0 0,1 1)
+
+query T
+SELECT geometry('SRID=3857;POINT(1 2)')
+----
+SRID=3857;POINT(1 2)
+
+query error
+SELECT 'POINT(1'::geometry
+
+query error
+SELECT '0101000000'::geometry
+
+query error
+SELECT '010'::geometry
+
+# Bytea input is EWKB
+query T
+SELECT decode('0101000000000000000000F03F0000000000000040', 'hex')::geometry
+----
+POINT(1 2)
+
+query T
+SELECT ST_AsText(decode('01010000A0E6100000000000000000F03F00000000000000400000000000000840', 'hex')::geometry)
+----
+POINT Z (1 2 3)
+
+# NULL
+query T
+SELECT NULL::geometry
+----
+NULL
+
+query T
+SELECT ST_AsText(NULL::geometry)
+----
+NULL
+
+# Type modifiers set the SRID of geometries without one
+query T
+SELECT 'POINT(1 2)'::geometry(Point, 4326)
+----
+SRID=4326;POINT(1 2)
+
+query I
+SELECT ST_SRID('POINT(1 2)'::geometry(Point, 4326))
+----
+4326
+
+query I
+SELECT ST_SRID('SRID=4326;POINT(1 2)'::geometry(Point, 4326))
+----
+4326
+
+query I
+SELECT ST_SRID('POINT(1 2)'::geometry(Geometry))
+----
+0
+
+query I
+SELECT ST_SRID('POINT(1 2)'::geometry(Point, 0))
+----
+0
+
+query I
+SELECT ST_SRID(ST_SetSRID('POINT(1 2)'::geometry, 4326)::geometry(Point, 4326))
+----
+4326
+
+query I
+SELECT ST_SRID(ST_SetSRID('POINT(1 2)'::geometry, 4326)::geometry)
+----
+4326
+
+query error
+SELECT 'SRID=3857;POINT(1 2)'::geometry(Point, 4326)
+
+query error
+SELECT ST_SetSRID('POINT(1 2)'::geometry, 3857)::geometry(Point, 4326)
+
+query error
+SELECT 'POINT(1 2)'::geometry(Pointy, 4326)
+
+# Casts out: text is hex EWKB, bytea is EWKB
+query T
+SELECT 'SRID=4326;POINT(1 2)'::geometry::text
+----
+0101000020E6100000000000000000F03F0000000000000040
+
+query T
+SELECT CAST('POINT(1 2)'::geometry AS text)
+----
+0101000000000000000000F03F0000000000000040
+
+query T
+SELECT 'SRID=4326;POINT(1 2)'::geometry::bytea
+----
+\x0101000020e6100000000000000000f03f0000000000000040
+
+query T
+SELECT NULL::geometry::text
+----
+NULL
+
+query error
+SELECT 'POINT(1 2)'::geometry::integer
+
+# Casts to and from boxes
+query T
+SELECT 'LINESTRING(0 0,1 2)'::geometry::box2d
+----
+BOX(0 0,1 2)
+
+query T
+SELECT 'LINESTRING(0 0 1,1 2 3)'::geometry::box3d
+----
+BOX3D(0 0 1,1 2 3)
+
+query R
+SELECT ST_XMax('LINESTRING(0 0,1 2)'::geometry::box2d)
+----
+1
+
+query T
+SELECT ST_AsText(ST_MakeBox2D(ST_Point(0, 0), ST_Point(1, 2))::geometry)
+----
+POLYGON((0 0,0 2,1 2,1 0,0 0))
+
+query T
+SELECT ST_AsText(ST_MakeBox2D(ST_Point(0, 0), ST_Point(0, 2))::geometry)
+----
+LINESTRING(0 0,0 2)
+
+query T
+SELECT ST_AsText(ST_MakeBox2D(ST_Point(1, 2), ST_Point(1, 2))::geometry)
+----
+POINT(1 2)
+
+query T
+SELECT ST_AsText(ST_3DMakeBox(ST_MakePoint(0, 0, 1), ST_MakePoint(1, 2, 1))::geometry)
+----
+POLYGON Z ((0 0 1,0 2 1,1 2 1,1 0 1,0 0 1))
+
+query T
+SELECT ST_AsText(ST_3DMakeBox(ST_MakePoint(0, 0, 0), ST_MakePoint(0, 2, 3))::geometry)
+----
+POLYGON Z ((0 0 0,0 2 0,0 2 3,0 0 3,0 0 0))
+
+query T
+SELECT ST_AsText(ST_3DMakeBox(ST_MakePoint(0, 0, 0), ST_MakePoint(1, 0, 3))::geometry)
+----
+POLYGON Z ((0 0 0,1 0 0,1 0 3,0 0 3,0 0 0))
+
+query T
+SELECT ST_AsText(ST_3DMakeBox(ST_MakePoint(0, 0, 0), ST_MakePoint(0, 0, 5))::geometry)
+----
+LINESTRING Z (0 0 0,0 0 5)
+
+query T
+SELECT ST_AsText(ST_3DMakeBox(ST_MakePoint(1, 2, 3), ST_MakePoint(1, 2, 3))::geometry)
+----
+POINT Z (1 2 3)
+
+# A VALUES column takes the SRID of its rows
+query I rowsort
+SELECT ST_SRID(g) FROM (VALUES ('SRID=4326;POINT(1 2)'::geometry), ('SRID=4326;POINT(3 4)'::geometry)) AS t(g)
+----
+4326
+4326
+
+query I rowsort
+SELECT ST_SRID(g) FROM (VALUES ('SRID=4326;POINT(1 2)'::geometry), (NULL::geometry)) AS t(g)
+----
+4326
+NULL
+
+query T rowsort
+SELECT g FROM (VALUES (1, 'SRID=3857;POINT(1 2)'::geometry), (2, 'SRID=3857;LINESTRING(0 0,1 1)'::geometry)) AS t(id, g)
+----
+SRID=3857;LINESTRING(0 0,1 1)
+SRID=3857;POINT(1 2)
+
+query T rowsort
+SELECT g FROM (VALUES ('SRID=4326;POINT(1 2)'::geometry)) AS t(g) UNION ALL SELECT 'SRID=4326;POINT(3 4)'::geometry
+----
+SRID=4326;POINT(1 2)
+SRID=4326;POINT(3 4)
+
+# Geometry columns in tables
+statement ok
+CREATE TABLE geometry_type_points (id integer, geom geometry(Point, 4326))
+
+statement ok
+INSERT INTO geometry_type_points SELECT 1, 'POINT(1 2)'::geometry(Point, 4326)
+
+statement ok
+INSERT INTO geometry_type_points VALUES (2, 'SRID=4326;POINT(3 4)'::geometry)
+
+query IIT rowsort
+SELECT id, ST_SRID(geom), ST_AsText(geom) FROM geometry_type_points
+----
+1 4326 POINT(1 2)
+2 4326 POINT(3 4)
+
+query T rowsort
+SELECT geom FROM geometry_type_points
+----
+SRID=4326;POINT(1 2)
+SRID=4326;POINT(3 4)
