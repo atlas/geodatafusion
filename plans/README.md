@@ -107,7 +107,8 @@ versions; a missing helper is added to the shared module.
 - PROJ: a `proj` feature with bundled PROJ (+1–1.5 min in CI), `proj-sys` directly for
   pipelines, and `proj.db` shipped or located with `PROJ_DATA` (E5 H12).
 - G6 batch 2: run the geodatafusion engine with the PostgreSQL dialect, for the operators.
-- G6 batch 5 (DataFusion 55): remove the `::geometry` shim. Deferred with everything else that needs 55 (D17).
+- G6 batch 5: remove the `::geometry` shim, together with batch 3, now that the branch is on
+  DataFusion 55 (D17).
 
 ## Bugs found in existing code
 
@@ -182,7 +183,14 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    ST_Buffer/ST_Union/ST_Intersection (G3), ST_Collect/ST_MakeLine (G1, G5). G6 batches 2–4
    (operators, types and casts, geography) unblock parts of G2, G3 and G5.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
-6. **DataFusion 55** (geoarrow 0.9.0, released 2026-09-11, is on arrow 59): shim removal, `VALUES` metadata, and the parts of G6's `sql` module that need cast metadata (the type planner's casts, the operator planner). On 55 every cast drops extension metadata (E7), so check nothing relies on casts keeping it. Deferred, as a separate patch set (D17): the target stays DataFusion 54.
+6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
+   a cast to the type planner's field keeps its extension and CRS through projections,
+   subqueries, `UNION ALL`, `VALUES` and a `CREATE TABLE` column; a cast to a plain type drops
+   it, as it should (the casts E7 H2e measured); CASE, COALESCE, make_array and array_agg still
+   drop it. A `VALUES` list keeps the schema planned from the cast, so a CRS that the cast
+   rewrite reads from an `'SRID=n;...'` literal needs the list's schema recomputed, which an
+   analyzer rule can do. Order: G6 batches 3 and 5 (types, casts, shim removal), then batch 2
+   (operators).
 
 ## Decisions
 
@@ -204,7 +212,7 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
 | D11 | `sql` feature and API | On by default; users install `GeoTypePlanner` via `SessionStateBuilder`; document the PostgreSQL dialect. | API design; **your call**. |
 | D14 | Upstream work | File the issues listed under bugs; don't wait for them. | Process; **your call** on who files. |
 | D16 | Accessors on the wrong type | Error, like PostGIS. | Principle 1. |
-| D17 | DataFusion version | Stay on DataFusion 54. Functions and features that need 55 (cast metadata: the `::geometry` shim removal, `VALUES` metadata, G6's cast and operator planning) are deferred to a separate patch set; anything built now must work on 54. | Your call: dependents are pinned to 54. |
+| D17 | DataFusion version | DataFusion 55.1, from 2026-10-08 (was: stay on 54). 55.2 waits until the crates used with it support it. The parity branch is rebased onto the upgrade, and the work that needed 55 (G6's casts and operators, the `::geometry` shim removal, `VALUES` metadata) comes first. | Your call: dependents move to 55. |
 | D18 | PostGIS-specific types | Map them to existing Arrow and GeoArrow types: `geoarrow.wkb` (geometry, and geography with spherical edges), `geoarrow.box` (box2d/box3d), plain structs for records (`geometry_dump`, `valid_detail`, ST_MaximumInscribedCircle) with PostGIS's field names. Register a `geodatafusion.*` extension type only where behaviour must attach to it. Curves, surfaces and TINs need a Rust curve model, not an Arrow type (late phase); per-row SRIDs would break GeoArrow's column CRS (not planned). | Analysis of the PostGIS types against Arrow. |
 
 Smaller per-group questions (G2 Q4/Q5/Q7/Q10, G5 Q3/Q5/Q7, G6 Q2/Q4/Q7/Q10/Q12) stay in the plans
