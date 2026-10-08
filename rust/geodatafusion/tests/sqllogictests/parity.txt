@@ -84,7 +84,7 @@ geodatafusion/st_relate 21/21
 geodatafusion/st_relatematch 7/7
 geodatafusion/st_setsrid 11/11
 geodatafusion/st_sharedpaths 9/9
-geodatafusion/st_simplify 3/3
+geodatafusion/st_simplify 42/42
 geodatafusion/st_simplifypreservetopology 15/15
 geodatafusion/st_snap 12/12
 geodatafusion/st_srid 5/5
@@ -345,7 +345,7 @@ postgis_docs/st_setsrid 1/2
 postgis_docs/st_sharedpaths 2/2
 postgis_docs/st_shiftlongitude 0/1
 postgis_docs/st_shortestline 0/2
-postgis_docs/st_simplify 0/1
+postgis_docs/st_simplify 1/1
 postgis_docs/st_simplifypolygonhull 0/3
 postgis_docs/st_simplifypreservetopology 3/3
 postgis_docs/st_simplifyvw 3/3

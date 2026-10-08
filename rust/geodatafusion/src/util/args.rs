@@ -28,10 +28,6 @@ pub(crate) fn optional_int_arg(
 
 /// Optional `boolean` argument `index`, one value per row (constants are broadcast), or
 /// `default` in every row if the call doesn't have it.
-#[cfg_attr(
-    not(feature = "geos-3_11"),
-    expect(dead_code, reason = "only GEOS-backed UDFs take a boolean so far")
-)]
 pub(crate) fn optional_bool_arg(
     args: &ScalarFunctionArgs,
     index: usize,

@@ -123,10 +123,6 @@ pub(crate) enum Arg {
     /// `bytea`: binary types are kept as is, with their field metadata. `Null` becomes `Binary`.
     Bytea,
     /// `boolean`: `Boolean` and `Null` become `Boolean`.
-    #[cfg_attr(
-        all(not(feature = "geos-3_11"), not(test)),
-        expect(dead_code, reason = "only GEOS-backed UDFs take a boolean so far")
-    )]
     Boolean,
 }
 
