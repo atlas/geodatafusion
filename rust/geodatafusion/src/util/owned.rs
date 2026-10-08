@@ -160,7 +160,8 @@ impl OwnedColumn {
     }
 }
 
-struct ToOwned;
+/// Owned copies of the geometries of an array, by [`map_geometry`].
+pub(crate) struct ToOwned;
 
 impl GeometryKernel for ToOwned {
     type Output = Wkt<f64>;

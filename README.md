@@ -20,7 +20,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 
 | Name                  | Implemented | Description                                                                                                                |
 | --------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------- |
-| ST_Collect            |             | Creates a GeometryCollection or Multi\* geometry from a set of geometries.                                                 |
+| ST_Collect            | ✅          | Creates a GeometryCollection or Multi\* geometry from a set of geometries. The aggregate form is ST_Collect_Agg.           |
 | ST_LineFromMultiPoint |             | Creates a LineString from a MultiPoint geometry.                                                                           |
 | ST_MakeEnvelope       |             | Creates a rectangular Polygon from minimum and maximum coordinates.                                                        |
 | ST_MakeLine           |             | Creates a LineString from Point, MultiPoint, or LineString geometries.                                                     |

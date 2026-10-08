@@ -57,6 +57,8 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udaf(udaf(native.Extent3D()))  # type: ignore
 
     # constructors
+    ctx.register_udf(udf(native.Collect()))
+    ctx.register_udaf(udaf(native.CollectAgg()))  # type: ignore
     ctx.register_udf(udf(native.Point()))
     ctx.register_udf(udf(native.PointZ()))
     ctx.register_udf(udf(native.PointM()))

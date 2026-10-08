@@ -17,6 +17,8 @@ geodatafusion/st_box2dfromgeohash 12/12
 geodatafusion/st_buffer 41/41
 geodatafusion/st_buildarea 12/12
 geodatafusion/st_centroid 18/18
+geodatafusion/st_collect 21/21
+geodatafusion/st_collect_agg 16/16
 geodatafusion/st_concavehull 15/15
 geodatafusion/st_contains 25/25
 geodatafusion/st_containsproperly 20/20
@@ -164,7 +166,7 @@ postgis_docs/st_boundary 0/6
 postgis_docs/st_boundingdiagonal 0/1
 postgis_docs/st_box2dfromgeohash 3/3
 postgis_docs/st_buffer 12/14
-postgis_docs/st_buildarea 0/2
+postgis_docs/st_buildarea 1/2
 postgis_docs/st_centroid 1/3
 postgis_docs/st_chaikinsmoothing 0/3
 postgis_docs/st_closestpoint 0/2
@@ -174,13 +176,13 @@ postgis_docs/st_clusterintersectingwin 0/1
 postgis_docs/st_clusterkmeans 0/3
 postgis_docs/st_clusterwithin 0/1
 postgis_docs/st_clusterwithinwin 0/1
-postgis_docs/st_collect 0/4
+postgis_docs/st_collect 2/4
 postgis_docs/st_collectionextract 0/3
 postgis_docs/st_collectionhomogenize 0/5
 postgis_docs/st_concavehull 2/3
 postgis_docs/st_contains 0/2
 postgis_docs/st_containsproperly 0/2
-postgis_docs/st_convexhull 0/1
+postgis_docs/st_convexhull 1/1
 postgis_docs/st_coorddim 1/2
 postgis_docs/st_coverageinvalidedges 0/1
 postgis_docs/st_coveragesimplify 0/1
@@ -309,7 +311,7 @@ postgis_docs/st_numpatches 0/1
 postgis_docs/st_numpoints 1/1
 postgis_docs/st_offsetcurve 2/6
 postgis_docs/st_orderingequals 0/3
-postgis_docs/st_orientedenvelope 1/2
+postgis_docs/st_orientedenvelope 2/2
 postgis_docs/st_overlaps 2/3
 postgis_docs/st_patchn 0/1
 postgis_docs/st_perimeter 0/4
