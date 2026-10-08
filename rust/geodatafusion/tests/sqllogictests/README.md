@@ -63,11 +63,13 @@ compared:
 
 Multi-row results without `ORDER BY` use `rowsort`.
 
-## The geometry type
+## The geometry type and the dialect
 
 The geodatafusion engine builds its session with `GeoTypePlanner` and `register`, so
 `'POINT(1 2)'::geometry`, `geometry(Point, 4326)` columns and `::text` casts plan as they would for
-a user. Until DataFusion 55 the engine rewrote literal casts into constructor calls instead.
+a user. Until DataFusion 55 the engine rewrote literal casts into constructor calls instead. It
+parses in the PostgreSQL dialect, which PostGIS's operators need and in which `^` is a power, as in
+PostgreSQL, rather than DataFusion's XOR.
 
 ## Aggregates under other names
 

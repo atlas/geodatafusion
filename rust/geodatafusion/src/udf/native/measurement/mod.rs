@@ -10,6 +10,6 @@ pub use length::Length;
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(Area.into());
-    session_context.register_udf(Distance.into());
+    session_context.register_udf(Distance::new().into());
     session_context.register_udf(Length.into());
 }

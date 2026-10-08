@@ -102,6 +102,22 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.Distance()))
     ctx.register_udf(udf(native.Length()))
 
+    # operators
+    ctx.register_udf(udf(native.GeometryAbove()))
+    ctx.register_udf(udf(native.GeometryBelow()))
+    ctx.register_udf(udf(native.GeometryContains()))
+    ctx.register_udf(udf(native.GeometryDistanceBox()))
+    ctx.register_udf(udf(native.GeometryLeft()))
+    ctx.register_udf(udf(native.GeometryOverAbove()))
+    ctx.register_udf(udf(native.GeometryOverBelow()))
+    ctx.register_udf(udf(native.GeometryOverLeft()))
+    ctx.register_udf(udf(native.GeometryOverRight()))
+    ctx.register_udf(udf(native.GeometryOverlaps()))
+    ctx.register_udf(udf(native.GeometryOverlapsNd()))
+    ctx.register_udf(udf(native.GeometryRight()))
+    ctx.register_udf(udf(native.GeometrySame()))
+    ctx.register_udf(udf(native.GeometryWithin()))
+
     # processing
     ctx.register_udf(udf(native.Simplify()))
     ctx.register_udf(udf(native.SimplifyVW()))

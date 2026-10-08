@@ -15,11 +15,12 @@ use wkt::types::Coord;
 
 use crate::error::GeoDataFusionResult;
 use crate::util::kernel::{GeometryKernel, map_geometry};
-use crate::util::ordinates::z;
+use crate::util::ordinates::{m, z};
 
 /// The bounding box of the coordinates added to it.
 ///
-/// A box nothing was added to is empty: PostGIS has no box for an EMPTY geometry. M never counts.
+/// A box nothing was added to is empty: PostGIS has no box for an EMPTY geometry. M is tracked
+/// for the n-D operators only; box2d, box3d and the raw bounds leave it out.
 #[derive(Debug, Clone, Copy)]
 pub struct BoundingRect {
     pub(crate) minx: f64,
@@ -28,6 +29,8 @@ pub struct BoundingRect {
     pub(crate) maxx: f64,
     pub(crate) maxy: f64,
     pub(crate) maxz: f64,
+    minm: f64,
+    maxm: f64,
     /// If `true`, expose itself as a 3D box through geo-traits, with Z 0 when no coordinate had
     /// a Z, as PostGIS's box3d does. Otherwise 2D. The GeoArrow builders need the dimension of
     /// every box to match the column's.
@@ -43,6 +46,8 @@ impl BoundingRect {
             maxx: -f64::INFINITY,
             maxy: -f64::INFINITY,
             maxz: -f64::INFINITY,
+            minm: f64::INFINITY,
+            maxm: -f64::INFINITY,
             include_z,
         }
     }
@@ -65,6 +70,8 @@ impl BoundingRect {
             maxx,
             maxy,
             maxz,
+            minm: f64::INFINITY,
+            maxm: -f64::INFINITY,
             include_z,
         }
     }
@@ -108,6 +115,16 @@ impl BoundingRect {
         }
     }
 
+    /// The Z range, if a coordinate had a Z.
+    pub(crate) fn z_range(&self) -> Option<(f64, f64)> {
+        (self.minz <= self.maxz).then_some((self.minz, self.maxz))
+    }
+
+    /// The M range, if a coordinate had an M.
+    pub(crate) fn m_range(&self) -> Option<(f64, f64)> {
+        (self.minm <= self.maxm).then_some((self.minm, self.maxm))
+    }
+
     fn add_coord(&mut self, coord: &impl CoordTrait<T = f64>) {
         self.minx = self.minx.min(coord.x());
         self.miny = self.miny.min(coord.y());
@@ -116,6 +133,10 @@ impl BoundingRect {
         if let Some(z) = z(coord) {
             self.minz = self.minz.min(z);
             self.maxz = self.maxz.max(z);
+        }
+        if let Some(m) = m(coord) {
+            self.minm = self.minm.min(m);
+            self.maxm = self.maxm.max(m);
         }
     }
 
@@ -178,6 +199,8 @@ impl BoundingRect {
         self.maxx = self.maxx.max(other.maxx);
         self.maxy = self.maxy.max(other.maxy);
         self.maxz = self.maxz.max(other.maxz);
+        self.minm = self.minm.min(other.minm);
+        self.maxm = self.maxm.max(other.maxm);
     }
 }
 

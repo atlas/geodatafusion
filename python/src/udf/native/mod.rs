@@ -3,6 +3,7 @@ mod bounding_box;
 mod constructors;
 mod io;
 mod measurement;
+mod operators;
 mod processing;
 mod relationships;
 mod srs;
@@ -89,6 +90,22 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<measurement::PyArea>()?;
     m.add_class::<measurement::PyDistance>()?;
     m.add_class::<measurement::PyLength>()?;
+
+    // operators
+    m.add_class::<operators::PyGeometryAbove>()?;
+    m.add_class::<operators::PyGeometryBelow>()?;
+    m.add_class::<operators::PyGeometryContains>()?;
+    m.add_class::<operators::PyGeometryDistanceBox>()?;
+    m.add_class::<operators::PyGeometryLeft>()?;
+    m.add_class::<operators::PyGeometryOverAbove>()?;
+    m.add_class::<operators::PyGeometryOverBelow>()?;
+    m.add_class::<operators::PyGeometryOverLeft>()?;
+    m.add_class::<operators::PyGeometryOverRight>()?;
+    m.add_class::<operators::PyGeometryOverlaps>()?;
+    m.add_class::<operators::PyGeometryOverlapsNd>()?;
+    m.add_class::<operators::PyGeometryRight>()?;
+    m.add_class::<operators::PyGeometrySame>()?;
+    m.add_class::<operators::PyGeometryWithin>()?;
 
     // processing
     m.add_class::<processing::PySimplify>()?;

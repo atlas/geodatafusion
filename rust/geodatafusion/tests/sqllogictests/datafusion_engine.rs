@@ -9,7 +9,7 @@ use arrow_array::{Array, RecordBatch};
 use arrow_schema::{DataType, Field};
 use datafusion::arrow::util::display::array_value_to_string;
 use datafusion::execution::SessionStateBuilder;
-use datafusion::prelude::SessionContext;
+use datafusion::prelude::{SessionConfig, SessionContext};
 use geoarrow_array::array::from_arrow_array;
 use geoarrow_array::cast::{AsGeoArrowArray, to_wkb};
 use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor};
@@ -29,7 +29,10 @@ pub struct GeoDataFusion {
 
 impl GeoDataFusion {
     pub fn new() -> Self {
+        // PostGIS's operators parse only in the PostgreSQL dialect.
+        let config = SessionConfig::new().set_str("datafusion.sql_parser.dialect", "PostgreSQL");
         let state = SessionStateBuilder::new()
+            .with_config(config)
             .with_default_features()
             .with_type_planner(Arc::new(GeoTypePlanner::new()))
             .build();

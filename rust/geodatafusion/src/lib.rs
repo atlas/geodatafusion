@@ -47,6 +47,8 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
 
     crate::udf::native::measurement::register(session_context);
 
+    crate::udf::native::operators::register(session_context);
+
     crate::udf::native::processing::register(session_context);
 
     crate::udf::native::relationships::register(session_context);
