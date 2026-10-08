@@ -5,6 +5,7 @@ pub mod bounding_box;
 pub mod constructors;
 pub mod io;
 pub mod measurement;
+pub mod operators;
 pub mod processing;
 pub mod relationships;
 pub mod srs;

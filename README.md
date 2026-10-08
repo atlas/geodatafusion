@@ -248,6 +248,29 @@ geodatafusion::register(&ctx);
 
 ### Operators
 
+The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 'PostgreSQL'`) and are planned when an operand is a geometry or a box; the functions behind them work in any dialect.
+
+| Name    | Function                | Implemented | Description                                                                                                                                  |
+| ------- | ----------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `&&`    | `geometry_overlaps`     | ✅          | Returns TRUE if A's 2D bounding box intersects B's 2D bounding box.                                                                          |
+| `&&&`   | `geometry_overlaps_nd`  | ✅          | Returns TRUE if A's n-D bounding box intersects B's n-D bounding box.                                                                        |
+| `&<`    | `geometry_overleft`     | ✅          | Returns TRUE if A's bounding box overlaps or is to the left of B's.                                                                          |
+| `&<\|`  | `geometry_overbelow`    | ✅          | Returns TRUE if A's bounding box overlaps or is below B's.                                                                                   |
+| `&>`    | `geometry_overright`    | ✅          | Returns TRUE if A's bounding box overlaps or is to the right of B's.                                                                         |
+| `<<`    | `geometry_left`         | ✅          | Returns TRUE if A's bounding box is strictly to the left of B's.                                                                             |
+| `<<\|`  | `geometry_below`        | ✅          | Returns TRUE if A's bounding box is strictly below B's.                                                                                      |
+| `=`     |                         |             | Returns TRUE if the coordinates and coordinate order of geometry/geography A are the same as B. DataFusion's own `=` compares the WKB bytes. |
+| `>>`    | `geometry_right`        | ✅          | Returns TRUE if A's bounding box is strictly to the right of B's.                                                                            |
+| `@`     | `geometry_within`       | ✅          | Returns TRUE if A's bounding box is contained by B's.                                                                                        |
+| `\|&>`  | `geometry_overabove`    | ✅          | Returns TRUE if A's bounding box overlaps or is above B's.                                                                                   |
+| `\|>>`  | `geometry_above`        | ✅          | Returns TRUE if A's bounding box is strictly above B's.                                                                                      |
+| `~`     | `geometry_contains`     | ✅          | Returns TRUE if A's bounding box contains B's.                                                                                               |
+| `~=`    | `geometry_same`         | ✅          | Returns TRUE if A's bounding box is the same as B's.                                                                                         |
+| `<->`   | `st_distance`           | ✅          | Returns the 2D distance between A and B.                                                                                                     |
+| `\|=\|` |                         |             | Returns the distance between A and B trajectories at their closest point of approach.                                                        |
+| `<#>`   | `geometry_distance_box` | ✅          | Returns the 2D distance between A and B bounding boxes.                                                                                      |
+| `<<->>` |                         |             | Returns the n-D distance between A and B geometries or bounding boxes.                                                                       |
+
 ### Spatial Relationships
 
 #### Topological Relationships

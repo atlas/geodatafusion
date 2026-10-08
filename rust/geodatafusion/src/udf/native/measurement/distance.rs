@@ -33,17 +33,22 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// Returns the distance between two geometries.
 #[user_doc(
     doc_section(label = "Measurement Functions"),
-    description = "For geometry types returns the minimum 2D Cartesian (planar) distance between two geometries, in projected units (spatial ref units). A point inside a polygon is at distance 0 from it. Returns NULL if either geometry is empty. Z and M are ignored.",
+    description = "For geometry types returns the minimum 2D Cartesian (planar) distance between two geometries, in projected units (spatial ref units). A point inside a polygon is at distance 0 from it. Returns NULL if either geometry is empty. Z and M are ignored. geometry_distance_centroid, the function behind the <-> operator, is the same function.",
     syntax_example = "ST_Distance(g1, g2)",
+    alternative_syntax = "g1 <-> g2",
     argument(name = "g1", description = "geometry"),
     argument(name = "g2", description = "geometry")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
-pub struct Distance;
+pub struct Distance {
+    aliases: Vec<String>,
+}
 
 impl Distance {
     pub fn new() -> Self {
-        Self
+        Self {
+            aliases: vec!["geometry_distance_centroid".to_string()],
+        }
     }
 }
 
@@ -56,6 +61,10 @@ impl Default for Distance {
 impl ScalarUDFImpl for Distance {
     fn name(&self) -> &str {
         "st_distance"
+    }
+
+    fn aliases(&self) -> &[String] {
+        &self.aliases
     }
 
     fn signature(&self) -> &Signature {
