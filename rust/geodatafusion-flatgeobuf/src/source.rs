@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use arrow_array::RecordBatch;
 use arrow_schema::{Field, Schema};
+use datafusion::common::tree_node::TreeNodeRecursion;
 use datafusion::datasource::listing::PartitionedFile;
 use datafusion::datasource::physical_plan::{
     FileOpenFuture, FileOpener, FileScanConfig, FileSource,
@@ -11,9 +12,9 @@ use datafusion::datasource::physical_plan::{
 use datafusion::error::{DataFusionError, Result};
 use datafusion::physical_expr::projection::ProjectionExprs;
 use datafusion::physical_expr::{PhysicalExpr, ScalarFunctionExpr};
-use datafusion::physical_plan::ColumnarValue;
 use datafusion::physical_plan::filter_pushdown::{FilterPushdownPropagation, PushedDown};
 use datafusion::physical_plan::metrics::ExecutionPlanMetricsSet;
+use datafusion::physical_plan::{ColumnarValue, apply_expression_roots};
 use datafusion_datasource::TableSchema;
 use futures::{StreamExt, TryStreamExt};
 use geoarrow_array::array::from_arrow_array;
@@ -135,6 +136,14 @@ impl FileSource for FlatGeobufSource {
 
     fn projection(&self) -> Option<&ProjectionExprs> {
         Some(&self.projection)
+    }
+
+    fn apply_expressions(
+        &self,
+        f: &mut dyn FnMut(&Arc<dyn PhysicalExpr>) -> Result<TreeNodeRecursion>,
+    ) -> Result<TreeNodeRecursion> {
+        // The bbox filter is pushed down as numbers, not expressions.
+        apply_expression_roots(self.projection.iter().map(|projection| &projection.expr), f)
     }
 }
 
