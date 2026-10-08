@@ -463,8 +463,7 @@ SELECT ST_Area('POLYGON EMPTY'::geometry)
   section comments.
 - One behaviour per query. Uppercase SQL keywords and PostGIS-cased function names
   (`SELECT ST_Area(...)`).
-- Use `'...'::geometry` literals as in the PostGIS docs; the harness rewrites them until the
-  `geometry` type lands.
+- Use `'...'::geometry` literals as in the PostGIS docs.
 
 ### Unit tests (Rust API)
 
