@@ -86,7 +86,7 @@ NULL
 
 # A column, including NULL
 query T rowsort
-SELECT ST_AsEWKB(g) FROM (VALUES ('SRID=4326;POINT(1 2)'::geometry), (ST_SetSRID(NULL::geometry, 4326)), ('SRID=4326;POINT EMPTY'::geometry)) AS t(g)
+SELECT ST_AsEWKB(g) FROM (VALUES ('SRID=4326;POINT(1 2)'::geometry), (NULL::geometry), ('SRID=4326;POINT EMPTY'::geometry)) AS t(g)
 ----
 NULL
 \x0101000020e6100000000000000000f03f0000000000000040

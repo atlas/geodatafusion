@@ -7,7 +7,7 @@ executes the same queries on DataFusion with geodatafusion registered and compar
 ```
 tests/sqllogictests/
 ├── main.rs               runner: CLI, filtering, parity tracking
-├── datafusion_engine.rs  geodatafusion engine (+ the `::geometry` literal shim)
+├── datafusion_engine.rs  geodatafusion engine
 ├── postgis.rs            PostGIS engine (used to record and check expectations)
 ├── render.rs             engine-neutral value rendering
 ├── parity.txt            passing records per file; the ratchet CI enforces
@@ -63,13 +63,11 @@ compared:
 
 Multi-row results without `ORDER BY` use `rowsort`.
 
-## The `::geometry` shim
+## The geometry type
 
-DataFusion has no `geometry` SQL type, so the geodatafusion engine rewrites literal casts
-before planning: `'POINT(1 2)'::geometry` becomes `ST_GeomFromText(...)`, `'SRID=..'` literals
-become `ST_GeomFromEWKT(...)`, hex becomes `ST_GeomFromEWKB(X'..')`, and `::geography` becomes
-`ST_GeogFromText(...)`. This keeps the function tests meaningful. Real `geometry` type support
-is a separate parity gap.
+The geodatafusion engine builds its session with `GeoTypePlanner` and `register`, so
+`'POINT(1 2)'::geometry`, `geometry(Point, 4326)` columns and `::text` casts plan as they would for
+a user. Until DataFusion 55 the engine rewrote literal casts into constructor calls instead.
 
 ## Aggregates under other names
 

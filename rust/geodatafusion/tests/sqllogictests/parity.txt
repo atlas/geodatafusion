@@ -4,7 +4,7 @@
 # improvements are recorded.
 geodatafusion/box2d 16/16
 geodatafusion/box3d 16/16
-geodatafusion/geometry 49/50
+geodatafusion/geometry 50/50
 geodatafusion/geometrytype 18/18
 geodatafusion/st_3dextent 10/10
 geodatafusion/st_3dmakebox 5/5

@@ -70,8 +70,8 @@ non-zero when the numbers differ from `parity.txt`. That's expected while you wo
   differences there don't matter.
 - A doc example may mention several functions (e.g. `ST_Area` with `ST_Transform`). Failures
   caused by *other* missing functions are expected. Focus on your function's behaviour.
-- `'...'::geometry` literals are rewritten by the harness to `ST_GeomFromText` /
-  `ST_GeomFromEWKT` / `ST_GeomFromEWKB`. If those constructors are missing or wrong, many tests
-  fail at once, so check the error message before assuming your function is at fault.
+- `'...'::geometry` literals plan through geodatafusion's `geometry` type and its `geometry()`
+  cast function (`src/sql/`, `udf/native/types/`). If those are wrong, many tests fail at once,
+  so check the error message before assuming your function is at fault.
 - Without `--all-features`, GEOS-backed functions are missing and parity numbers won't match.
   Always use `cargo slt`.
