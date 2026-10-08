@@ -12,6 +12,46 @@ pub fn url() -> String {
     std::env::var("POSTGIS_URL").unwrap_or_else(|_| DEFAULT_URL.to_string())
 }
 
+/// PostGIS's aggregates under the names geodatafusion gives them, where a scalar function has the
+/// PostGIS name (plans D8): `st_collect_agg` is PostGIS's aggregate `ST_Collect(geometry)`.
+///
+/// Each collects its input into an array and finishes with PostGIS's own aggregate over it, in
+/// input order, so PostGIS stays the oracle. (PostGIS's `geometry[]` overloads aren't always the
+/// same: `ST_Union` of `POINT EMPTY` and `POINT Z (1 2 3)` drops the Z.) Like everything else in
+/// the file's transaction, they are rolled back at the end.
+const AGGREGATE_ALIASES: &str = "
+    CREATE FUNCTION pg_temp.collect_agg_final(geoms geometry[])
+        RETURNS geometry LANGUAGE sql IMMUTABLE
+        AS $$ SELECT ST_Collect(geom ORDER BY i) FROM unnest(geoms) WITH ORDINALITY AS t(geom, i) $$;
+    CREATE AGGREGATE st_collect_agg(geometry)
+        (SFUNC = array_append, STYPE = geometry[], FINALFUNC = pg_temp.collect_agg_final);
+    CREATE FUNCTION pg_temp.makeline_agg_final(geoms geometry[])
+        RETURNS geometry LANGUAGE sql IMMUTABLE
+        AS $$ SELECT ST_MakeLine(geom ORDER BY i) FROM unnest(geoms) WITH ORDINALITY AS t(geom, i) $$;
+    CREATE AGGREGATE st_makeline_agg(geometry)
+        (SFUNC = array_append, STYPE = geometry[], FINALFUNC = pg_temp.makeline_agg_final);
+    CREATE FUNCTION pg_temp.union_agg_final(geoms geometry[])
+        RETURNS geometry LANGUAGE sql IMMUTABLE
+        AS $$ SELECT ST_Union(geom ORDER BY i) FROM unnest(geoms) WITH ORDINALITY AS t(geom, i) $$;
+    CREATE AGGREGATE st_union_agg(geometry)
+        (SFUNC = array_append, STYPE = geometry[], FINALFUNC = pg_temp.union_agg_final);
+    CREATE TYPE pg_temp.union_agg_state AS (geoms geometry[], gridsize float8);
+    CREATE FUNCTION pg_temp.union_agg_step(
+        state pg_temp.union_agg_state, geom geometry, gridsize float8
+    ) RETURNS pg_temp.union_agg_state LANGUAGE sql IMMUTABLE
+        AS $$ SELECT ROW(array_append(state.geoms, geom), gridsize)::pg_temp.union_agg_state $$;
+    CREATE FUNCTION pg_temp.union_agg_final(state pg_temp.union_agg_state)
+        RETURNS geometry LANGUAGE sql IMMUTABLE
+        AS $$
+            SELECT ST_Union(geom, state.gridsize ORDER BY i)
+            FROM unnest(state.geoms) WITH ORDINALITY AS t(geom, i)
+        $$;
+    CREATE AGGREGATE st_union_agg(geometry, float8) (
+        SFUNC = pg_temp.union_agg_step, STYPE = pg_temp.union_agg_state,
+        FINALFUNC = pg_temp.union_agg_final, INITCOND = '({},)'
+    );
+";
+
 pub struct PostGIS {
     client: Client,
 }
@@ -36,6 +76,7 @@ impl PostGIS {
                  BEGIN;",
             )
             .await?;
+        client.batch_execute(AGGREGATE_ALIASES).await?;
         Ok(Self { client })
     }
 
