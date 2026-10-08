@@ -53,7 +53,7 @@ planner on DataFusion 54 and 55. Failure counts come from `cargo slt -v` at comm
 
 | Gap | Effect | Unblocked by |
 |---|---|---|
-| `Cast` drops the target field's metadata. `cast_output_field` copies the *source* metadata (`datafusion-expr-54.0.0/src/expr_schema.rs:74-88`, used at :598). | At SQL-planning time `'POINT(1 2)'::geometry` is a plain `Binary`. `VALUES ('...'::geometry)` loses the type and CRS for good (verified). The operator planner can't tell from metadata that a cast literal is a geometry. Casting a geometry to another type keeps the `geoarrow.*` tag on the wrong storage. | DataFusion 55 (`expr_schema.rs:87-117` uses the target field's metadata; verified: VALUES, subqueries and the operator planner all see the extension). DataFusion 55 uses arrow 59, so it also needs a geoarrow release on arrow 59. |
+| `Cast` drops the target field's metadata. `cast_output_field` copies the *source* metadata (`datafusion-expr-54.0.0/src/expr_schema.rs:74-88`, used at :598). | At SQL-planning time `'POINT(1 2)'::geometry` is a plain `Binary`. `VALUES ('...'::geometry)` loses the type and CRS for good (verified). The operator planner can't tell from metadata that a cast literal is a geometry. Casting a geometry to another type keeps the `geoarrow.*` tag on the wrong storage. | DataFusion 55 (`expr_schema.rs:87-117` uses the target field's metadata; verified: VALUES, subqueries and the operator planner all see the extension). The branch is on 55.1 (D17). A cast rewrite that changes the field, such as a CRS read from an `'SRID=n;...'` literal, doesn't reach a `VALUES` schema, which is fixed when the SQL is planned; an analyzer rule that recomputes it works (verified on 55.1). |
 | INSERT casts values to the table schema with a type-only cast. | `INSERT INTO t VALUES (1, 'POINT(1 2)')` into a `geometry` column stores the text bytes as "WKB" (verified on 54 and 55). `INSERT ... SELECT '...'::geometry` works. | A custom analyzer rule that inspects `Dml` targets, or upstream assignment-cast hooks. Deferred. |
 | One `TypePlanner` per session, set only through `SessionStateBuilder::with_type_planner` (`datafusion-54.0.0/src/execution/session_state.rs:1295`). | `geodatafusion::register(&SessionContext)` can't add the types. Users build their session with `GeoTypePlanner`. | Upstream: a list of type planners, like expression planners. |
 | Geometric operators are tokenized only by `PostgreSqlDialect`/`RedshiftSqlDialect` (`sqlparser-0.62.0/src/tokenizer.rs:1547-1790`, `parser/mod.rs:3787-3867`). | The default Generic dialect parses only `&&`, `~`, `<<`, `>>`. Users set `datafusion.sql_parser.dialect = 'PostgreSQL'`. | Nothing needed beyond configuration. Switching the harness loses no record (all 582 parse at least as well; 16 more parse). |
@@ -701,8 +701,8 @@ can start.
 parsers), `GeoCastRewrite`, `CREATE TABLE`. The harness builds its session with the type planner
 and gets a switch to run without the shim. Gain: the non-literal casts (st_clusterintersectingwin 1,
 st_clusterwithinwin 1, st_ashexewkb 1, and st_point 2-3 once geography exists). Then compare parity with
-and without the shim; on DataFusion 54 records that return a geometry straight from `VALUES` will
-regress without the shim (gap 1), so the shim stays. R9 here too.
+and without the shim. On DataFusion 54 records that returned a geometry straight from `VALUES`
+would regress without the shim (gap 1); on 55 (D17) batches 3 and 5 go together. R9 here too.
 
 **Batch 4: geography.** Geography metadata, `geography(...)`, `common_metadata`'s geometry vs
 geography check, `is_geography`; G2/G3 add the overloads. Gain: up to 10 records with G2.
