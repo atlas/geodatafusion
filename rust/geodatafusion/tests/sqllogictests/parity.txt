@@ -60,6 +60,7 @@ geodatafusion/st_makeline_agg 22/22
 geodatafusion/st_makepoint 7/7
 geodatafusion/st_makepointm 4/4
 geodatafusion/st_makevalid 26/26
+geodatafusion/st_memunion 27/27
 geodatafusion/st_minimumclearance 11/11
 geodatafusion/st_minimumclearanceline 11/11
 geodatafusion/st_mlinefromtext 10/10
@@ -99,6 +100,8 @@ geodatafusion/st_startpoint 16/16
 geodatafusion/st_symdifference 20/20
 geodatafusion/st_touches 20/20
 geodatafusion/st_unaryunion 14/14
+geodatafusion/st_union 20/20
+geodatafusion/st_union_agg 33/33
 geodatafusion/st_voronoilines 13/13
 geodatafusion/st_voronoipolygons 13/13
 geodatafusion/st_within 25/25
@@ -194,7 +197,7 @@ postgis_docs/st_covers 0/2
 postgis_docs/st_cpawithin 0/1
 postgis_docs/st_curven 0/1
 postgis_docs/st_curvetoline 0/4
-postgis_docs/st_delaunaytriangles 1/3
+postgis_docs/st_delaunaytriangles 3/3
 postgis_docs/st_dfullywithin 0/1
 postgis_docs/st_difference 2/2
 postgis_docs/st_dimension 0/1
@@ -371,10 +374,10 @@ postgis_docs/st_transformpipeline 0/2
 postgis_docs/st_translate 0/4
 postgis_docs/st_transscale 0/2
 postgis_docs/st_triangulatepolygon 0/3
-postgis_docs/st_union 0/1
+postgis_docs/st_union 1/1
 postgis_docs/st_voronoilines 1/1
 postgis_docs/st_voronoipolygons 2/2
-postgis_docs/st_within 0/1
+postgis_docs/st_within 1/1
 postgis_docs/st_x 2/2
 postgis_docs/st_y 2/2
 postgis_docs/st_z 1/1

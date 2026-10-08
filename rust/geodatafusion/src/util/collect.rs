@@ -30,7 +30,11 @@ use crate::util::owned::ToOwned;
 /// The result for one group from its geometries, in input order (or the call's `ORDER BY`), NULLs
 /// left out. `None` is SQL NULL. Never called for a group without geometries, whose result is
 /// NULL, as in PostGIS.
-pub(crate) type Finalize = fn(Vec<Wkt<f64>>) -> GeoDataFusionResult<Option<Wkt<f64>>>;
+///
+/// Constant further arguments, such as ST_Union_Agg's grid size, are captured when the
+/// accumulator is created.
+pub(crate) type Finalize =
+    Arc<dyn Fn(Vec<Wkt<f64>>) -> GeoDataFusionResult<Option<Wkt<f64>>> + Send + Sync>;
 
 /// The `state_fields` of a collect aggregate.
 pub(crate) fn collect_state_fields(args: StateFieldsArgs) -> Result<Vec<FieldRef>> {
@@ -46,20 +50,27 @@ pub(crate) fn collect_groups_accumulator_supported(args: AccumulatorArgs) -> boo
 #[derive(Debug)]
 pub(crate) struct CollectAccumulator {
     inner: Box<dyn Accumulator>,
+    arguments: usize,
     finisher: Finisher,
 }
 
 impl CollectAccumulator {
     pub(crate) fn try_new(args: AccumulatorArgs, finalize: Finalize) -> Result<Self> {
         let finisher = Finisher::new(&args, finalize);
+        let arguments = args.exprs.len();
         let inner = ArrayAgg::default().accumulator(skip_nulls(args))?;
-        Ok(Self { inner, finisher })
+        Ok(Self {
+            inner,
+            arguments,
+            finisher,
+        })
     }
 }
 
 impl Accumulator for CollectAccumulator {
     fn update_batch(&mut self, values: &[ArrayRef]) -> Result<()> {
-        self.inner.update_batch(values)
+        self.inner
+            .update_batch(&without_constants(values, self.arguments))
     }
 
     fn evaluate(&mut self) -> Result<ScalarValue> {
@@ -86,14 +97,20 @@ impl Accumulator for CollectAccumulator {
 /// The accumulator for many groups at once.
 pub(crate) struct CollectGroupsAccumulator {
     inner: Box<dyn GroupsAccumulator>,
+    arguments: usize,
     finisher: Finisher,
 }
 
 impl CollectGroupsAccumulator {
     pub(crate) fn try_new(args: AccumulatorArgs, finalize: Finalize) -> Result<Self> {
         let finisher = Finisher::new(&args, finalize);
+        let arguments = args.exprs.len();
         let inner = ArrayAgg::default().create_groups_accumulator(skip_nulls(args))?;
-        Ok(Self { inner, finisher })
+        Ok(Self {
+            inner,
+            arguments,
+            finisher,
+        })
     }
 }
 
@@ -105,8 +122,12 @@ impl GroupsAccumulator for CollectGroupsAccumulator {
         opt_filter: Option<&BooleanArray>,
         total_num_groups: usize,
     ) -> Result<()> {
-        self.inner
-            .update_batch(values, group_indices, opt_filter, total_num_groups)
+        self.inner.update_batch(
+            &without_constants(values, self.arguments),
+            group_indices,
+            opt_filter,
+            total_num_groups,
+        )
     }
 
     fn evaluate(&mut self, emit_to: EmitTo) -> Result<ArrayRef> {
@@ -133,12 +154,22 @@ impl GroupsAccumulator for CollectGroupsAccumulator {
         values: &[ArrayRef],
         opt_filter: Option<&BooleanArray>,
     ) -> Result<Vec<ArrayRef>> {
-        self.inner.convert_to_state(values, opt_filter)
+        self.inner
+            .convert_to_state(&without_constants(values, self.arguments), opt_filter)
     }
 
     fn size(&self) -> usize {
         self.inner.size() + size_of::<Finisher>()
     }
+}
+
+/// The input without the constant arguments after the geometry, which aren't stored. The values
+/// of the call's `ORDER BY` expressions follow the `arguments` arguments, and stay.
+fn without_constants(values: &[ArrayRef], arguments: usize) -> Vec<ArrayRef> {
+    std::iter::once(&values[0])
+        .chain(&values[arguments..])
+        .cloned()
+        .collect()
 }
 
 /// PostGIS aggregates skip NULL input, so NULLs aren't stored.
@@ -150,13 +181,21 @@ fn skip_nulls(args: AccumulatorArgs) -> AccumulatorArgs {
 }
 
 /// Applies a [`Finalize`] to each group's list.
-#[derive(Debug)]
 struct Finisher {
     /// The input's field: `array_agg` stores the input's Arrow type, but not its extension
     /// metadata, which is needed to read it.
     item_field: FieldRef,
     return_field: FieldRef,
     finalize: Finalize,
+}
+
+impl Debug for Finisher {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Finisher")
+            .field("item_field", &self.item_field)
+            .field("return_field", &self.return_field)
+            .finish_non_exhaustive()
+    }
 }
 
 impl Finisher {

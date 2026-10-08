@@ -1,12 +1,15 @@
 //! Readers for non-geometry UDF arguments.
 
+use std::sync::Arc;
+
 use arrow_array::cast::AsArray;
 use arrow_array::types::{Float64Type, Int32Type};
-use arrow_array::{BooleanArray, Float64Array, Int32Array, StringArray};
+use arrow_array::{BooleanArray, Float64Array, Int32Array, RecordBatch, StringArray};
 use arrow_schema::DataType;
 use datafusion::common::{ScalarValue, internal_err, plan_err};
 use datafusion::error::Result;
-use datafusion::logical_expr::{ReturnFieldArgs, ScalarFunctionArgs};
+use datafusion::logical_expr::function::AccumulatorArgs;
+use datafusion::logical_expr::{ColumnarValue, ReturnFieldArgs, ScalarFunctionArgs};
 
 use crate::util::srid::clamp_srid;
 
@@ -92,4 +95,35 @@ pub(crate) fn scalar_srid(name: &str, args: &ReturnFieldArgs, index: usize) -> R
             other => internal_err!("{name}: SRID cast to Int64 gave {other:?}"),
         },
     }
+}
+
+/// The constant `float8` argument `index` of an aggregate, read when its accumulator is created:
+/// `Some(None)` if it is NULL, `None` if the call doesn't have it.
+///
+/// An aggregate computes its result once per group, so a further argument must be the same for
+/// every row; anything but a constant is a plan error. It is evaluated against an empty batch,
+/// so a cast of a constant works too.
+#[cfg_attr(
+    not(feature = "geos-3_11"),
+    expect(
+        dead_code,
+        reason = "only GEOS-backed aggregates take a constant parameter so far"
+    )
+)]
+pub(crate) fn constant_float_arg(
+    name: &str,
+    args: &AccumulatorArgs,
+    index: usize,
+) -> Result<Option<Option<f64>>> {
+    let Some(expr) = args.exprs.get(index) else {
+        return Ok(None);
+    };
+    let batch = RecordBatch::new_empty(Arc::new(args.schema.clone()));
+    let ColumnarValue::Scalar(value) = expr.evaluate(&batch)? else {
+        return plan_err!("{name} only supports a constant argument {}", index + 1);
+    };
+    let ScalarValue::Float64(value) = value.cast_to(&DataType::Float64)? else {
+        return internal_err!("a cast to Float64 gives a Float64");
+    };
+    Ok(Some(value))
 }

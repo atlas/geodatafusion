@@ -1,4 +1,4 @@
-//! The binary overlay functions: ST_Intersection, ST_Difference and ST_SymDifference.
+//! The binary overlay functions: ST_Intersection, ST_Difference, ST_SymDifference and ST_Union.
 
 use std::sync::LazyLock;
 
@@ -26,7 +26,7 @@ use crate::util::owned::to_owned_geometry;
 use crate::util::signature::{Arg, coerce_args};
 
 /// PostGIS: ST_Intersection(geometry geom1, geometry geom2, float8 gridSize = -1), and the same
-/// for ST_Difference and ST_SymDifference.
+/// for ST_Difference, ST_SymDifference and ST_Union.
 static ARGUMENTS: &[&[Arg]] = &[
     &[Arg::Geometry, Arg::Geometry],
     &[Arg::Geometry, Arg::Geometry, Arg::Float],
@@ -209,11 +209,70 @@ impl ScalarUDFImpl for SymDifference {
     }
 }
 
+/// Returns the point-set union of two geometries.
+#[user_doc(
+    doc_section(label = "Overlay Functions"),
+    description = "Returns a geometry representing the point-set union of two geometries. If one is empty, the other is returned unchanged. If the optional gridSize argument is given (and not negative), the inputs are snapped to a grid of that size and the result is computed on it. This function keeps Z and drops M. For the aggregate form, see ST_Union_Agg; the geometry[] form isn't supported.",
+    syntax_example = "ST_Union(geom1, geom2, gridSize)",
+    argument(name = "geom1", description = "geometry"),
+    argument(name = "geom2", description = "geometry"),
+    argument(name = "gridSize", description = "float8"),
+    related_udf(name = "st_union_agg")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct Union;
+
+impl Union {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl Default for Union {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for Union {
+    fn name(&self) -> &str {
+        "st_union"
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        Ok(wkb_return_field(
+            self.name(),
+            input_metadata(&args.arg_fields[0]),
+        ))
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(overlay_impl(self.name(), args, Operation::Union)?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 enum Operation {
     Intersection,
     Difference,
     SymDifference,
+    Union,
 }
 
 fn overlay_impl(
@@ -267,6 +326,8 @@ impl GeometryKernel for OverlayKernel {
             Operation::Difference if empty || other_empty => Some(to_owned_geometry(geom)),
             Operation::SymDifference if other_empty => Some(to_owned_geometry(geom)),
             Operation::SymDifference if empty => Some(other.clone()),
+            Operation::Union if empty => Some(other.clone()),
+            Operation::Union if other_empty => Some(to_owned_geometry(geom)),
             _ => None,
         };
         if shortcut.is_some() {
@@ -293,6 +354,8 @@ fn overlay(
         Operation::Difference => geom.difference(other)?,
         Operation::SymDifference if snapped => geom.sym_difference_prec(other, grid_size)?,
         Operation::SymDifference => geom.sym_difference(other)?,
+        Operation::Union if snapped => geom.union_prec(other, grid_size)?,
+        Operation::Union => geom.union(other)?,
     })
 }
 

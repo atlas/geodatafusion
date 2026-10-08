@@ -1,6 +1,6 @@
 //! ST_MakeLine, and its aggregate form.
 
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
 use arrow_schema::{DataType, FieldRef};
 use datafusion::common::{exec_datafusion_err, internal_err};
@@ -167,7 +167,10 @@ impl AggregateUDFImpl for MakeLineAgg {
     }
 
     fn accumulator(&self, args: AccumulatorArgs) -> Result<Box<dyn Accumulator>> {
-        Ok(Box::new(CollectAccumulator::try_new(args, make_line_agg)?))
+        Ok(Box::new(CollectAccumulator::try_new(
+            args,
+            Arc::new(make_line_agg),
+        )?))
     }
 
     fn state_fields(&self, args: StateFieldsArgs) -> Result<Vec<FieldRef>> {
@@ -184,7 +187,7 @@ impl AggregateUDFImpl for MakeLineAgg {
     ) -> Result<Box<dyn GroupsAccumulator>> {
         Ok(Box::new(CollectGroupsAccumulator::try_new(
             args,
-            make_line_agg,
+            Arc::new(make_line_agg),
         )?))
     }
 

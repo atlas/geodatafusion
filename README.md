@@ -299,13 +299,13 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_ClipByBox2D   |             | Computes the portion of a geometry falling within a rectangle.                              |
 | ST_Difference    | ✅          | Computes a geometry representing the part of geometry A that does not intersect geometry B. |
 | ST_Intersection  | ✅          | Computes a geometry representing the shared portion of geometries A and B.                  |
-| ST_MemUnion      |             | Aggregate function which unions geometries in a memory-efficent but slower way              |
+| ST_MemUnion      | ✅          | Aggregate function which unions geometries in a memory-efficent but slower way              |
 | ST_Node          | ✅          | Nodes a collection of lines.                                                                |
 | ST_Split         |             | Returns a collection of geometries created by splitting a geometry by another geometry.     |
 | ST_Subdivide     |             | Computes a rectilinear subdivision of a geometry.                                           |
 | ST_SymDifference | ✅          | Computes a geometry representing the portions of geometries A and B that do not intersect.  |
 | ST_UnaryUnion    | ✅          | Computes the union of the components of a single geometry.                                  |
-| ST_Union         |             | Computes a geometry representing the point-set union of the input geometries.               |
+| ST_Union         | ✅          | Computes a geometry representing the point-set union of the input geometries.               |
 
 ### Geometry Processing
 
