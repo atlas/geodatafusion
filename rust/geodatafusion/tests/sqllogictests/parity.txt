@@ -24,6 +24,7 @@ geodatafusion/st_contains 25/25
 geodatafusion/st_containsproperly 20/20
 geodatafusion/st_convexhull 18/18
 geodatafusion/st_coorddim 11/11
+geodatafusion/st_coverageunion 15/15
 geodatafusion/st_coveredby 25/25
 geodatafusion/st_covers 25/25
 geodatafusion/st_crosses 20/20
@@ -86,6 +87,7 @@ geodatafusion/st_pointfromwkb 8/8
 geodatafusion/st_pointonsurface 18/18
 geodatafusion/st_polyfromwkb 8/8
 geodatafusion/st_polygonfromtext 10/10
+geodatafusion/st_polygonize 15/15
 geodatafusion/st_reduceprecision 14/14
 geodatafusion/st_relate 21/21
 geodatafusion/st_relatematch 7/7
@@ -191,7 +193,7 @@ postgis_docs/st_convexhull 1/1
 postgis_docs/st_coorddim 1/2
 postgis_docs/st_coverageinvalidedges 0/1
 postgis_docs/st_coveragesimplify 0/1
-postgis_docs/st_coverageunion 0/1
+postgis_docs/st_coverageunion 1/1
 postgis_docs/st_coveredby 0/1
 postgis_docs/st_covers 0/2
 postgis_docs/st_cpawithin 0/1
@@ -332,7 +334,7 @@ postgis_docs/st_pointz 3/3
 postgis_docs/st_pointzm 3/3
 postgis_docs/st_polygon 0/2
 postgis_docs/st_polygonfromtext 2/2
-postgis_docs/st_polygonize 0/1
+postgis_docs/st_polygonize 1/1
 postgis_docs/st_project 0/1
 postgis_docs/st_quantizecoordinates 0/2
 postgis_docs/st_reduceprecision 5/5
