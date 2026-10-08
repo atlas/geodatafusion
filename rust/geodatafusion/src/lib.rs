@@ -7,6 +7,8 @@
 )]
 
 pub(crate) mod error;
+#[cfg(feature = "sql")]
+pub mod sql;
 pub mod udf;
 pub(crate) mod util;
 
@@ -50,6 +52,11 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     crate::udf::native::relationships::register(session_context);
 
     crate::udf::native::srs::register(session_context);
+
+    crate::udf::native::types::register(session_context);
+
+    #[cfg(feature = "sql")]
+    crate::sql::register(session_context);
 }
 
 #[cfg(test)]

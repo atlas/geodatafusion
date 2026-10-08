@@ -16,6 +16,26 @@ geodatafusion = "0.5"
 
 Functions are explicitly modeled after the [PostGIS API](https://postgis.net/docs/reference.html). We strive to match the PostGIS API as much as possible.
 
+### Data Types
+
+The `geometry`, `box2d` and `box3d` SQL types come from `GeoTypePlanner` (the default `sql` feature), which a session takes when it's built; `register` adds the casts between them:
+
+```rust
+let state = SessionStateBuilder::new()
+    .with_default_features()
+    .with_type_planner(Arc::new(geodatafusion::sql::GeoTypePlanner::new()))
+    .build();
+let ctx = SessionContext::new_with_state(state);
+geodatafusion::register(&ctx);
+```
+
+| Name      | Implemented | Description                                                                                                                                                 |
+| --------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| geometry  | ✅          | Planar geometry, stored as WKB, with an optional `(type, srid)` type modifier. Casts from text (WKT, EWKT, hex EWKB), bytea (EWKB) and boxes, and to text and bytea. |
+| geography |             | Geodetic geometry.                                                                                                                                          |
+| box2d     | ✅          | A 2D bounding box. Casts from and to geometry.                                                                                                              |
+| box3d     | ✅          | A 3D bounding box. Casts from and to geometry.                                                                                                              |
+
 ### Geometry Constructors
 
 | Name                  | Implemented | Description                                                                                                                |

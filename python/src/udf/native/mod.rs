@@ -6,6 +6,7 @@ mod measurement;
 mod processing;
 mod relationships;
 mod srs;
+mod types;
 
 use pyo3::prelude::*;
 
@@ -100,6 +101,9 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     // srs
     m.add_class::<srs::PySetSRID>()?;
     m.add_class::<srs::PySRID>()?;
+
+    // types
+    m.add_class::<types::PyGeometry>()?;
 
     Ok(())
 }

@@ -11,6 +11,9 @@ rust-version = { workspace = true }
 
 
 [features]
+default = ["sql"]
+# Enables the geometry, box2d and box3d SQL types and their casts.
+sql = ["datafusion/sql"]
 # Enables GEOS-backed UDFs.
 # We only use explicitly versioned flags,
 # and the structure should be recursive
@@ -68,6 +71,8 @@ tokio-postgres = { workspace = true }
 name = "sqllogictests"
 path = "tests/sqllogictests/main.rs"
 harness = false
+# The harness plans the geometry type.
+required-features = ["sql"]
 
 [package.metadata.docs.rs]
 # Not geos-static, which would build GEOS from source; geos/dox skips linking it.
