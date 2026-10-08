@@ -1,8 +1,11 @@
 use geodatafusion::udf::native::constructors::{
-    MakePoint, MakePointM, Point, PointM, PointZ, PointZM,
+    Collect, CollectAgg, MakePoint, MakePointM, Point, PointM, PointZ, PointZM,
 };
 
-use crate::impl_udf;
+use crate::{impl_udaf, impl_udf};
+
+impl_udf!(Collect, PyCollect, "Collect");
+impl_udaf!(CollectAgg, PyCollectAgg, "CollectAgg");
 
 impl_udf!(Point, PyPoint, "Point");
 impl_udf!(PointZ, PyPointZ, "PointZ");
