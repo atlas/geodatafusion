@@ -107,8 +107,7 @@ versions; a missing helper is added to the shared module.
 - PROJ: a `proj` feature with bundled PROJ (+1–1.5 min in CI), `proj-sys` directly for
   pipelines, and `proj.db` shipped or located with `PROJ_DATA` (E5 H12).
 - G6 batch 2: run the geodatafusion engine with the PostgreSQL dialect, for the operators.
-- G6 batch 5: remove the `::geometry` shim, together with batch 3, now that the branch is on
-  DataFusion 55 (D17).
+- Done (G6 batch 5): the `::geometry` shim is gone; literals plan through the `geometry` type.
 
 ## Bugs found in existing code
 
@@ -191,6 +190,12 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    rewrite reads from an `'SRID=n;...'` literal needs the list's schema recomputed, which an
    analyzer rule can do. Order: G6 batches 3 and 5 (types, casts, shim removal), then batch 2
    (operators).
+   *Status:* batches 3 and 5 done: the `sql` feature with `GeoTypePlanner` (`geometry`,
+   `geometry(type, srid)`, `box2d`, `box3d`), the cast rewrite (`geometry()`, `::box2d`,
+   `::box3d`, `::text`, `::bytea`), an analyzer rule for `VALUES` CRSs, and one that converts
+   what `INSERT` writes to a geometry column (G6 question 12). The shim is gone. Parity
+   2074/2468 -> 2133/2526. Left: batch 2 (operators), batch 4 (geography), typmod geometry
+   types (not enforced, G6 question 10).
 
 ## Decisions
 
