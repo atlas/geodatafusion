@@ -55,6 +55,8 @@ geodatafusion/st_linefromwkb 8/8
 geodatafusion/st_linemerge 21/21
 geodatafusion/st_m 10/10
 geodatafusion/st_makebox2d 7/7
+geodatafusion/st_makeline 24/24
+geodatafusion/st_makeline_agg 22/22
 geodatafusion/st_makepoint 7/7
 geodatafusion/st_makepointm 4/4
 geodatafusion/st_makevalid 26/26
@@ -286,7 +288,7 @@ postgis_docs/st_locatebetweenelevations 0/2
 postgis_docs/st_longestline 0/3
 postgis_docs/st_m 1/1
 postgis_docs/st_makeenvelope 0/1
-postgis_docs/st_makeline 0/4
+postgis_docs/st_makeline 3/4
 postgis_docs/st_makepoint 4/4
 postgis_docs/st_makepointm 3/3
 postgis_docs/st_makepolygon 0/5

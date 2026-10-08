@@ -1,0 +1,123 @@
+# Edge cases for ST_MakeLine, not covered by the PostGIS docs examples.
+
+# Points and lines, in order
+query T
+SELECT ST_MakeLine('POINT(1 2)'::geometry, 'POINT(3 4)'::geometry)
+----
+LINESTRING(1 2,3 4)
+
+query T
+SELECT ST_MakeLine('LINESTRING(0 0,1 1)'::geometry, 'LINESTRING(2 2,3 3)'::geometry)
+----
+LINESTRING(0 0,1 1,2 2,3 3)
+
+query T
+SELECT ST_MakeLine('POINT(0 0)'::geometry, 'LINESTRING(1 1,2 2)'::geometry)
+----
+LINESTRING(0 0,1 1,2 2)
+
+# A line's first point is left out if it repeats the last point; repeated points otherwise stay
+query T
+SELECT ST_MakeLine('LINESTRING(0 0,1 1)'::geometry, 'LINESTRING(1 1,2 2)'::geometry)
+----
+LINESTRING(0 0,1 1,2 2)
+
+query T
+SELECT ST_MakeLine('POINT(1 2)'::geometry, 'LINESTRING(1 2,3 4)'::geometry)
+----
+LINESTRING(1 2,3 4)
+
+query T
+SELECT ST_MakeLine('LINESTRING(0 0,1 1)'::geometry, 'POINT(1 1)'::geometry)
+----
+LINESTRING(0 0,1 1,1 1)
+
+query T
+SELECT ST_MakeLine('POINT(1 2)'::geometry, 'POINT(1 2)'::geometry)
+----
+LINESTRING(1 2,1 2)
+
+query T
+SELECT ST_MakeLine('LINESTRING(0 0,1 1,1 1)'::geometry, 'LINESTRING(1 1,1 1,2 2)'::geometry)
+----
+LINESTRING(0 0,1 1,1 1,1 1,2 2)
+
+# EMPTY inputs add no points
+query T
+SELECT ST_MakeLine('POINT EMPTY'::geometry, 'POINT(3 4)'::geometry)
+----
+LINESTRING(3 4)
+
+query T
+SELECT ST_MakeLine('LINESTRING EMPTY'::geometry, 'POINT(3 4)'::geometry)
+----
+LINESTRING(3 4)
+
+query T
+SELECT ST_MakeLine('LINESTRING(0 0,1 1)'::geometry, 'LINESTRING EMPTY'::geometry)
+----
+LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_MakeLine('POINT EMPTY'::geometry, 'POINT EMPTY'::geometry)
+----
+LINESTRING EMPTY
+
+# Z and M: the line has them if an input has, missing values are 0
+query T
+SELECT ST_MakeLine('POINT Z (1 2 3)'::geometry, 'POINT Z (3 4 5)'::geometry)
+----
+LINESTRING Z (1 2 3,3 4 5)
+
+query T
+SELECT ST_MakeLine('POINT Z (1 2 3)'::geometry, 'POINT(3 4)'::geometry)
+----
+LINESTRING Z (1 2 3,3 4 0)
+
+query T
+SELECT ST_MakeLine('POINT M (1 2 3)'::geometry, 'POINT(3 4)'::geometry)
+----
+LINESTRING M (1 2 3,3 4 0)
+
+query T
+SELECT ST_MakeLine('POINT Z (1 2 3)'::geometry, 'POINT M (3 4 5)'::geometry)
+----
+LINESTRING ZM (1 2 3 0,3 4 0 5)
+
+# SRID
+query T
+SELECT ST_MakeLine('SRID=4326;POINT(1 2)'::geometry, 'SRID=4326;POINT(3 4)'::geometry)
+----
+SRID=4326;LINESTRING(1 2,3 4)
+
+# NULL
+query T
+SELECT ST_MakeLine('POINT(1 2)'::geometry, NULL::geometry)
+----
+NULL
+
+query T
+SELECT ST_MakeLine(NULL::geometry, 'POINT(1 2)'::geometry)
+----
+NULL
+
+# Other geometry types and mixed SRIDs are errors
+statement error
+SELECT ST_MakeLine('MULTIPOINT((0 0),(1 1))'::geometry, 'POINT(1 1)'::geometry)
+
+statement error
+SELECT ST_MakeLine('POINT(1 2)'::geometry, 'POLYGON((0 0,1 0,1 1,0 0))'::geometry)
+
+statement error
+SELECT ST_MakeLine('GEOMETRYCOLLECTION(POINT(0 0))'::geometry, 'POINT(3 4)'::geometry)
+
+statement error
+SELECT ST_MakeLine('SRID=4326;POINT(1 2)'::geometry, 'SRID=3857;POINT(3 4)'::geometry)
+
+# A column, including NULL
+query T rowsort
+SELECT ST_MakeLine(g, 'POINT(9 9)'::geometry) FROM (VALUES ('POINT(1 2)'::geometry), (NULL::geometry), ('LINESTRING(0 0,9 9)'::geometry)) AS t(g)
+----
+LINESTRING(0 0,9 9,9 9)
+LINESTRING(1 2,9 9)
+NULL

@@ -46,6 +46,8 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     // constructors
     m.add_class::<constructors::PyCollect>()?;
     m.add_class::<constructors::PyCollectAgg>()?;
+    m.add_class::<constructors::PyMakeLine>()?;
+    m.add_class::<constructors::PyMakeLineAgg>()?;
     m.add_class::<constructors::PyPoint>()?;
     m.add_class::<constructors::PyPointZ>()?;
     m.add_class::<constructors::PyPointM>()?;
