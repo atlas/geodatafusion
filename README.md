@@ -329,7 +329,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ST_OrientedEnvelope         | ✅          | Returns a minimum-area rectangle containing a geometry.                                           |
 | ST_OffsetCurve              | ✅          | Returns an offset line at a given distance and side from an input line.                           |
 | ST_PointOnSurface           | ✅          | Computes a point guaranteed to lie in a polygon, or on a geometry.                                |
-| ST_Polygonize               |             | Computes a collection of polygons formed from the linework of a set of geometries.                |
+| ST_Polygonize               | ✅          | Computes a collection of polygons formed from the linework of a set of geometries.                |
 | ST_ReducePrecision          | ✅          | Returns a valid geometry with points rounded to a grid tolerance.                                 |
 | ST_SharedPaths              | ✅          | Returns a collection containing paths shared by the two input linestrings/multilinestrings.       |
 | ST_Simplify                 | ✅          | Returns a simplified representation of a geometry, using the Douglas-Peucker algorithm.           |
@@ -347,7 +347,7 @@ Functions are explicitly modeled after the [PostGIS API](https://postgis.net/doc
 | ----------------------- | ----------- | ------------------------------------------------------------------------------------ |
 | ST_CoverageInvalidEdges |             | Window function that finds locations where polygons fail to form a valid coverage.   |
 | ST_CoverageSimplify     |             | Window function that simplifies the edges of a polygonal coverage.                   |
-| ST_CoverageUnion        |             | Computes the union of a set of polygons forming a coverage by removing shared edges. |
+| ST_CoverageUnion        | ✅          | Computes the union of a set of polygons forming a coverage by removing shared edges. |
 
 ### Affine Transformations
 

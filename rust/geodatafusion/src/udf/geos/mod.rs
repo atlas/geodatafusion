@@ -1,5 +1,6 @@
 //! UDFs implemented via GEOS bindings.
 
+pub mod coverage;
 pub mod editors;
 pub mod measurement;
 pub mod overlay;
