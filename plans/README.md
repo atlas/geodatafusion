@@ -41,10 +41,11 @@ these decisions. Decisions backed by an experiment cite it.
 
 | Functions | Group | Decided because |
 |---|---|---|
-| ST_IsValid, ST_Length | G2 | `geo` matches PostGIS on 100% of the E2 corpus. |
+| ST_IsValid | G2 | `geo` matches PostGIS on 100% of the E2 corpus. |
 | ST_Perimeter, ST_HausdorffDistance, ST_FrechetDistance, ST_Azimuth, ST_DistanceSphere, ST_DistanceSpheroid, ST_LengthSpheroid, ST_LineLocatePoint | G2, provisional | Not in E2's corpus. Run E2's agreement test before implementing. A function that fails it moves per the backend policy. |
 | ST_ConvexHull, ST_OrientedEnvelope, ST_Centroid, ST_PointOnSurface, all spatial predicates (ST_Contains, ST_ContainsProperly, ST_Covers, ST_CoveredBy, ST_Crosses, ST_Disjoint, ST_Equals, ST_Intersects, ST_Overlaps, ST_Touches, ST_Within), ST_Relate, ST_RelateMatch | G3 | `geo` fails E2's agreement test (51–99.95%), and GEOS 3.14.1 with PostGIS's EMPTY rules reaches 100% for the tested ones. The untested predicates follow their family. |
 | ST_Area, ST_Distance, ST_DWithin, ST_Simplify, ST_SimplifyVW | G1 | Neither `geo` nor GEOS matches. The differences are a formula (ST_Area: the JTS ring formula matches 100%), tie-breaking (ST_Simplify) and collapse rules (ST_SimplifyVW) (E2). PostGIS computes distances itself. |
+| ST_Length | G1 | `geo` matches with E2's rules, but summing segment lengths needs no library. |
 | ST_IsValidReason, ST_IsValidDetail, ST_MakeValid, ST_SimplifyPreserveTopology, ST_ConcaveHull, ST_DFullyWithin, ST_IsSimple, ST_IsRing, ST_WrapX, ST_AsMVTGeom, ST_BdPolyFromText, ST_BdMPolyFromText | G3 | PostGIS computes them with GEOS, and the result (or message text) depends on it. |
 | 3D measurement family, linear referencing that interpolates Z/M, ST_ChaikinSmoothing, ST_ClosestPoint/ShortestLine/LongestLine/MaxDistance, ST_Angle, ST_PointInsideCircle, ST_OrderingEquals, ST_LineCrossingDirection, ST_SetEffectiveArea, ST_GeneratePoints, ST_GeometricMedian, ST_MinimumBoundingCircle/Radius, ST_MemSize | G1 | `geo` is 2D or lacks the algorithm. ST_MemSize is not rarely used (E6) and has a natural meaning for WKB values. |
 | postgis_srs* | G5, blocked on PROJ (G3) | Table functions. |
@@ -163,10 +164,14 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    3.14.1 (`geos-static`), the bridge (`to_geos`/`from_geos`, Z kept, M dropped, PostGIS's
    `want3d` rule), ST_LineMerge rebuilt on it, and 18 new GEOS functions (overlay, unary
    processing, ST_Buffer/ST_OffsetCurve, ST_Snap, ST_SharedPaths, Delaunay, Voronoi). GEOS
-   functions stay Rust-only until D13 decides how wheels ship GEOS. Left: the backend moves
-   (predicates, hulls, centroid, ST_SimplifyPreserveTopology, ST_ConcaveHull) and the G2
-   kernels (D6), which wait for D13 so Python keeps those functions; ST_ClipByBox2D (G6
-   `box2d`).
+   functions stay Rust-only until D13 decides how wheels ship GEOS. The backend moves are
+   done (E2), checked against E2's corpus: the predicates, ST_Relate, the hulls, ST_Centroid,
+   ST_PointOnSurface, ST_IsValidReason, ST_SimplifyPreserveTopology and ST_ConcaveHull on GEOS
+   (ST_ConcaveHull refuses polygonal input, which needs `GEOSConcaveHullOfPolygons`); ST_Area,
+   ST_Distance, ST_Length (100%), ST_Simplify (99.98%) and ST_SimplifyVW (98.89%, the rest
+   heap ties) native, with ST_DWithin new; ST_IsValid on `geo` (100%), on its own kernel.
+   `geoarrow-expr-geo` is gone (D6). Parity 1867/2275, every hand-written record passing.
+   Left: ST_ClipByBox2D (G6 `box2d`) and scalar ST_Union.
 4. **New functions:** group batches in parallel. Pull forward the most-used cheap ones:
    ST_DWithin, ST_Multi, ST_AsGeoJSON/ST_GeomFromGeoJSON. Then ST_Transform (G3, PROJ),
    ST_Buffer/ST_Union/ST_Intersection (G3), ST_Collect/ST_MakeLine (G1, G5). G6 batches 2–4
