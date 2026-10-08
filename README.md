@@ -31,7 +31,7 @@ geodatafusion::register(&ctx);
 
 | Name      | Implemented | Description                                                                                                                                                 |
 | --------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| geometry  | ✅          | Planar geometry, stored as WKB, with an optional `(type, srid)` type modifier. Casts from text (WKT, EWKT, hex EWKB), bytea (EWKB) and boxes, and to text and bytea. |
+| geometry  | ✅          | Planar geometry, stored as WKB, with an optional `(type, srid)` type modifier. Casts from text (WKT, EWKT, hex EWKB), bytea (EWKB) and boxes, and to text and bytea; `INSERT` converts text and bytea too. |
 | geography |             | Geodetic geometry.                                                                                                                                          |
 | box2d     | ✅          | A 2D bounding box. Casts from and to geometry.                                                                                                              |
 | box3d     | ✅          | A 3D bounding box. Casts from and to geometry.                                                                                                              |
