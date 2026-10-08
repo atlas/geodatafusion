@@ -1,0 +1,92 @@
+# Edge cases for ST_Length, not covered by the PostGIS docs examples.
+
+# Lines
+query R
+SELECT ST_Length('LINESTRING(0 0,3 4)'::geometry)
+----
+5
+
+query R
+SELECT ST_Length('LINESTRING(0 0,3 4,3 0)'::geometry)
+----
+9
+
+query R
+SELECT ST_Length('MULTILINESTRING((0 0,3 4),(0 0,4 3))'::geometry)
+----
+10
+
+query R
+SELECT ST_Length('LINESTRING(0 0,0 0)'::geometry)
+----
+0
+
+# Collections sum their lines
+query R
+SELECT ST_Length('GEOMETRYCOLLECTION(LINESTRING(0 0,3 4),POLYGON((0 0,1 0,1 1,0 0)),POINT(1 1))'::geometry)
+----
+5
+
+query R
+SELECT ST_Length('GEOMETRYCOLLECTION(LINESTRING EMPTY,MULTILINESTRING((0 0,0 2)))'::geometry)
+----
+2
+
+# Points and polygons have length 0
+query R
+SELECT ST_Length('POINT(1 2)'::geometry)
+----
+0
+
+query R
+SELECT ST_Length('MULTIPOINT((0 0),(1 1))'::geometry)
+----
+0
+
+query R
+SELECT ST_Length('POLYGON((0 0,1 0,1 1,0 1,0 0))'::geometry)
+----
+0
+
+query R
+SELECT ST_Length('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))'::geometry)
+----
+0
+
+# Z and M are ignored
+query R
+SELECT ST_Length('LINESTRING Z (0 0 0,3 4 12)'::geometry)
+----
+5
+
+query R
+SELECT ST_Length('LINESTRING M (0 0 5,3 4 6)'::geometry)
+----
+5
+
+# EMPTY
+query R
+SELECT ST_Length('LINESTRING EMPTY'::geometry)
+----
+0
+
+query R
+SELECT ST_Length('POINT EMPTY'::geometry)
+----
+0
+
+query R
+SELECT ST_Length('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+0
+
+# SRID and NULL
+query R
+SELECT ST_Length('SRID=4326;LINESTRING(0 0,3 4)'::geometry)
+----
+5
+
+query R
+SELECT ST_Length(NULL::geometry)
+----
+NULL

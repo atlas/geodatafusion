@@ -16,9 +16,6 @@ if TYPE_CHECKING:
 def register_all_geo(ctx: SessionContext):
     from . import geo
 
-    # measurement
-    ctx.register_udf(udf(geo.Length()))
-
     # validation
     ctx.register_udf(udf(geo.IsValid()))
 
@@ -99,6 +96,7 @@ def register_all_native(ctx: SessionContext):
     # measurement
     ctx.register_udf(udf(native.Area()))
     ctx.register_udf(udf(native.Distance()))
+    ctx.register_udf(udf(native.Length()))
 
     # processing
     ctx.register_udf(udf(native.Simplify()))

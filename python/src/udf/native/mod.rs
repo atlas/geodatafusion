@@ -83,6 +83,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     // measurement
     m.add_class::<measurement::PyArea>()?;
     m.add_class::<measurement::PyDistance>()?;
+    m.add_class::<measurement::PyLength>()?;
 
     // processing
     m.add_class::<processing::PySimplify>()?;

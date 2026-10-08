@@ -1,20 +1,25 @@
 use std::sync::{Arc, LazyLock};
 
+use arrow_array::Float64Array;
 use arrow_schema::DataType;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
 use datafusion_macros::user_doc;
-use geoarrow_array::array::from_arrow_array;
-use geoarrow_expr_geo::euclidean_length;
+use geo_traits::{
+    CoordTrait, GeometryCollectionTrait, GeometryTrait, GeometryType, LineStringTrait, LineTrait,
+    MultiLineStringTrait,
+};
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::geometry_array;
+use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::signature::single_geometry;
 
 #[user_doc(
     doc_section(label = "Measurement Functions"),
-    description = "Returns the 2D Cartesian length of the geometry if it is a LineString or MultiLineString. For areal geometries 0 is returned; use ST_Perimeter instead.",
+    description = "Returns the 2D Cartesian length of the geometry if it is a LineString or MultiLineString, or the sum of the lengths of the lines in a GeometryCollection. For areal geometries 0 is returned; use ST_Perimeter instead. Points and empty geometries have length 0. Z and M are ignored.",
     syntax_example = "ST_Length(geom)",
     argument(name = "geom", description = "geometry")
 )]
@@ -62,14 +67,61 @@ impl ScalarUDFImpl for Length {
 }
 
 fn length_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-    let array = ColumnarValue::values_to_arrays(&args.args)?
-        .into_iter()
-        .next()
-        .unwrap();
-    let field = &args.arg_fields[0];
-    let geo_array = from_arrow_array(&array, field)?;
-    let result = euclidean_length(&geo_array)?;
+    let geometries = geometry_array(&args, 0)?;
+    let result: Float64Array = map_geometry(geometries.as_ref(), &LengthKernel)?;
     Ok(ColumnarValue::Array(Arc::new(result)))
+}
+
+struct LengthKernel;
+
+impl GeometryKernel for LengthKernel {
+    type Output = f64;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        _row: usize,
+    ) -> GeoDataFusionResult<Option<f64>> {
+        Ok(Some(length(geom)))
+    }
+}
+
+/// The length of the lines of a geometry, collections included.
+fn length(geom: &impl GeometryTrait<T = f64>) -> f64 {
+    match geom.as_type() {
+        GeometryType::LineString(line) => line_length(line),
+        GeometryType::MultiLineString(lines) => {
+            lines.line_strings().map(|line| line_length(&line)).sum()
+        }
+        GeometryType::GeometryCollection(collection) => {
+            collection.geometries().map(|member| length(&member)).sum()
+        }
+        GeometryType::Line(line) => segment_length(&line.start(), &line.end()),
+        GeometryType::Point(_)
+        | GeometryType::Polygon(_)
+        | GeometryType::MultiPoint(_)
+        | GeometryType::MultiPolygon(_)
+        | GeometryType::Rect(_)
+        | GeometryType::Triangle(_) => 0.0,
+    }
+}
+
+fn line_length(line: &impl LineStringTrait<T = f64>) -> f64 {
+    let mut coords = line.coords();
+    let Some(mut previous) = coords.next() else {
+        return 0.0;
+    };
+    let mut length = 0.0;
+    for coord in coords {
+        length += segment_length(&previous, &coord);
+        previous = coord;
+    }
+    length
+}
+
+fn segment_length(a: &impl CoordTrait<T = f64>, b: &impl CoordTrait<T = f64>) -> f64 {
+    let (dx, dy) = (b.x() - a.x(), b.y() - a.y());
+    (dx * dx + dy * dy).sqrt()
 }
 
 #[cfg(test)]
