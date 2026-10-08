@@ -86,6 +86,7 @@ geodatafusion/st_setsrid 11/11
 geodatafusion/st_sharedpaths 9/9
 geodatafusion/st_simplify 42/42
 geodatafusion/st_simplifypreservetopology 15/15
+geodatafusion/st_simplifyvw 31/31
 geodatafusion/st_snap 12/12
 geodatafusion/st_srid 5/5
 geodatafusion/st_startpoint 16/16

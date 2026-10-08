@@ -9,7 +9,6 @@ use datafusion::error::Result;
 use datafusion::logical_expr::{ColumnarValue, ScalarFunctionArgs};
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::{WkbArray, from_arrow_array};
-use geoarrow_array::cast::to_wkb;
 use geoarrow_schema::{Metadata, WkbType};
 
 use crate::error::GeoDataFusionResult;
@@ -91,16 +90,4 @@ fn describe_srid(srid: Option<i32>) -> String {
 /// The field of a WKB geometry result with the given metadata, named after the UDF.
 pub(crate) fn wkb_return_field(name: &str, metadata: Arc<Metadata>) -> FieldRef {
     Arc::new(Field::new(name, DataType::Binary, true).with_extension_type(WkbType::new(metadata)))
-}
-
-/// A geometry result as WKB, with the metadata of the UDF's return field.
-///
-/// For UDFs whose algorithm still produces a native GeoArrow array; the result is converted once.
-pub(crate) fn wkb_result(
-    array: &dyn GeoArrowArray,
-    return_field: &Field,
-) -> GeoDataFusionResult<ColumnarValue> {
-    let wkb = to_wkb::<i32>(array)?;
-    let result = WkbArray::new(wkb.inner().clone(), input_metadata(return_field));
-    Ok(ColumnarValue::Array(result.into_array_ref()))
 }

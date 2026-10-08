@@ -19,9 +19,6 @@ def register_all_geo(ctx: SessionContext):
     # measurement
     ctx.register_udf(udf(geo.Length()))
 
-    # processing
-    ctx.register_udf(udf(geo.SimplifyVW()))
-
     # validation
     ctx.register_udf(udf(geo.IsValid()))
 
@@ -105,6 +102,7 @@ def register_all_native(ctx: SessionContext):
 
     # processing
     ctx.register_udf(udf(native.Simplify()))
+    ctx.register_udf(udf(native.SimplifyVW()))
 
     # relationships
     ctx.register_udf(udf(native.DWithin()))

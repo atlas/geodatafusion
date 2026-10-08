@@ -14,8 +14,6 @@ pub(crate) mod util;
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
     crate::udf::geo::measurement::register(session_context);
 
-    crate::udf::geo::processing::register(session_context);
-
     crate::udf::geo::validation::register(session_context);
 
     #[cfg(feature = "geos-3_11")]
