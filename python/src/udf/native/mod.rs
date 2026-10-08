@@ -86,6 +86,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
 
     // processing
     m.add_class::<processing::PySimplify>()?;
+    m.add_class::<processing::PySimplifyVW>()?;
 
     // relationships
     m.add_class::<relationships::PyDWithin>()?;

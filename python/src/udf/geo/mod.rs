@@ -1,5 +1,4 @@
 mod measurement;
-mod processing;
 mod validation;
 
 use pyo3::prelude::*;
@@ -8,9 +7,6 @@ use pyo3::prelude::*;
 pub(crate) fn geo(m: &Bound<PyModule>) -> PyResult<()> {
     // measurement
     m.add_class::<measurement::PyLength>()?;
-
-    // processing
-    m.add_class::<processing::PySimplifyVW>()?;
 
     // validation
     m.add_class::<validation::PyIsValid>()?;
