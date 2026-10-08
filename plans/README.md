@@ -171,7 +171,12 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    ST_Distance, ST_Length (100%), ST_Simplify (99.98%) and ST_SimplifyVW (98.89%, the rest
    heap ties) native, with ST_DWithin new; ST_IsValid on `geo` (100%), on its own kernel.
    `geoarrow-expr-geo` is gone (D6). Parity 1867/2275, every hand-written record passing.
-   Left: ST_ClipByBox2D (G6 `box2d`) and scalar ST_Union.
+   Left: ST_ClipByBox2D (G6 `box2d`). G5 batches 0c and 1 done: the collect machinery
+   (`util/collect.rs`, on `array_agg`), the scalar/aggregate pairs ST_Collect/ST_Collect_Agg,
+   ST_MakeLine/ST_MakeLine_Agg and ST_Union/ST_Union_Agg (D8), ST_MemUnion, ST_Polygonize and
+   ST_CoverageUnion, with the `_agg` names defined in the PostGIS engine from PostGIS's own
+   aggregates. ST_MemUnion is a fold of the scalar ST_Union in PostGIS, not ST_Union_Agg;
+   ST_CoverageUnion keeps the SRID that PostGIS drops.
 4. **New functions:** group batches in parallel. Pull forward the most-used cheap ones:
    ST_DWithin, ST_Multi, ST_AsGeoJSON/ST_GeomFromGeoJSON. Then ST_Transform (G3, PROJ),
    ST_Buffer/ST_Union/ST_Intersection (G3), ST_Collect/ST_MakeLine (G1, G5). G6 batches 2–4
