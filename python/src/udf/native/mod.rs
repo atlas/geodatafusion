@@ -3,6 +3,7 @@ mod bounding_box;
 mod constructors;
 mod io;
 mod measurement;
+mod processing;
 mod relationships;
 mod srs;
 
@@ -82,6 +83,9 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     // measurement
     m.add_class::<measurement::PyArea>()?;
     m.add_class::<measurement::PyDistance>()?;
+
+    // processing
+    m.add_class::<processing::PySimplify>()?;
 
     // relationships
     m.add_class::<relationships::PyDWithin>()?;
