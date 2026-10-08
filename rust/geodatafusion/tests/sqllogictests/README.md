@@ -71,6 +71,14 @@ become `ST_GeomFromEWKT(...)`, hex becomes `ST_GeomFromEWKB(X'..')`, and `::geog
 `ST_GeogFromText(...)`. This keeps the function tests meaningful. Real `geometry` type support
 is a separate parity gap.
 
+## Aggregates under other names
+
+Where geodatafusion implements both a scalar and an aggregate form of a PostGIS function, the
+scalar takes the PostGIS name and the aggregate is `st_<name>_agg` (plans D8): `ST_Collect_Agg`
+is PostGIS's aggregate `ST_Collect(geometry)`. So that their tests can be recorded, the PostGIS
+engine defines the same names at the start of every file (`AGGREGATE_ALIASES` in `postgis.rs`),
+built from PostGIS's own functions and rolled back with the rest of the file's transaction.
+
 ## parity.txt
 
 `parity.txt` lists `passed/total` for every file. `cargo slt` fails if any number differs from
