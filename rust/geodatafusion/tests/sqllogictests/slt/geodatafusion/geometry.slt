@@ -244,3 +244,34 @@ SELECT geom FROM geometry_type_points
 ----
 SRID=4326;POINT(1 2)
 SRID=4326;POINT(3 4)
+
+# INSERT converts text and bytea to the column's geometry
+statement ok
+INSERT INTO geometry_type_points VALUES (3, 'POINT(5 6)')
+
+statement ok
+INSERT INTO geometry_type_points (id, geom) SELECT 4, 'SRID=4326;POINT(7 8)'
+
+statement ok
+INSERT INTO geometry_type_points VALUES (5, '0101000000000000000000F03F0000000000000040')
+
+statement ok
+INSERT INTO geometry_type_points (id) VALUES (6)
+
+statement ok
+INSERT INTO geometry_type_points VALUES (7, decode('0101000000000000000000F03F0000000000000040', 'hex'))
+
+statement error
+INSERT INTO geometry_type_points VALUES (8, 'SRID=3857;POINT(1 1)')
+
+statement error
+INSERT INTO geometry_type_points VALUES (9, 'POINT(1')
+
+query IIT rowsort
+SELECT id, ST_SRID(geom), ST_AsText(geom) FROM geometry_type_points WHERE id > 2
+----
+3 4326 POINT(5 6)
+4 4326 POINT(7 8)
+5 4326 POINT(1 2)
+6 NULL NULL
+7 4326 POINT(1 2)
