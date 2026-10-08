@@ -106,7 +106,7 @@ versions; a missing helper is added to the shared module.
   CI build (E3 H7b).
 - PROJ: a `proj` feature with bundled PROJ (+1–1.5 min in CI), `proj-sys` directly for
   pipelines, and `proj.db` shipped or located with `PROJ_DATA` (E5 H12).
-- G6 batch 2: run the geodatafusion engine with the PostgreSQL dialect, for the operators.
+- Done (G6 batch 2): the geodatafusion engine runs with the PostgreSQL dialect, for the operators.
 - Done (G6 batch 5): the `::geometry` shim is gone; literals plan through the `geometry` type.
 
 ## Bugs found in existing code
@@ -194,8 +194,10 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    `geometry(type, srid)`, `box2d`, `box3d`), the cast rewrite (`geometry()`, `::box2d`,
    `::box3d`, `::text`, `::bytea`), an analyzer rule for `VALUES` CRSs, and one that converts
    what `INSERT` writes to a geometry column (G6 question 12). The shim is gone. Parity
-   2074/2468 -> 2133/2526. Left: batch 2 (operators), batch 4 (geography), typmod geometry
-   types (not enforced, G6 question 10).
+   2074/2468 -> 2133/2526. Batch 2 done too: the box operators, `<->` (ST_Distance) and `<#>`,
+   planned for geometry and box operands, on PostGIS's single-precision boxes; the harness parses
+   in the PostgreSQL dialect. Parity 2189/2555. Left: batch 4 (geography), `<<->>` and `|=|`,
+   typmod geometry types (not enforced, G6 question 10).
 
 ## Decisions
 
