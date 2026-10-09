@@ -1,0 +1,98 @@
+# Edge cases for ST_LineLocatePoint, not covered by the PostGIS docs examples.
+
+# Fractions at the closest point
+query R
+SELECT ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 'POINT(5 5)'::geometry)
+----
+0.25
+
+query R
+SELECT ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 'POINT(-5 0)'::geometry)
+----
+0
+
+query R
+SELECT ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 'POINT(15 15)'::geometry)
+----
+1
+
+query R
+SELECT ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 'POINT(10 3)'::geometry)
+----
+0.65
+
+query R
+SELECT ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 'POINT(10 0)'::geometry)
+----
+0.5
+
+query R
+SELECT ST_LineLocatePoint('LINESTRING(0 0,3 1,7 -2)'::geometry, 'POINT(2.3 0.4)'::geometry)
+----
+0.282820897308
+
+query R
+SELECT ST_LineLocatePoint('LINESTRING(0 0,10 0,0 0)'::geometry, 'POINT(5 1)'::geometry)
+----
+0.25
+
+query R
+SELECT ST_LineLocatePoint('LINESTRING(1 2,4 5,6 7)'::geometry, 'POINT(4 3)'::geometry)
+----
+0.4
+
+query R
+SELECT ST_LineLocatePoint('LINESTRING(0 0,0 0,10 0)'::geometry, 'POINT(5 5)'::geometry)
+----
+0.5
+
+query R
+SELECT ST_LineLocatePoint('LINESTRING Z (0 0 0,10 0 100)'::geometry, 'POINT Z (5 0 0)'::geometry)
+----
+0.5
+
+# Degenerate and EMPTY
+query R
+SELECT ST_LineLocatePoint('LINESTRING(0 0,0 0)'::geometry, 'POINT(1 1)'::geometry)
+----
+1
+
+query R
+SELECT ST_LineLocatePoint('LINESTRING EMPTY'::geometry, 'POINT(1 1)'::geometry)
+----
+0
+
+query R
+SELECT ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 'POINT EMPTY'::geometry)
+----
+0
+
+# NULL
+query R
+SELECT ST_LineLocatePoint(NULL::geometry, 'POINT(1 1)'::geometry)
+----
+NULL
+
+query R
+SELECT ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, NULL::geometry)
+----
+NULL
+
+# Errors
+query error
+SELECT ST_LineLocatePoint('MULTILINESTRING((0 0,10 0),(20 0,30 0))'::geometry, 'POINT(25 1)'::geometry)
+
+query error
+SELECT ST_LineLocatePoint('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry)
+
+query error
+SELECT ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 'LINESTRING(0 0,1 1)'::geometry)
+
+query error
+SELECT ST_LineLocatePoint('SRID=4326;LINESTRING(0 0,10 0)'::geometry, 'SRID=3857;POINT(1 1)'::geometry)
+
+# Round trip with ST_LineInterpolatePoint
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 'POINT(12 4)'::geometry)))
+----
+POINT(10 3.999999999999999)

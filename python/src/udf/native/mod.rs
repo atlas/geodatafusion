@@ -164,6 +164,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<linear_referencing::PyLineSubstring>()?;
     m.add_class::<linear_referencing::PyAddMeasure>()?;
     m.add_class::<linear_referencing::PyInterpolatePoint>()?;
+    m.add_class::<linear_referencing::PyLineLocatePoint>()?;
 
     // measurement
     m.add_class::<measurement::PyArea>()?;
