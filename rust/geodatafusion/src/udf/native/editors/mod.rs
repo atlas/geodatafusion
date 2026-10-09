@@ -1,6 +1,6 @@
 mod add_point;
 mod collection_extract;
-mod collection_homogenize;
+pub(crate) mod collection_homogenize;
 mod flip_coordinates;
 mod force;
 mod force_collection;

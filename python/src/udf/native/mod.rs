@@ -48,6 +48,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<accessors::PyBoundingDiagonal>()?;
     m.add_class::<accessors::PyIsPolygonCW>()?;
     m.add_class::<accessors::PyIsPolygonCCW>()?;
+    m.add_class::<accessors::PyBoundary>()?;
 
     // affine_transformations
     m.add_class::<affine_transformations::PyAffine>()?;
