@@ -73,6 +73,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<constructors::PyPointZM>()?;
     m.add_class::<constructors::PyMakePoint>()?;
     m.add_class::<constructors::PyMakePointM>()?;
+    m.add_class::<constructors::PyMakeEnvelope>()?;
 
     // io
     m.add_class::<io::PyAsBinary>()?;

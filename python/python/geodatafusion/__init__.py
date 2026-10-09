@@ -84,6 +84,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.PointZM()))
     ctx.register_udf(udf(native.MakePoint()))
     ctx.register_udf(udf(native.MakePointM()))
+    ctx.register_udf(udf(native.MakeEnvelope()))
 
     # io
     ctx.register_udf(udf(native.AsText()))

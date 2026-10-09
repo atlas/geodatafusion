@@ -42,7 +42,7 @@ geodatafusion::register(&ctx);
 | --------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------- |
 | ST_Collect            | ✅          | Creates a GeometryCollection or Multi\* geometry from a set of geometries. The aggregate form is ST_Collect_Agg.           |
 | ST_LineFromMultiPoint |             | Creates a LineString from a MultiPoint geometry.                                                                           |
-| ST_MakeEnvelope       |             | Creates a rectangular Polygon from minimum and maximum coordinates.                                                        |
+| ST_MakeEnvelope       | ✅          | Creates a rectangular Polygon from minimum and maximum coordinates.                                                        |
 | ST_MakeLine           | ✅          | Creates a LineString from Point, MultiPoint, or LineString geometries. The aggregate form is ST_MakeLine_Agg.              |
 | ST_MakePoint          | ✅          | Creates a 2D, 3DZ or 4D Point.                                                                                             |
 | ST_MakePointM         | ✅          | Creates a Point from X, Y and M values.                                                                                    |

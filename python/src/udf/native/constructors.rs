@@ -1,6 +1,6 @@
 use geodatafusion::udf::native::constructors::{
-    Collect, CollectAgg, MakeLine, MakeLineAgg, MakePoint, MakePointM, Point, PointM, PointZ,
-    PointZM,
+    Collect, CollectAgg, MakeEnvelope, MakeLine, MakeLineAgg, MakePoint, MakePointM, Point, PointM,
+    PointZ, PointZM,
 };
 
 use crate::{impl_udaf, impl_udf};
@@ -16,3 +16,4 @@ impl_udf!(PointM, PyPointM, "PointM");
 impl_udf!(PointZM, PyPointZM, "PointZM");
 impl_udf!(MakePoint, PyMakePoint, "MakePoint");
 impl_udf!(MakePointM, PyMakePointM, "MakePointM");
+impl_udf!(MakeEnvelope, PyMakeEnvelope, "MakeEnvelope");
