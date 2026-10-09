@@ -154,6 +154,7 @@ geodatafusion/st_srid 5/5
 geodatafusion/st_startpoint 16/16
 geodatafusion/st_swapordinates 18/18
 geodatafusion/st_symdifference 20/20
+geodatafusion/st_tileenvelope 31/31
 geodatafusion/st_touches 20/20
 geodatafusion/st_translate 18/18
 geodatafusion/st_transscale 11/11
@@ -426,7 +427,7 @@ postgis_docs/st_startpoint 3/4
 postgis_docs/st_subdivide 0/2
 postgis_docs/st_swapordinates 1/1
 postgis_docs/st_symdifference 2/2
-postgis_docs/st_tileenvelope 0/2
+postgis_docs/st_tileenvelope 2/2
 postgis_docs/st_touches 2/2
 postgis_docs/st_transform 0/3
 postgis_docs/st_transformpipeline 0/2
