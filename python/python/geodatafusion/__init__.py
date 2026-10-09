@@ -99,6 +99,10 @@ def register_all_native(ctx: SessionContext):
     # editors
     ctx.register_udf(udf(native.FlipCoordinates()))
     ctx.register_udf(udf(native.SwapOrdinates()))
+    ctx.register_udf(udf(native.Force2D()))
+    ctx.register_udf(udf(native.Force3DZ()))
+    ctx.register_udf(udf(native.Force3DM()))
+    ctx.register_udf(udf(native.Force4D()))
 
     # io
     ctx.register_udf(udf(native.AsText()))

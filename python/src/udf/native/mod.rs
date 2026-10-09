@@ -90,6 +90,10 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     // editors
     m.add_class::<editors::PyFlipCoordinates>()?;
     m.add_class::<editors::PySwapOrdinates>()?;
+    m.add_class::<editors::PyForce2D>()?;
+    m.add_class::<editors::PyForce3DZ>()?;
+    m.add_class::<editors::PyForce3DM>()?;
+    m.add_class::<editors::PyForce4D>()?;
 
     // io
     m.add_class::<io::PyAsBinary>()?;

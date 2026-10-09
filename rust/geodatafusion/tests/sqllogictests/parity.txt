@@ -45,6 +45,11 @@ geodatafusion/st_expand 35/35
 geodatafusion/st_extent 8/8
 geodatafusion/st_exteriorring 16/16
 geodatafusion/st_flipcoordinates 11/11
+geodatafusion/st_force2d 12/12
+geodatafusion/st_force3d 12/12
+geodatafusion/st_force3dm 14/14
+geodatafusion/st_force3dz 14/14
+geodatafusion/st_force4d 16/16
 geodatafusion/st_geohash 23/23
 geodatafusion/st_geomcollfromtext 10/10
 geodatafusion/st_geomcollfromwkb 8/8
@@ -248,10 +253,10 @@ postgis_docs/st_equals 1/2
 postgis_docs/st_filterbym 0/1
 postgis_docs/st_flipcoordinates 0/1
 postgis_docs/st_force2d 0/2
-postgis_docs/st_force_3d 0/2
+postgis_docs/st_force_3d 1/2
 postgis_docs/st_force_3dm 0/2
-postgis_docs/st_force_3dz 0/2
-postgis_docs/st_force_4d 0/2
+postgis_docs/st_force_3dz 1/2
+postgis_docs/st_force_4d 1/2
 postgis_docs/st_force_collection 0/3
 postgis_docs/st_forcecurve 0/1
 postgis_docs/st_forcerhr 0/1
