@@ -1,0 +1,53 @@
+# Edge cases for ST_RotateZ, not covered by the PostGIS docs examples.
+
+# 3D, and 2D rotated with Z 0
+query T
+SELECT ST_AsEWKT(ST_RotateZ('POINT Z (1 2 3)'::geometry, pi()/2))
+----
+POINT(-2 1 3)
+
+query T
+SELECT ST_AsEWKT(ST_RotateZ('LINESTRING Z (1 2 3,4 5 6)'::geometry, 0.7))
+----
+LINESTRING(-0.523593187190894 2.173902061806668 3,-0.161719687050501 6.401081685373207 6)
+
+query T
+SELECT ST_AsEWKT(ST_RotateZ('POINT(1 2)'::geometry, pi()/2))
+----
+POINT(-2 1)
+
+query T
+SELECT ST_AsEWKT(ST_RotateZ('POINT M (1 2 3)'::geometry, pi()/2))
+----
+POINTM(-2 1 3)
+
+query T
+SELECT ST_AsEWKT(ST_RotateZ('POINT ZM (1 2 3 4)'::geometry, pi()))
+----
+POINT(-1 -2 3 4)
+
+query T
+SELECT ST_AsText(ST_RotateZ('POLYGON Z ((0 0 0,4 0 1,4 4 2,0 0 0))'::geometry, pi()/3))
+----
+POLYGON Z ((0 0 0,2 3.464101615137754 1,-1.464101615137754 5.464101615137755 2,0 0 0))
+
+# EMPTY, the SRID and NULL
+query T
+SELECT ST_AsText(ST_RotateZ('POINT EMPTY'::geometry, 1))
+----
+POINT EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_RotateZ('SRID=4326;POINT Z (1 2 3)'::geometry, 1))
+----
+SRID=4326;POINT(-1.142639663747653 1.922075596544176 3)
+
+query T
+SELECT ST_RotateZ(NULL::geometry, 1)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_RotateZ('POINT Z (1 2 3)'::geometry, NULL))
+----
+NULL
