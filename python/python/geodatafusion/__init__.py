@@ -169,6 +169,8 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.LineInterpolatePoint3D()))
     ctx.register_udf(udf(native.LineInterpolatePoints()))
     ctx.register_udf(udf(native.LineSubstring()))
+    ctx.register_udf(udf(native.AddMeasure()))
+    ctx.register_udf(udf(native.InterpolatePoint()))
 
     # measurement
     ctx.register_udf(udf(native.Area()))
@@ -198,6 +200,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.Simplify()))
     ctx.register_udf(udf(native.SimplifyVW()))
     ctx.register_udf(udf(native.ChaikinSmoothing()))
+    ctx.register_udf(udf(native.FilterByM()))
 
     # relationships
     ctx.register_udf(udf(native.DWithin()))
@@ -206,6 +209,9 @@ def register_all_native(ctx: SessionContext):
     # srs
     ctx.register_udf(udf(native.SetSRID()))
     ctx.register_udf(udf(native.SRID()))
+
+    # trajectory
+    ctx.register_udf(udf(native.IsValidTrajectory()))
 
     # types
     ctx.register_udf(udf(native.Geometry()))

@@ -1,0 +1,72 @@
+# Edge cases for ST_InterpolatePoint, not covered by the PostGIS docs examples.
+
+# The measure at the closest point
+query R
+SELECT ST_InterpolatePoint('LINESTRING M (0 0 0,10 0 20)', 'POINT(5 5)'::geometry)
+----
+10
+
+query R
+SELECT ST_InterpolatePoint('LINESTRING M (0 0 0,10 0 20)', 'POINT(-5 0)'::geometry)
+----
+0
+
+query R
+SELECT ST_InterpolatePoint('LINESTRING M (0 0 0,10 0 20)', 'POINT(15 0)'::geometry)
+----
+20
+
+query R
+SELECT ST_InterpolatePoint('LINESTRING M (0 0 0,10 0 20,10 10 0)', 'POINT(9 9)'::geometry)
+----
+2
+
+query R
+SELECT ST_InterpolatePoint('LINESTRING ZM (0 0 0 0,10 0 0 20)', 'POINT(5 5)'::geometry)
+----
+10
+
+query R
+SELECT ST_InterpolatePoint('LINESTRING M (0 0 0,10 0 20,0 0 40)', 'POINT(5 0)'::geometry)
+----
+10
+
+query R
+SELECT ST_InterpolatePoint('LINESTRING M (0 0 0,3 1 20,7 -2 5)', 'POINT(2.3 0.4)'::geometry)
+----
+14.6
+
+query R
+SELECT ST_InterpolatePoint('LINESTRING M (0 0 0,0 0 5,10 0 20)', 'POINT(0 1)'::geometry)
+----
+0
+
+# NULL
+query R
+SELECT ST_InterpolatePoint(NULL::geometry, 'POINT(1 1)'::geometry)
+----
+NULL
+
+query R
+SELECT ST_InterpolatePoint('LINESTRING M (0 0 0,10 0 20)', NULL::geometry)
+----
+NULL
+
+# Errors
+query error
+SELECT ST_InterpolatePoint('LINESTRING(0 0,10 0)', 'POINT(5 5)'::geometry)
+
+query error
+SELECT ST_InterpolatePoint('LINESTRING M (0 0 0,10 0 20)', 'LINESTRING(0 0,1 1)'::geometry)
+
+query error
+SELECT ST_InterpolatePoint('LINESTRING M (0 0 0,10 0 20)', 'POINT EMPTY'::geometry)
+
+query error
+SELECT ST_InterpolatePoint('LINESTRING M EMPTY', 'POINT(1 1)'::geometry)
+
+query error
+SELECT ST_InterpolatePoint('MULTILINESTRING M ((0 0 0,10 0 20))', 'POINT(5 5)'::geometry)
+
+query error
+SELECT ST_InterpolatePoint('SRID=4326;LINESTRING M (0 0 0,10 0 20)', 'SRID=3857;POINT(5 5)')
