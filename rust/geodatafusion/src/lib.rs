@@ -39,6 +39,8 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
 
     crate::udf::native::accessors::register(session_context);
 
+    crate::udf::native::affine_transformations::register(session_context);
+
     crate::udf::native::bounding_box::register(session_context);
 
     crate::udf::native::constructors::register(session_context);

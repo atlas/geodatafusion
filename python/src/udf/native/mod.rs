@@ -1,4 +1,5 @@
 mod accessors;
+mod affine_transformations;
 mod bounding_box;
 mod constructors;
 mod io;
@@ -46,6 +47,10 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<accessors::PyBoundingDiagonal>()?;
     m.add_class::<accessors::PyIsPolygonCW>()?;
     m.add_class::<accessors::PyIsPolygonCCW>()?;
+
+    // affine_transformations
+    m.add_class::<affine_transformations::PyAffine>()?;
+    m.add_class::<affine_transformations::PyTranslate>()?;
 
     // bounding_box
     m.add_class::<bounding_box::PyBox2D>()?;
