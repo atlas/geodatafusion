@@ -20,6 +20,7 @@ mod num_interior_rings;
 mod point;
 mod point_n;
 mod points;
+mod summary;
 mod zmflag;
 
 pub use boundary::Boundary;
@@ -44,6 +45,7 @@ pub use num_interior_rings::NumInteriorRings;
 pub use point::{M, X, Y, Z};
 pub use point_n::PointN;
 pub use points::Points;
+pub use summary::Summary;
 pub use zmflag::{HasM, HasZ, Zmflag};
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
@@ -80,4 +82,5 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(IsPolygonCW.into());
     session_context.register_udf(IsPolygonCCW.into());
     session_context.register_udf(Boundary.into());
+    session_context.register_udf(Summary.into());
 }

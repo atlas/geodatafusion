@@ -1,0 +1,160 @@
+# Edge cases for ST_Summary, not covered by the PostGIS docs examples.
+
+# Every type
+query T
+SELECT ST_Summary('POINT(1 2)'::geometry)
+----
+Point[]
+
+query T
+SELECT ST_Summary('LINESTRING(0 0,1 1)'::geometry)
+----
+LineString[] with 2 points
+
+query T
+SELECT ST_Summary('LINESTRING(0 0,1 1,2 2)'::geometry)
+----
+LineString[B] with 3 points
+
+query T
+SELECT ST_Summary('POLYGON((0 0,4 0,4 4,0 0),(1 1,2 1,2 2,1 1))'::geometry)
+----
+Polygon[B] with 2 rings:\n   ring 0 has 4 points\n   ring 1 has 4 points
+
+query T
+SELECT ST_Summary('MULTIPOINT((1 1),(2 2))'::geometry)
+----
+MultiPoint[B] with 2 elements:\n  Point[]\n  Point[]
+
+query T
+SELECT ST_Summary('MULTIPOINT((1 1))'::geometry)
+----
+MultiPoint[] with 1 element:\n  Point[]
+
+query T
+SELECT ST_Summary('MULTILINESTRING((0 0,1 1),(2 2,3 3,4 4))'::geometry)
+----
+MultiLineString[B] with 2 elements:\n  LineString[] with 2 points\n  LineString[] with 3 points
+
+query T
+SELECT ST_Summary('MULTILINESTRING((0 0,1 1))'::geometry)
+----
+MultiLineString[] with 1 element:\n  LineString[] with 2 points
+
+query T
+SELECT ST_Summary('MULTILINESTRING((0 0,1 1,2 2))'::geometry)
+----
+MultiLineString[B] with 1 element:\n  LineString[] with 3 points
+
+query T
+SELECT ST_Summary('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5)))'::geometry)
+----
+MultiPolygon[B] with 2 elements:\n  Polygon[] with 1 ring:\n   ring 0 has 4 points\n  Polygon[] with 1 ring:\n   ring 0 has 4 points
+
+query T
+SELECT ST_Summary('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(0 0,1 1),GEOMETRYCOLLECTION(POINT(2 2)))'::geometry)
+----
+GeometryCollection[B] with 3 elements:\n  Point[]\n  LineString[] with 2 points\n  GeometryCollection[] with 1 element:\n    Point[]
+
+query T
+SELECT ST_Summary('GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POLYGON((0 0,1 0,1 1,0 0),(0 0,1 0,1 1,0 0))),MULTIPOINT((1 1),(2 2)))'::geometry)
+----
+GeometryCollection[B] with 2 elements:\n  GeometryCollection[] with 1 element:\n    Polygon[] with 2 rings:\n   ring 0 has 4 points\n   ring 1 has 4 points\n  MultiPoint[] with 2 elements:\n    Point[]\n    Point[]
+
+query T
+SELECT ST_Summary('GEOMETRYCOLLECTION(POINT(1 1))'::geometry)
+----
+GeometryCollection[B] with 1 element:\n  Point[]
+
+# Flags: Z, M and the SRID
+query T
+SELECT ST_Summary('POINT Z (1 2 3)'::geometry)
+----
+Point[Z]
+
+query T
+SELECT ST_Summary('POINT M (1 2 3)'::geometry)
+----
+Point[M]
+
+query T
+SELECT ST_Summary('POINT ZM (1 2 3 4)'::geometry)
+----
+Point[ZM]
+
+query T
+SELECT ST_Summary('SRID=4326;POINT(1 2)'::geometry)
+----
+Point[S]
+
+query T
+SELECT ST_Summary('SRID=4326;POLYGON ZM ((0 0 1 2,1 0 1 2,1 1 1 2,0 0 1 2))'::geometry)
+----
+Polygon[ZMBS] with 1 ring:\n   ring 0 has 4 points
+
+query T
+SELECT ST_Summary('SRID=4326;GEOMETRYCOLLECTION Z (POINT Z (1 1 1))'::geometry)
+----
+GeometryCollection[ZBS] with 1 element:\n  Point[ZS]
+
+query T
+SELECT ST_Summary('SRID=4326;MULTIPOLYGON M (((0 0 1,1 0 1,1 1 1,0 0 1)))'::geometry)
+----
+MultiPolygon[MBS] with 1 element:\n  Polygon[MS] with 1 ring:\n   ring 0 has 4 points
+
+# EMPTY
+query T
+SELECT ST_Summary('POINT EMPTY'::geometry)
+----
+Point[]
+
+query T
+SELECT ST_Summary('LINESTRING EMPTY'::geometry)
+----
+LineString[] with 0 points
+
+query T
+SELECT ST_Summary('POLYGON EMPTY'::geometry)
+----
+Polygon[] with 0 rings
+
+query T
+SELECT ST_Summary('MULTIPOINT EMPTY'::geometry)
+----
+MultiPoint[] with 0 elements
+
+query T
+SELECT ST_Summary('MULTIPOINT(EMPTY)'::geometry)
+----
+MultiPoint[] with 1 element:\n  Point[]
+
+query T
+SELECT ST_Summary('MULTIPOINT(EMPTY,(1 1))'::geometry)
+----
+MultiPoint[B] with 2 elements:\n  Point[]\n  Point[]
+
+query T
+SELECT ST_Summary('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+GeometryCollection[] with 0 elements
+
+query T
+SELECT ST_Summary('GEOMETRYCOLLECTION(POINT EMPTY)'::geometry)
+----
+GeometryCollection[] with 1 element:\n  Point[]
+
+query T
+SELECT ST_Summary('GEOMETRYCOLLECTION(MULTIPOLYGON EMPTY)'::geometry)
+----
+GeometryCollection[] with 1 element:\n  MultiPolygon[] with 0 elements
+
+query T
+SELECT ST_Summary('MULTIPOLYGON(EMPTY)'::geometry)
+----
+MultiPolygon[] with 1 element:\n  Polygon[] with 0 rings
+
+# NULL
+query T
+SELECT ST_Summary(NULL::geometry)
+----
+NULL
