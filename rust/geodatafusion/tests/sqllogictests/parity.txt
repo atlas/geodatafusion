@@ -8,8 +8,10 @@ geodatafusion/geometry 64/64
 geodatafusion/geometrytype 18/18
 geodatafusion/operators 29/29
 geodatafusion/st_3dextent 10/10
+geodatafusion/st_3dlength 12/12
 geodatafusion/st_3dlineinterpolatepoint 8/8
 geodatafusion/st_3dmakebox 5/5
+geodatafusion/st_3dperimeter 12/12
 geodatafusion/st_addpoint 20/20
 geodatafusion/st_affine 17/17
 geodatafusion/st_area 21/21
@@ -214,7 +216,7 @@ postgis_docs/st_3ddfullywithin 0/1
 postgis_docs/st_3ddistance 0/2
 postgis_docs/st_3ddwithin 0/1
 postgis_docs/st_3dintersects 0/2
-postgis_docs/st_3dlength 0/1
+postgis_docs/st_3dlength 1/1
 postgis_docs/st_3dlineinterpolatepoint 1/1
 postgis_docs/st_3dlongestline 0/3
 postgis_docs/st_3dmakebox 1/1

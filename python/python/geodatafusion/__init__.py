@@ -174,6 +174,8 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.Area()))
     ctx.register_udf(udf(native.Distance()))
     ctx.register_udf(udf(native.Length()))
+    ctx.register_udf(udf(native.Length3D()))
+    ctx.register_udf(udf(native.Perimeter3D()))
 
     # operators
     ctx.register_udf(udf(native.GeometryAbove()))

@@ -321,7 +321,7 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 | ST_HausdorffDistance    |             | Returns the Hausdorff distance between two geometries.                                                                         |
 | ST_Length               | ✅          | Returns the 2D length of a linear geometry.                                                                                    |
 | ST_Length2D             | ✅          | Returns the 2D length of a linear geometry. Alias for ST_Length                                                                |
-| ST_3DLength             |             | Returns the 3D length of a linear geometry.                                                                                    |
+| ST_3DLength             | ✅          | Returns the 3D length of a linear geometry.                                                                                    |
 | ST_LengthSpheroid       |             | Returns the 2D or 3D length/perimeter of a lon/lat geometry on a spheroid.                                                     |
 | ST_LongestLine          |             | Returns the 2D longest line between two geometries.                                                                            |
 | ST_3DLongestLine        |             | Returns the 3D longest line between two geometries                                                                             |
@@ -331,7 +331,7 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 | ST_MinimumClearanceLine | ✅          | Returns the two-point LineString spanning a geometry's minimum clearance.                                                      |
 | ST_Perimeter            |             | Returns the length of the boundary of a polygonal geometry or geography.                                                       |
 | ST_Perimeter2D          |             | Returns the 2D perimeter of a polygonal geometry. Alias for ST_Perimeter.                                                      |
-| ST_3DPerimeter          |             | Returns the 3D perimeter of a polygonal geometry.                                                                              |
+| ST_3DPerimeter          | ✅          | Returns the 3D perimeter of a polygonal geometry.                                                                              |
 | ST_ShortestLine         |             | Returns the 2D shortest line between two geometries                                                                            |
 | ST_3DShortestLine       |             | Returns the 3D shortest line between two geometries                                                                            |
 

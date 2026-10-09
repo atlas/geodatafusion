@@ -166,6 +166,8 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<measurement::PyArea>()?;
     m.add_class::<measurement::PyDistance>()?;
     m.add_class::<measurement::PyLength>()?;
+    m.add_class::<measurement::PyLength3D>()?;
+    m.add_class::<measurement::PyPerimeter3D>()?;
 
     // operators
     m.add_class::<operators::PyGeometryAbove>()?;

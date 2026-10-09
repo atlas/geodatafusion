@@ -1,0 +1,63 @@
+# Edge cases for ST_3DLength, not covered by the PostGIS docs examples.
+
+# Every type, with and without Z
+query R
+SELECT ST_3DLength('LINESTRING Z (0 0 0,3 4 12)'::geometry)
+----
+13
+
+query R
+SELECT ST_3DLength('LINESTRING(0 0,3 4)'::geometry)
+----
+5
+
+query R
+SELECT ST_3DLength('LINESTRING M (0 0 0,3 4 12)'::geometry)
+----
+5
+
+query R
+SELECT ST_3DLength('MULTILINESTRING Z ((0 0 0,3 4 12),(0 0 0,0 0 1))'::geometry)
+----
+14
+
+query R
+SELECT ST_3DLength('POLYGON Z ((0 0 0,3 0 4,3 3 4,0 0 0))'::geometry)
+----
+0
+
+query R
+SELECT ST_3DLength('POLYGON Z ((0 0 0,10 0 0,10 10 0,0 0 0),(1 1 1,2 1 1,2 2 1,1 1 1))'::geometry)
+----
+0
+
+query R
+SELECT ST_3DLength('MULTIPOLYGON Z (((0 0 0,3 0 4,3 3 4,0 0 0)),((0 0 0,1 0 0,1 1 0,0 0 0)))'::geometry)
+----
+0
+
+query R
+SELECT ST_3DLength('GEOMETRYCOLLECTION Z (LINESTRING Z (0 0 0,3 4 12),POLYGON Z ((0 0 0,1 0 0,1 1 0,0 0 0)))'::geometry)
+----
+13
+
+query R
+SELECT ST_3DLength('POINT Z (1 1 1)'::geometry)
+----
+0
+
+query R
+SELECT ST_3DLength('LINESTRING EMPTY'::geometry)
+----
+0
+
+query R
+SELECT ST_3DLength('POLYGON EMPTY'::geometry)
+----
+0
+
+# NULL
+query R
+SELECT ST_3DLength(NULL::geometry)
+----
+NULL
