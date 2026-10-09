@@ -12,6 +12,10 @@ datafusion = "55.1"
 geodatafusion = "0.5"
 ```
 
+Optional features: `geos-3_11` for the functions PostGIS computes with GEOS (`geos-static` builds
+GEOS from source), and `proj` for ST_Transform and the pipeline functions (`proj-bundled` builds
+PROJ from source).
+
 ## Functions supported
 
 Functions are explicitly modeled after the [PostGIS API](https://postgis.net/docs/reference.html). We strive to match the PostGIS API as much as possible.
@@ -159,11 +163,11 @@ geodatafusion::register(&ctx);
 | postgis_srs_all             |             | Return metadata records for every spatial reference system in the underlying Proj database.                                                                   |
 | postgis_srs_codes           |             | Return the list of SRS codes associated with the given authority.                                                                                             |
 | postgis_srs_search          |             | Return metadata records for projected coordinate systems that have areas of usage that fully contain the bounds parameter.                                    |
-| ST_InverseTransformPipeline |             | Return a new geometry with coordinates transformed to a different spatial reference system using the inverse of a defined coordinate transformation pipeline. |
+| ST_InverseTransformPipeline | ✅          | Return a new geometry with coordinates transformed to a different spatial reference system using the inverse of a defined coordinate transformation pipeline. |
 | ST_SetSRID                  | ✅          | Set the SRID on a geometry.                                                                                                                                   |
 | ST_SRID                     | ✅          | Returns the spatial reference identifier for a geometry.                                                                                                      |
-| ST_Transform                |             | Return a new geometry with coordinates transformed to a different spatial reference system.                                                                   |
-| ST_TransformPipeline        |             | Return a new geometry with coordinates transformed to a different spatial reference system using a defined coordinate transformation pipeline.                |
+| ST_Transform                | ✅          | Return a new geometry with coordinates transformed to a different spatial reference system.                                                                   |
+| ST_TransformPipeline        | ✅          | Return a new geometry with coordinates transformed to a different spatial reference system using a defined coordinate transformation pipeline.                |
 
 ### Geometry Input
 

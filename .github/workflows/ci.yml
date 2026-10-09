@@ -23,6 +23,11 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      # --all-features builds PROJ from source (proj-bundled), which needs SQLite.
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev
       # --all-features builds the pinned GEOS from source (geos-static), so the parity tests
       # run against the GEOS they were recorded with.
       - name: Clippy
@@ -77,6 +82,11 @@ jobs:
           submodules: "recursive"
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+      # --all-features builds PROJ from source (proj-bundled), which needs SQLite.
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y sqlite3 libsqlite3-dev
       # Note: in the future expand to all crates in the workspace
       - name: Test that docs build without warnings
         run: cargo doc --all-features --document-private-items

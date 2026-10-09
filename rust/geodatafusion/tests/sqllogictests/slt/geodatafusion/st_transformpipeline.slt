@@ -1,0 +1,52 @@
+# Edge cases for ST_TransformPipeline, not covered by the PostGIS docs examples.
+
+# Operations and pipelines
+query T
+SELECT ST_TransformPipeline('SRID=4326;POINT(2 49)'::geometry, 'urn:ogc:def:coordinateOperation:EPSG::16031')
+----
+POINT(426857.987717 5427937.52334)
+
+query T
+SELECT ST_TransformPipeline('SRID=4326;POINT(2 49)'::geometry, 'urn:ogc:def:coordinateOperation:EPSG::16031', 32631)
+----
+SRID=32631;POINT(426857.987717 5427937.52334)
+
+query T
+SELECT ST_TransformPipeline('POINT(2 49)'::geometry, '+proj=pipeline +step +proj=unitconvert +xy_in=deg +xy_out=rad +step +proj=utm +zone=31 +ellps=WGS84')
+----
+POINT(426857.987717 5427937.52346)
+
+query T
+SELECT ST_TransformPipeline('LINESTRING Z (2 49 10,3 50 20)'::geometry, 'urn:ogc:def:coordinateOperation:EPSG::16031')
+----
+LINESTRING Z (426857.987717 5427937.52334 10,500000 5538630.70274 20)
+
+query T
+SELECT ST_TransformPipeline('POINT M (2 49 7)'::geometry, 'urn:ogc:def:coordinateOperation:EPSG::16031')
+----
+POINT M (426857.987717 5427937.52334 7)
+
+query T
+SELECT ST_TransformPipeline('POINT EMPTY'::geometry, 'urn:ogc:def:coordinateOperation:EPSG::16031')
+----
+POINT EMPTY
+
+# NULL
+query T
+SELECT ST_TransformPipeline(NULL::geometry, 'urn:ogc:def:coordinateOperation:EPSG::16031')
+----
+NULL
+
+query T
+SELECT ST_TransformPipeline('POINT(2 49)'::geometry, NULL)
+----
+NULL
+
+query T
+SELECT ST_TransformPipeline('POINT(2 49)'::geometry, 'urn:ogc:def:coordinateOperation:EPSG::16031', NULL)
+----
+NULL
+
+# Errors
+query error
+SELECT ST_TransformPipeline('POINT(2 49)'::geometry, 'nonsense')

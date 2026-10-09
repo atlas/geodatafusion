@@ -1,0 +1,28 @@
+# Edge cases for ST_InverseTransformPipeline, not covered by the PostGIS docs examples.
+
+# Inverse operations
+query T
+SELECT ST_InverseTransformPipeline('POINT(426857.9877165967 5427937.523342293)'::geometry, 'urn:ogc:def:coordinateOperation:EPSG::16031', 4326)
+----
+SRID=4326;POINT(2 49)
+
+query T
+SELECT ST_InverseTransformPipeline('POINT Z (426857.9877165967 5427937.523342293 10)'::geometry, 'urn:ogc:def:coordinateOperation:EPSG::16031')
+----
+POINT Z (2 49 10)
+
+query T
+SELECT ST_InverseTransformPipeline('POINT(500000 0)'::geometry, '+proj=pipeline +step +proj=unitconvert +xy_in=deg +xy_out=rad +step +proj=utm +zone=31 +ellps=WGS84')
+----
+POINT(3 0)
+
+query T
+SELECT ST_InverseTransformPipeline(ST_TransformPipeline('SRID=4326;POINT(2 49)'::geometry, 'urn:ogc:def:coordinateOperation:EPSG::16031'), 'urn:ogc:def:coordinateOperation:EPSG::16031', 4326)
+----
+SRID=4326;POINT(2 49)
+
+# NULL
+query T
+SELECT ST_InverseTransformPipeline(NULL::geometry, 'urn:ogc:def:coordinateOperation:EPSG::16031')
+----
+NULL
