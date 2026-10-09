@@ -1,7 +1,7 @@
 use geodatafusion::udf::native::editors::{
-    CollectionExtract, CollectionHomogenize, FlipCoordinates, Force2D, Force3DM, Force3DZ, Force4D,
-    ForceCollection, ForcePolygonCCW, ForcePolygonCW, Multi, Project, QuantizeCoordinates, Reverse,
-    ShiftLongitude, SnapToGrid, SwapOrdinates,
+    AddPoint, CollectionExtract, CollectionHomogenize, FlipCoordinates, Force2D, Force3DM,
+    Force3DZ, Force4D, ForceCollection, ForcePolygonCCW, ForcePolygonCW, Multi, Project,
+    QuantizeCoordinates, RemovePoint, Reverse, SetPoint, ShiftLongitude, SnapToGrid, SwapOrdinates,
 };
 
 use crate::impl_udf;
@@ -31,3 +31,6 @@ impl_udf!(
     "CollectionHomogenize"
 );
 impl_udf!(Project, PyProject, "Project");
+impl_udf!(AddPoint, PyAddPoint, "AddPoint");
+impl_udf!(SetPoint, PySetPoint, "SetPoint");
+impl_udf!(RemovePoint, PyRemovePoint, "RemovePoint");

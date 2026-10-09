@@ -1,0 +1,69 @@
+# Edge cases for ST_SetPoint, not covered by the PostGIS docs examples.
+
+# Positions, negative from the end
+query T
+SELECT ST_AsText(ST_SetPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 0, 'POINT(9 9)'::geometry))
+----
+LINESTRING(9 9,1 1,2 2)
+
+query T
+SELECT ST_AsText(ST_SetPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 2, 'POINT(9 9)'::geometry))
+----
+LINESTRING(0 0,1 1,9 9)
+
+query T
+SELECT ST_AsText(ST_SetPoint('LINESTRING(0 0,1 1,2 2)'::geometry, -1, 'POINT(9 9)'::geometry))
+----
+LINESTRING(0 0,1 1,9 9)
+
+query T
+SELECT ST_AsText(ST_SetPoint('LINESTRING(0 0,1 1,2 2)'::geometry, -3, 'POINT(9 9)'::geometry))
+----
+LINESTRING(9 9,1 1,2 2)
+
+# The point takes the line's dimension
+query T
+SELECT ST_AsEWKT(ST_SetPoint('LINESTRING Z (0 0 1,1 1 2)'::geometry, 0, 'POINT(9 9)'::geometry))
+----
+LINESTRING(9 9 0,1 1 2)
+
+query T
+SELECT ST_AsEWKT(ST_SetPoint('LINESTRING(0 0,1 1)'::geometry, 0, 'POINT Z (9 9 9)'::geometry))
+----
+LINESTRING(9 9,1 1)
+
+query T
+SELECT ST_AsEWKT(ST_SetPoint('LINESTRING M (0 0 1,1 1 2)'::geometry, 1, 'POINT M (9 9 9)'::geometry))
+----
+LINESTRINGM(0 0 1,9 9 9)
+
+# SRIDs and NULL
+query T
+SELECT ST_AsEWKT(ST_SetPoint('SRID=4326;LINESTRING(0 0,1 1)'::geometry, 0, 'SRID=3857;POINT(9 9)'::geometry))
+----
+SRID=4326;LINESTRING(9 9,1 1)
+
+query T
+SELECT ST_SetPoint(NULL::geometry, 0, 'POINT(9 9)'::geometry)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_SetPoint('LINESTRING(0 0,1 1,2 2)'::geometry, NULL, 'POINT(9 9)'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_SetPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 0, NULL::geometry))
+----
+NULL
+
+# Errors
+query error
+SELECT ST_SetPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 3, 'POINT(9 9)'::geometry)
+
+query error
+SELECT ST_SetPoint('LINESTRING(0 0,1 1,2 2)'::geometry, -4, 'POINT(9 9)'::geometry)
+
+query error
+SELECT ST_SetPoint('LINESTRING EMPTY'::geometry, 0, 'POINT(9 9)'::geometry)

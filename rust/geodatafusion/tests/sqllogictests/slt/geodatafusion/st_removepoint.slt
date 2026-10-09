@@ -1,0 +1,49 @@
+# Edge cases for ST_RemovePoint.
+
+# Offsets
+query T
+SELECT ST_AsText(ST_RemovePoint('LINESTRING(0 0,1 1,2 2)'::geometry, 0))
+----
+LINESTRING(1 1,2 2)
+
+query T
+SELECT ST_AsText(ST_RemovePoint('LINESTRING(0 0,1 1,2 2)'::geometry, 1))
+----
+LINESTRING(0 0,2 2)
+
+query T
+SELECT ST_AsText(ST_RemovePoint('LINESTRING(0 0,1 1,2 2)'::geometry, 2))
+----
+LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_AsEWKT(ST_RemovePoint('SRID=4326;LINESTRING ZM (0 0 1 2,1 1 2 3,2 2 3 4)'::geometry, 1))
+----
+SRID=4326;LINESTRING(0 0 1 2,2 2 3 4)
+
+# NULL
+query T
+SELECT ST_RemovePoint(NULL::geometry, 0)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_RemovePoint('LINESTRING(0 0,1 1,2 2)'::geometry, NULL))
+----
+NULL
+
+# Errors
+query error
+SELECT ST_RemovePoint('LINESTRING(0 0,1 1,2 2)'::geometry, 3)
+
+query error
+SELECT ST_RemovePoint('LINESTRING(0 0,1 1,2 2)'::geometry, -1)
+
+query error
+SELECT ST_RemovePoint('LINESTRING(0 0,1 1)'::geometry, 0)
+
+query error
+SELECT ST_RemovePoint('LINESTRING EMPTY'::geometry, 0)
+
+query error
+SELECT ST_RemovePoint('POINT(0 0)'::geometry, 0)

@@ -1,0 +1,97 @@
+# Edge cases for ST_AddPoint, not covered by the PostGIS docs examples.
+
+# Positions
+query T
+SELECT ST_AsText(ST_AddPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 'POINT(9 9)'::geometry))
+----
+LINESTRING(0 0,1 1,2 2,9 9)
+
+query T
+SELECT ST_AsText(ST_AddPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 'POINT(9 9)'::geometry, 0))
+----
+LINESTRING(9 9,0 0,1 1,2 2)
+
+query T
+SELECT ST_AsText(ST_AddPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 'POINT(9 9)'::geometry, 1))
+----
+LINESTRING(0 0,9 9,1 1,2 2)
+
+query T
+SELECT ST_AsText(ST_AddPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 'POINT(9 9)'::geometry, 3))
+----
+LINESTRING(0 0,1 1,2 2,9 9)
+
+query T
+SELECT ST_AsText(ST_AddPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 'POINT(9 9)'::geometry, -1))
+----
+LINESTRING(0 0,1 1,2 2,9 9)
+
+# The point takes the line's dimension
+query T
+SELECT ST_AsEWKT(ST_AddPoint('LINESTRING Z (0 0 1,1 1 2)'::geometry, 'POINT(9 9)'::geometry))
+----
+LINESTRING(0 0 1,1 1 2,9 9 0)
+
+query T
+SELECT ST_AsEWKT(ST_AddPoint('LINESTRING(0 0,1 1)'::geometry, 'POINT Z (9 9 9)'::geometry))
+----
+LINESTRING(0 0,1 1,9 9)
+
+query T
+SELECT ST_AsEWKT(ST_AddPoint('LINESTRING M (0 0 1,1 1 2)'::geometry, 'POINT Z (9 9 9)'::geometry))
+----
+LINESTRINGM(0 0 1,1 1 2,9 9 0)
+
+query T
+SELECT ST_AsEWKT(ST_AddPoint('LINESTRING ZM (0 0 1 2,1 1 2 3)'::geometry, 'POINT ZM (9 9 9 9)'::geometry, 1))
+----
+LINESTRING(0 0 1 2,9 9 9 9,1 1 2 3)
+
+# EMPTY, SRIDs and NULL
+query T
+SELECT ST_AsText(ST_AddPoint('LINESTRING EMPTY'::geometry, 'POINT(9 9)'::geometry))
+----
+LINESTRING(9 9)
+
+query T
+SELECT ST_AsText(ST_AddPoint('LINESTRING EMPTY'::geometry, 'POINT(9 9)'::geometry, 0))
+----
+LINESTRING(9 9)
+
+query T
+SELECT ST_AsText(ST_AddPoint('LINESTRING(0 0,1 1)'::geometry, 'POINT EMPTY'::geometry))
+----
+LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_AsEWKT(ST_AddPoint('SRID=4326;LINESTRING(0 0,1 1)'::geometry, 'SRID=3857;POINT(9 9)'::geometry))
+----
+SRID=4326;LINESTRING(0 0,1 1,9 9)
+
+query T
+SELECT ST_AddPoint(NULL::geometry, 'POINT(9 9)'::geometry)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AddPoint('LINESTRING(0 0,1 1,2 2)'::geometry, NULL::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AddPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 'POINT(9 9)'::geometry, NULL))
+----
+NULL
+
+# Errors
+query error
+SELECT ST_AddPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 'POINT(9 9)'::geometry, 4)
+
+query error
+SELECT ST_AddPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 'POINT(9 9)'::geometry, -2)
+
+query error
+SELECT ST_AddPoint('POINT(0 0)'::geometry, 'POINT(9 9)'::geometry)
+
+query error
+SELECT ST_AddPoint('LINESTRING(0 0,1 1,2 2)'::geometry, 'LINESTRING(9 9,8 8)'::geometry)

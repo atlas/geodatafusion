@@ -1,3 +1,4 @@
+mod add_point;
 mod collection_extract;
 mod collection_homogenize;
 mod flip_coordinates;
@@ -12,6 +13,7 @@ mod shift_longitude;
 mod snap_to_grid;
 mod swap_ordinates;
 
+pub use add_point::{AddPoint, RemovePoint, SetPoint};
 pub use collection_extract::CollectionExtract;
 pub use collection_homogenize::CollectionHomogenize;
 pub use flip_coordinates::FlipCoordinates;
@@ -44,4 +46,7 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(CollectionExtract.into());
     session_context.register_udf(CollectionHomogenize.into());
     session_context.register_udf(Project.into());
+    session_context.register_udf(AddPoint.into());
+    session_context.register_udf(SetPoint.into());
+    session_context.register_udf(RemovePoint.into());
 }

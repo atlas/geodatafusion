@@ -9,6 +9,7 @@ geodatafusion/geometrytype 18/18
 geodatafusion/operators 29/29
 geodatafusion/st_3dextent 10/10
 geodatafusion/st_3dmakebox 5/5
+geodatafusion/st_addpoint 20/20
 geodatafusion/st_affine 17/17
 geodatafusion/st_area 21/21
 geodatafusion/st_asbinary 17/17
@@ -132,12 +133,14 @@ geodatafusion/st_quantizecoordinates 20/20
 geodatafusion/st_reduceprecision 14/14
 geodatafusion/st_relate 21/21
 geodatafusion/st_relatematch 7/7
+geodatafusion/st_removepoint 11/11
 geodatafusion/st_reverse 14/14
 geodatafusion/st_rotate 17/17
 geodatafusion/st_rotatex 10/10
 geodatafusion/st_rotatey 10/10
 geodatafusion/st_rotatez 10/10
 geodatafusion/st_scale 26/26
+geodatafusion/st_setpoint 14/14
 geodatafusion/st_setsrid 11/11
 geodatafusion/st_sharedpaths 9/9
 geodatafusion/st_shiftlongitude 11/11
@@ -203,7 +206,7 @@ postgis_docs/st_3dmaxdistance 0/1
 postgis_docs/st_3dperimeter 0/1
 postgis_docs/st_3dshortestline 0/3
 postgis_docs/st_addmeasure 0/4
-postgis_docs/st_addpoint 0/1
+postgis_docs/st_addpoint 1/1
 postgis_docs/st_affine 2/2
 postgis_docs/st_angle 0/3
 postgis_docs/st_area 1/3
@@ -349,7 +352,7 @@ postgis_docs/st_makeenvelope 1/1
 postgis_docs/st_makeline 3/4
 postgis_docs/st_makepoint 4/4
 postgis_docs/st_makepointm 3/3
-postgis_docs/st_makepolygon 4/5
+postgis_docs/st_makepolygon 5/5
 postgis_docs/st_makevalid 4/4
 postgis_docs/st_maxdistance 0/3
 postgis_docs/st_maximuminscribedcircle 0/1
@@ -405,7 +408,7 @@ postgis_docs/st_scale 4/4
 postgis_docs/st_scroll 0/1
 postgis_docs/st_segmentize 0/3
 postgis_docs/st_seteffectivearea 0/1
-postgis_docs/st_setpoint 0/3
+postgis_docs/st_setpoint 2/3
 postgis_docs/st_setsrid 1/2
 postgis_docs/st_sharedpaths 2/2
 postgis_docs/st_shiftlongitude 1/1
