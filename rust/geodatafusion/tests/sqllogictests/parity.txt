@@ -4,7 +4,7 @@
 # improvements are recorded.
 geodatafusion/box2d 16/16
 geodatafusion/box3d 16/16
-geodatafusion/geometry 58/58
+geodatafusion/geometry 64/64
 geodatafusion/geometrytype 18/18
 geodatafusion/operators 29/29
 geodatafusion/st_3dextent 10/10
@@ -201,7 +201,7 @@ postgis_docs/st_asbinary 2/2
 postgis_docs/st_asencodedpolyline 0/2
 postgis_docs/st_asewkb 2/2
 postgis_docs/st_asgeobuf 0/1
-postgis_docs/st_asgeojson 1/4
+postgis_docs/st_asgeojson 2/4
 postgis_docs/st_asgml 0/5
 postgis_docs/st_ashexewkb 2/2
 postgis_docs/st_askml 0/2
@@ -255,19 +255,19 @@ postgis_docs/st_dump 0/2
 postgis_docs/st_dumppoints 0/4
 postgis_docs/st_dumprings 0/1
 postgis_docs/st_dumpsegments 0/3
-postgis_docs/st_endpoint 1/3
+postgis_docs/st_endpoint 2/3
 postgis_docs/st_envelope 6/6
 postgis_docs/st_equals 2/2
 postgis_docs/st_filterbym 0/1
 postgis_docs/st_flipcoordinates 0/1
-postgis_docs/st_force2d 0/2
+postgis_docs/st_force2d 1/2
 postgis_docs/st_force_3d 1/2
-postgis_docs/st_force_3dm 0/2
+postgis_docs/st_force_3dm 1/2
 postgis_docs/st_force_3dz 1/2
 postgis_docs/st_force_4d 1/2
 postgis_docs/st_force_collection 0/3
 postgis_docs/st_forcecurve 0/1
-postgis_docs/st_forcerhr 0/1
+postgis_docs/st_forcerhr 1/1
 postgis_docs/st_frechetdistance 0/1
 postgis_docs/st_generatepoints 0/1
 postgis_docs/st_geogfromwkb 0/1
@@ -326,7 +326,7 @@ postgis_docs/st_linefromtext 1/1
 postgis_docs/st_linefromwkb 1/1
 postgis_docs/st_lineinterpolatepoint 0/3
 postgis_docs/st_linelocatepoint 0/2
-postgis_docs/st_linemerge 4/5
+postgis_docs/st_linemerge 5/5
 postgis_docs/st_linestringfromwkb 1/1
 postgis_docs/st_linesubstring 0/4
 postgis_docs/st_linetocurve 0/2

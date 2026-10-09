@@ -2,20 +2,26 @@
 
 use std::sync::Arc;
 
-use arrow_array::{Array, BinaryArray};
+use arrow_array::cast::AsArray;
+use arrow_array::{Array, ArrayRef, BinaryArray};
 use arrow_schema::{DataType, Field, FieldRef};
-use datafusion::common::{exec_err, internal_datafusion_err};
+use datafusion::arrow::compute::cast;
+use datafusion::common::{exec_datafusion_err, exec_err, internal_datafusion_err};
 use datafusion::error::Result;
 use datafusion::logical_expr::{ColumnarValue, ScalarFunctionArgs};
 use geoarrow_array::GeoArrowArray;
 use geoarrow_array::array::{WkbArray, from_arrow_array};
+use geoarrow_array::builder::WkbBuilder;
 use geoarrow_schema::{Metadata, WkbType};
+use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
-use crate::util::srid::crs_to_srid;
+use crate::util::ewkt::parse_ewkt;
+use crate::util::srid::{SRID_UNKNOWN, crs_to_srid};
 
 /// Decodes geometry argument `index`, whatever its GeoArrow encoding. Untagged `Binary` is read
-/// as WKB and untagged strings as WKT. A NULL literal gives an all-NULL WKB array.
+/// as WKB and untagged strings as PostGIS (E)WKT (see [`geometries_from_array`]). A NULL literal
+/// gives an all-NULL WKB array.
 pub(crate) fn geometry_array(
     args: &ScalarFunctionArgs,
     index: usize,
@@ -28,7 +34,46 @@ pub(crate) fn geometry_array(
         let nulls = BinaryArray::new_null(array.len());
         return Ok(Arc::new(WkbArray::new(nulls, Default::default())));
     }
-    Ok(from_arrow_array(&array, field)?)
+    geometries_from_array(&array, field)
+}
+
+/// Decodes an array of geometries with the type of `field`.
+///
+/// Untagged strings are text that PostgreSQL would cast to `geometry` implicitly, so they are
+/// read with PostGIS's (E)WKT rules (`'POINT(1 2 3)'` is a POINT Z), not as OGC WKT. A
+/// `SRID=n;` prefix can't become the column's CRS here, so an SRID other than the field's is an
+/// error rather than dropped; a `::geometry` cast keeps it.
+pub(crate) fn geometries_from_array(
+    array: &ArrayRef,
+    field: &Field,
+) -> GeoDataFusionResult<Arc<dyn GeoArrowArray>> {
+    let is_text = matches!(
+        array.data_type(),
+        DataType::Utf8 | DataType::LargeUtf8 | DataType::Utf8View
+    );
+    if !is_text || field.extension_type_name().is_some() {
+        return Ok(from_arrow_array(array, field)?);
+    }
+    let metadata = input_metadata(field);
+    let field_srid = crs_to_srid(metadata.crs()).unwrap_or(SRID_UNKNOWN);
+    let text = cast(array, &DataType::Utf8)?;
+    let mut builder = WkbBuilder::<i32>::new(WkbType::new(metadata));
+    for value in text.as_string::<i32>() {
+        let Some(value) = value else {
+            builder.push_geometry(None::<&Wkt<f64>>)?;
+            continue;
+        };
+        let (srid, geometry) =
+            parse_ewkt(value).map_err(|e| exec_datafusion_err!("geometry: {e}"))?;
+        if let Some(srid) = srid.filter(|srid| *srid != field_srid) {
+            return Err(exec_datafusion_err!(
+                "geometry: text with SRID={srid} needs a ::geometry cast to keep its SRID"
+            )
+            .into());
+        }
+        builder.push_geometry(Some(&geometry))?;
+    }
+    Ok(Arc::new(builder.finish()))
 }
 
 /// The GeoArrow metadata (CRS and edges) of a field; default for untagged fields.

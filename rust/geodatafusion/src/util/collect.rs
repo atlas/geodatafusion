@@ -18,12 +18,12 @@ use datafusion::logical_expr::function::{AccumulatorArgs, StateFieldsArgs};
 use datafusion::logical_expr::{Accumulator, AggregateUDFImpl, EmitTo, GroupsAccumulator};
 use datafusion::scalar::ScalarValue;
 use geoarrow_array::GeoArrowArray;
-use geoarrow_array::array::from_arrow_array;
 use geoarrow_array::builder::WkbBuilder;
 use geoarrow_schema::GeoArrowType;
 use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::geometries_from_array;
 use crate::util::kernel::map_geometry;
 use crate::util::owned::ToOwned;
 
@@ -236,7 +236,7 @@ impl Finisher {
     fn finish_list(&self, values: &ArrayRef) -> GeoDataFusionResult<Option<Wkt<f64>>> {
         let field = Field::new("", values.data_type().clone(), true)
             .with_metadata(self.item_field.metadata().clone());
-        let geometries = from_arrow_array(values, &field)?;
+        let geometries = geometries_from_array(values, &field)?;
         let geometries: Vec<Option<Wkt<f64>>> = map_geometry(geometries.as_ref(), &ToOwned)?;
         let geometries: Vec<Wkt<f64>> = geometries.into_iter().flatten().collect();
         if geometries.is_empty() {
