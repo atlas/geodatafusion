@@ -1,0 +1,84 @@
+# Edge cases for ST_LineExtend, not covered by the PostGIS docs examples.
+
+# Forward and backward
+query T
+SELECT ST_AsText(ST_LineExtend('LINESTRING(0 0,10 0)'::geometry, 5))
+----
+LINESTRING(0 0,10 0,15 0)
+
+query T
+SELECT ST_AsText(ST_LineExtend('LINESTRING(0 0,10 0)'::geometry, 5, 2))
+----
+LINESTRING(-2 0,0 0,10 0,15 0)
+
+query T
+SELECT ST_AsText(ST_LineExtend('LINESTRING(0 0,3 4)'::geometry, 5, 5))
+----
+LINESTRING(-3 -4,0 0,3 4,6 8)
+
+query T
+SELECT ST_AsText(ST_LineExtend('LINESTRING(1 1,2 3,5 4)'::geometry, 1.5, 2.5))
+----
+LINESTRING(-0.118033988749895 -1.23606797749979,1 1,2 3,5 4,6.42302494707577 4.474341649025257)
+
+query T
+SELECT ST_AsText(ST_LineExtend('LINESTRING(0 0,10 0)'::geometry, 0, 0))
+----
+LINESTRING(0 0,10 0)
+
+query T
+SELECT ST_AsText(ST_LineExtend('LINESTRING(0 0,10 0)'::geometry, 0, 3))
+----
+LINESTRING(-3 0,0 0,10 0)
+
+# Z and M are extrapolated; repeated end points skipped
+query T
+SELECT ST_AsText(ST_LineExtend('LINESTRING Z (0 0 0,10 0 10)'::geometry, 5, 5))
+----
+LINESTRING Z (-5 0 -5,0 0 0,10 0 10,15 0 15)
+
+query T
+SELECT ST_AsText(ST_LineExtend('LINESTRING M (0 0 0,10 0 10)'::geometry, 5, 5))
+----
+LINESTRING M (-5 0 -5,0 0 0,10 0 10,15 0 15)
+
+query T
+SELECT ST_AsText(ST_LineExtend('LINESTRING(0 0,0 0,10 0,10 0)'::geometry, 5, 5))
+----
+LINESTRING(-5 0,0 0,0 0,10 0,10 0,15 0)
+
+query T
+SELECT ST_AsText(ST_LineExtend('LINESTRING(0 0,0 0)'::geometry, 5))
+----
+LINESTRING(0 0,0 0)
+
+# EMPTY, the SRID and NULL
+query T
+SELECT ST_AsText(ST_LineExtend('LINESTRING EMPTY'::geometry, 5))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_LineExtend('SRID=4326;LINESTRING(0 0,10 0)'::geometry, 5))
+----
+SRID=4326;LINESTRING(0 0,10 0,15 0)
+
+query T
+SELECT ST_LineExtend(NULL::geometry, 5)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_LineExtend('LINESTRING(0 0,10 0)'::geometry, NULL))
+----
+NULL
+
+# Errors
+query error
+SELECT ST_LineExtend('LINESTRING(0 0,10 0)', -5)
+
+query error
+SELECT ST_LineExtend('LINESTRING(0 0,10 0)', 5, -1)
+
+query error
+SELECT ST_LineExtend('POINT(0 0)', 5)

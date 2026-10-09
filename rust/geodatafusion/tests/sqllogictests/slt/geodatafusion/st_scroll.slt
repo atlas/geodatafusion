@@ -1,0 +1,89 @@
+# Edge cases for ST_Scroll, not covered by the PostGIS docs examples.
+
+# New start points
+query T
+SELECT ST_AsText(ST_Scroll('LINESTRING(0 0,10 0,10 10,0 10,0 0)'::geometry, 'POINT(10 10)'::geometry))
+----
+LINESTRING(10 10,0 10,0 0,10 0,10 10)
+
+query T
+SELECT ST_AsText(ST_Scroll('LINESTRING(0 0,10 0,10 10,0 10,0 0)'::geometry, 'POINT(0 0)'::geometry))
+----
+LINESTRING(0 0,10 0,10 10,0 10,0 0)
+
+query T
+SELECT ST_AsText(ST_Scroll('LINESTRING(0 0,10 0,10 10,0 10,0 0)'::geometry, 'POINT(10 0)'::geometry))
+----
+LINESTRING(10 0,10 10,0 10,0 0,10 0)
+
+query T
+SELECT ST_AsText(ST_Scroll('LINESTRING(0 0,10 0,10 0,10 10,0 0)'::geometry, 'POINT(10 0)'::geometry))
+----
+LINESTRING(10 0,10 0,10 10,0 0,10 0)
+
+# Z and M: the point is compared with the stored ordinates
+query T
+SELECT ST_AsEWKT(ST_Scroll('SRID=4326;LINESTRING Z (0 0 1,10 0 2,10 10 3,0 0 1)'::geometry, 'POINT Z (10 0 2)'::geometry))
+----
+SRID=4326;LINESTRING(10 0 2,10 10 3,0 0 1,10 0 2)
+
+query T
+SELECT ST_AsEWKT(ST_Scroll('LINESTRING Z (0 0 1,10 0 0,10 10 3,0 0 1)'::geometry, 'POINT(10 0)'::geometry))
+----
+LINESTRING(10 0 0,10 10 3,0 0 1,10 0 0)
+
+query T
+SELECT ST_AsEWKT(ST_Scroll('LINESTRING Z (0 0 1,10 0 2,10 10 3,0 0 5)'::geometry, 'POINT Z (10 0 2)'::geometry))
+----
+LINESTRING(10 0 2,10 10 3,0 0 5,10 0 2)
+
+query T
+SELECT ST_AsEWKT(ST_Scroll('LINESTRING M (0 0 1,10 0 2,10 10 3,0 0 1)'::geometry, 'POINT Z (10 0 2)'::geometry))
+----
+LINESTRINGM(10 0 2,10 10 3,0 0 1,10 0 2)
+
+query T
+SELECT ST_AsEWKT(ST_Scroll('LINESTRING(0 0,10 0,10 10,0 0)'::geometry, 'POINT Z (10 0 5)'::geometry))
+----
+LINESTRING(10 0,10 10,0 0,10 0)
+
+query T
+SELECT ST_AsEWKT(ST_Scroll('LINESTRING(0 0,10 0,10 10,0 0)'::geometry, 'POINT M (10 0 5)'::geometry))
+----
+LINESTRING(10 0,10 10,0 0,10 0)
+
+# NULL
+query T
+SELECT ST_Scroll(NULL::geometry, 'POINT(0 0)'::geometry)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_Scroll('LINESTRING(0 0,10 0,10 10,0 10,0 0)'::geometry, NULL::geometry))
+----
+NULL
+
+# Errors
+query error
+SELECT ST_Scroll('LINESTRING(0 0,10 0,10 10)', 'POINT(10 0)'::geometry)
+
+query error
+SELECT ST_Scroll('LINESTRING(0 0,10 0,10 10,0 10,0 0)', 'POINT(5 5)'::geometry)
+
+query error
+SELECT ST_Scroll('POLYGON((0 0,10 0,10 10,0 0))', 'POINT(10 0)'::geometry)
+
+query error
+SELECT ST_Scroll('LINESTRING(0 0,10 0,10 10,0 10,0 0)', 'LINESTRING(10 0,1 1)'::geometry)
+
+query error
+SELECT ST_Scroll('LINESTRING(0 0,10 0,10 10,0 10,0 0)', 'POINT EMPTY'::geometry)
+
+query error
+SELECT ST_Scroll('LINESTRING EMPTY', 'POINT(10 0)'::geometry)
+
+query error
+SELECT ST_Scroll('LINESTRING M (0 0 1,10 0 2,10 10 3,0 0 1)', 'POINT M (10 0 2)'::geometry)
+
+query error
+SELECT ST_Scroll('LINESTRING ZM (0 0 1 7,10 0 2 8,10 10 3 9,0 0 1 7)', 'POINT ZM (10 0 2 99)'::geometry)

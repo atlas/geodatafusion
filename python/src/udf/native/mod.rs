@@ -118,6 +118,9 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<editors::PyRemovePoint>()?;
     m.add_class::<editors::PyRemoveRepeatedPoints>()?;
     m.add_class::<editors::PySegmentize>()?;
+    m.add_class::<editors::PyLineExtend>()?;
+    m.add_class::<editors::PyScroll>()?;
+    m.add_class::<editors::PyRemoveSmallParts>()?;
 
     // io
     m.add_class::<io::PyAsBinary>()?;
@@ -176,6 +179,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     // processing
     m.add_class::<processing::PySimplify>()?;
     m.add_class::<processing::PySimplifyVW>()?;
+    m.add_class::<processing::PyChaikinSmoothing>()?;
 
     // relationships
     m.add_class::<relationships::PyDWithin>()?;
