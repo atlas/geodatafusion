@@ -1,0 +1,102 @@
+# Edge cases for ST_AsEncodedPolyline, not covered by the PostGIS docs examples.
+
+# Precisions; a negative one means the default
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING(-120.2 38.5,-120.95 40.7,-126.453 43.252)'::geometry)
+----
+_p~iF~ps|U_ulLnnqC_mqNvxq`@
+
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING(-120.2 38.5,-120.95 40.7,-126.453 43.252)'::geometry, 6)
+----
+_izlhA~rlgdF_{geC~ywl@_kwzCn`{nI
+
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING(-120.2 38.5,-120.95 40.7,-126.453 43.252)'::geometry, 7)
+----
+_cpi}U_wvjjw@_ww}h@~lwhM_wrto@~mw}gB
+
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING(-120.2 38.5,-120.95 40.7,-126.453 43.252)'::geometry, 1)
+----
+aWbjAk@Ns@lB
+
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING(-120.2 38.5,-120.95 40.7,-126.453 43.252)'::geometry, 0)
+----
+mAnFC@CH
+
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING(-120.2 38.5,-120.95 40.7,-126.453 43.252)'::geometry, -1)
+----
+_p~iF~ps|U_ulLnnqC_mqNvxq`@
+
+# Above 7 decimals, 32-bit integers overflow as in PostGIS
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING(-120.2 38.5,-120.95 40.7,-126.453 43.252)'::geometry, 8)
+----
+??_ovrbL~js`nC_odweN~tsrx_@
+
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING(-120.2 38.5,-120.95 40.7,-126.453 43.252)'::geometry, 10)
+----
+??????
+
+# Rounding is half away from zero
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING(0.5 2.5,-0.5 -2.5)'::geometry, 0)
+----
+EAJB
+
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING(0.000005 0.000005,0.000015 -0.000015,0.0000049 0.0000051)'::geometry)
+----
+AADAEB
+
+# LINESTRING and MULTIPOINT; Z and M are dropped
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;MULTIPOINT(-120.2 38.5,-120.95 40.7)'::geometry)
+----
+_p~iF~ps|U_ulLnnqC
+
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING Z (-120.2 38.5 1,-120.95 40.7 2)'::geometry)
+----
+_p~iF~ps|U_ulLnnqC
+
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING ZM (-120.2 38.5 1 2,-120.95 40.7 2 3)'::geometry)
+----
+_p~iF~ps|U_ulLnnqC
+
+# EMPTY and NULL
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING EMPTY'::geometry)
+----
+(empty)
+
+query T
+SELECT ST_AsEncodedPolyline(NULL::geometry)
+----
+NULL
+
+query T
+SELECT ST_AsEncodedPolyline('SRID=4326;LINESTRING(-120.2 38.5,-120.95 40.7,-126.453 43.252)'::geometry, NULL)
+----
+NULL
+
+# SRID 4326 only, and only lines and multipoints
+query error
+SELECT ST_AsEncodedPolyline('LINESTRING(-120.2 38.5,-120.95 40.7)'::geometry)
+
+query error
+SELECT ST_AsEncodedPolyline('SRID=3857;LINESTRING(-120.2 38.5,-120.95 40.7)'::geometry)
+
+query error
+SELECT ST_AsEncodedPolyline('SRID=4326;POINT(-120.2 38.5)'::geometry)
+
+query error
+SELECT ST_AsEncodedPolyline('SRID=4326;POLYGON((0 0,1 0,1 1,0 0))'::geometry)
+
+query error
+SELECT ST_AsEncodedPolyline('SRID=4326;MULTILINESTRING((0 0,1 1))'::geometry)
