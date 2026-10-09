@@ -1,0 +1,90 @@
+# Edge cases for ST_ExteriorRing.
+
+# Polygons
+query T
+SELECT ST_AsText(ST_ExteriorRing('POLYGON((0 0,1 0,1 1,0 0))'::geometry))
+----
+LINESTRING(0 0,1 0,1 1,0 0)
+
+query T
+SELECT ST_AsText(ST_ExteriorRing('POLYGON((0 0,4 0,4 4,0 4,0 0),(1 1,2 1,2 2,1 1),(3 3,3.5 3,3.5 3.5,3 3))'::geometry))
+----
+LINESTRING(0 0,4 0,4 4,0 4,0 0)
+
+# Other types, including MULTIPOLYGON, give NULL
+query T
+SELECT ST_AsText(ST_ExteriorRing('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_ExteriorRing('POINT(1 1)'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_ExteriorRing('LINESTRING(0 0,1 1,1 0,0 0)'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_ExteriorRing('GEOMETRYCOLLECTION(POLYGON((0 0,1 0,1 1,0 0)))'::geometry))
+----
+NULL
+
+# EMPTY
+query T
+SELECT ST_AsText(ST_ExteriorRing('POLYGON EMPTY'::geometry))
+----
+LINESTRING EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_ExteriorRing('SRID=4326;POLYGON Z EMPTY'::geometry))
+----
+SRID=4326;LINESTRING EMPTY
+
+query T
+SELECT ST_AsText(ST_ExteriorRing('MULTIPOLYGON EMPTY'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_ExteriorRing('POINT EMPTY'::geometry))
+----
+NULL
+
+# Z, M and the SRID are kept, also by an empty ring
+query II
+SELECT ST_Zmflag(ST_ExteriorRing('POLYGON Z EMPTY'::geometry)), ST_Zmflag(ST_ExteriorRing('POLYGON M EMPTY'::geometry))
+----
+2 1
+
+
+query T
+SELECT ST_AsEWKT(ST_ExteriorRing('SRID=4326;POLYGON Z ((0 0 1,1 0 2,1 1 3,0 0 1))'::geometry))
+----
+SRID=4326;LINESTRING(0 0 1,1 0 2,1 1 3,0 0 1)
+
+query T
+SELECT ST_AsEWKT(ST_ExteriorRing('SRID=3857;POLYGON ZM ((0 0 1 5,1 0 2 6,1 1 3 7,0 0 1 5))'::geometry))
+----
+SRID=3857;LINESTRING(0 0 1 5,1 0 2 6,1 1 3 7,0 0 1 5)
+
+query T
+SELECT ST_AsEWKT(ST_ExteriorRing('POLYGON M ((0 0 1,1 0 2,1 1 3,0 0 1))'::geometry))
+----
+LINESTRINGM(0 0 1,1 0 2,1 1 3,0 0 1)
+
+# NULL
+query T
+SELECT ST_ExteriorRing(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_AsText(ST_ExteriorRing(g)) FROM (VALUES ('POLYGON((0 0,4 0,4 4,0 4,0 0),(1 1,2 1,2 2,1 1),(3 3,3.5 3,3.5 3.5,3 3))'::geometry), (NULL::geometry), ('POINT(1 1)'::geometry)) AS t(g)
+----
+LINESTRING(0 0,4 0,4 4,0 4,0 0)
+NULL
+NULL

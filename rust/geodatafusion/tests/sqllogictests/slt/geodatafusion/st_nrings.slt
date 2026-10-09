@@ -1,0 +1,78 @@
+# Edge cases for ST_NRings, not covered by the PostGIS docs examples.
+
+# Polygons
+query I
+SELECT ST_NRings('POLYGON((0 0,1 0,1 1,0 0))'::geometry)
+----
+1
+
+query I
+SELECT ST_NRings('POLYGON((0 0,4 0,4 4,0 4,0 0),(1 1,2 1,2 2,1 1),(3 3,3.5 3,3.5 3.5,3 3))'::geometry)
+----
+3
+
+# Every ring of every polygon in a collection
+query I
+SELECT ST_NRings('MULTIPOLYGON(((0 0,4 0,4 4,0 0),(1 1,2 1,2 2,1 1)),((5 5,6 5,6 6,5 5)))'::geometry)
+----
+3
+
+query I
+SELECT ST_NRings('GEOMETRYCOLLECTION(POLYGON((0 0,4 0,4 4,0 0),(1 1,2 1,2 2,1 1)),MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5))),POINT(1 1))'::geometry)
+----
+4
+
+query I
+SELECT ST_NRings('MULTIPOLYGON(EMPTY,((5 5,6 5,6 6,5 5)))'::geometry)
+----
+1
+
+# Other types have none
+query I
+SELECT ST_NRings('POINT(1 1)'::geometry)
+----
+0
+
+query I
+SELECT ST_NRings('LINESTRING(0 0,1 1,1 0,0 0)'::geometry)
+----
+0
+
+query I
+SELECT ST_NRings('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(0 0,1 1))'::geometry)
+----
+0
+
+# EMPTY, Z/M and NULL
+query I
+SELECT ST_NRings('POLYGON EMPTY'::geometry)
+----
+0
+
+query I
+SELECT ST_NRings('MULTIPOLYGON EMPTY'::geometry)
+----
+0
+
+query I
+SELECT ST_NRings('GEOMETRYCOLLECTION(POLYGON EMPTY)'::geometry)
+----
+0
+
+query I
+SELECT ST_NRings('POLYGON ZM ((0 0 1 2,1 0 1 2,1 1 1 2,0 0 1 2))'::geometry)
+----
+1
+
+query I
+SELECT ST_NRings(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query I rowsort
+SELECT ST_NRings(g) FROM (VALUES ('POLYGON((0 0,4 0,4 4,0 4,0 0),(1 1,2 1,2 2,1 1),(3 3,3.5 3,3.5 3.5,3 3))'::geometry), (NULL::geometry), ('POINT(1 1)'::geometry)) AS t(g)
+----
+0
+3
+NULL
