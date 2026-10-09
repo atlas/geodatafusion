@@ -1,0 +1,185 @@
+# Edge cases for ST_RemoveRepeatedPoints, not covered by the PostGIS docs examples.
+
+# Exact repeats
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,0 0,1 1,1 1,2 2)'::geometry))
+----
+LINESTRING(0 0,1 1,2 2)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,1 0,1 0,2 0,2 0)'::geometry))
+----
+LINESTRING(0 0,1 0,2 0)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,0 0)'::geometry))
+----
+LINESTRING(0 0,0 0)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,0 0,0 0)'::geometry))
+----
+LINESTRING(0 0,0 0)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('POLYGON((0 0,0 0,1 0,1 1,1 1,0 0))'::geometry))
+----
+POLYGON((0 0,1 0,1 1,0 0))
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('POLYGON((0 0,1 0,0 0,0 0))'::geometry))
+----
+POLYGON((0 0,1 0,0 0,0 0))
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('MULTIPOINT((1 1),(1 1),(2 2),(1 1))'::geometry))
+----
+MULTIPOINT((1 1),(2 2))
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('MULTILINESTRING((0 0,0 0,1 1),(2 2,2 2))'::geometry))
+----
+MULTILINESTRING((0 0,1 1),(2 2,2 2))
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('GEOMETRYCOLLECTION(LINESTRING(0 0,0 0,1 1),POINT(1 1))'::geometry))
+----
+GEOMETRYCOLLECTION(LINESTRING(0 0,1 1),POINT(1 1))
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING Z (0 0 0,0 0 1,0 0 1,1 1 1)'::geometry))
+----
+LINESTRING Z (0 0 0,0 0 1,1 1 1)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING M (0 0 1,0 0 2,1 1 1)'::geometry))
+----
+LINESTRING M (0 0 1,0 0 2,1 1 1)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('MULTIPOINT Z ((0 0 0),(0 0 1))'::geometry))
+----
+MULTIPOINT Z ((0 0 0))
+
+# Within a tolerance
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,0 0,1 1,1 1,2 2)', 1.5))
+----
+LINESTRING(0 0,2 2)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,0.5 0,1 0,1.5 0,2 0,3 0)', 0.5))
+----
+LINESTRING(0 0,1 0,2 0,3 0)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,0.5 0,1 0,1.5 0,2 0,3 0)', 0.6))
+----
+LINESTRING(0 0,1 0,2 0,3 0)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,1 0,2 0)', 5))
+----
+LINESTRING(0 0,2 0)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,5 0,5.1 0)', 0.5))
+----
+LINESTRING(0 0,5.1 0)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,5 0,5.1 0,5.2 0)', 0.5))
+----
+LINESTRING(0 0,5.2 0)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,1 0,1.1 0,1.2 0)', 0.15))
+----
+LINESTRING(0 0,1 0,1.2 0)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,0.1 0)', 0.5))
+----
+LINESTRING(0 0,0.1 0)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,0.1 0,0.2 0)', 0.5))
+----
+LINESTRING(0 0,0.2 0)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING Z (0 0 1,0 0 2,1 1 1)', 1.5))
+----
+LINESTRING Z (0 0 1,1 1 1)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('POLYGON((0 0,0 0,1 0,1 1,1 1,0 0))', 1.5))
+----
+POLYGON((0 0,1 1,1 1,0 0))
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('POLYGON((0 0,0.1 0,0.2 0,10 0,10 10,0 0))', 0.5))
+----
+POLYGON((0 0,10 0,10 10,0 0))
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('POLYGON((0 0,10 0,10 10,9.9 10,0 0))', 0.5))
+----
+POLYGON((0 0,10 0,10 10,0 0))
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('POLYGON((0 0,10 0,10 10,0 10,0 0),(1 1,1.1 1,1.1 1.1,1 1))', 0.5))
+----
+POLYGON((0 0,10 0,10 10,0 10,0 0),(1 1,1.1 1,1.1 1.1,1 1))
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('MULTIPOINT((1 1),(1 1),(2 2),(1 1))', 1.5))
+----
+MULTIPOINT((1 1))
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('MULTIPOINT((0 0),(0.5 0),(1 0),(5 5))', 0.6))
+----
+MULTIPOINT((0 0),(1 0),(5 5))
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('MULTIPOINT((0 0),(0.5 0),(0.9 0))', 0.6))
+----
+MULTIPOINT((0 0),(0.9 0))
+
+# A negative tolerance counts as 0
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,0 0,0.5 0,2 0,3 0)', -1))
+----
+LINESTRING(0 0,0.5 0,2 0,3 0)
+
+# EMPTY, the SRID and NULL
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('POINT(1 1)'::geometry))
+----
+POINT(1 1)
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING EMPTY'::geometry))
+----
+LINESTRING EMPTY
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('MULTIPOINT(EMPTY,(1 1),EMPTY)'::geometry))
+----
+MULTIPOINT((1 1))
+
+query T
+SELECT ST_AsEWKT(ST_RemoveRepeatedPoints('SRID=4326;LINESTRING(0 0,0 0,1 1)'::geometry))
+----
+SRID=4326;LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_RemoveRepeatedPoints(NULL::geometry)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_RemoveRepeatedPoints('LINESTRING(0 0,0 0,1 1)'::geometry, NULL))
+----
+NULL
