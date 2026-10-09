@@ -1,0 +1,86 @@
+# Edge cases for ST_Force4D, not covered by the PostGIS docs examples.
+
+# Every dimension
+query T
+SELECT ST_AsEWKT(ST_Force4D('POINT(1 2)'::geometry, 7, 8))
+----
+POINT(1 2 7 8)
+
+query T
+SELECT ST_AsEWKT(ST_Force4D('POINT Z (1 2 3)'::geometry, 7, 8))
+----
+POINT(1 2 3 8)
+
+query T
+SELECT ST_AsEWKT(ST_Force4D('POINT M (1 2 4)'::geometry, 7, 8))
+----
+POINT(1 2 7 4)
+
+query T
+SELECT ST_AsEWKT(ST_Force4D('POINT ZM (1 2 3 4)'::geometry, 7, 8))
+----
+POINT(1 2 3 4)
+
+# Every geometry type, and the SRID
+query T
+SELECT ST_AsEWKT(ST_Force4D('SRID=4326;LINESTRING M (0 0 1,1 1 2)'::geometry, 7, 8))
+----
+SRID=4326;LINESTRING(0 0 7 1,1 1 7 2)
+
+query T
+SELECT ST_AsEWKT(ST_Force4D('POLYGON Z ((0 0 1,4 0 1,4 4 1,0 0 1))'::geometry, 7, 8))
+----
+POLYGON((0 0 1 8,4 0 1 8,4 4 1 8,0 0 1 8))
+
+query T
+SELECT ST_AsEWKT(ST_Force4D('MULTIPOINT ZM ((1 2 3 4),(5 6 7 8))'::geometry, 7, 8))
+----
+MULTIPOINT(1 2 3 4,5 6 7 8)
+
+query T
+SELECT ST_AsEWKT(ST_Force4D('GEOMETRYCOLLECTION(POINT(1 2),LINESTRING(0 0,1 1))'::geometry, 7, 8))
+----
+GEOMETRYCOLLECTION(POINT(1 2 7 8),LINESTRING(0 0 7 8,1 1 7 8))
+
+# EMPTY keeps the new dimension
+query T
+SELECT ST_AsEWKT(ST_Force4D('POINT EMPTY'::geometry, 7, 8))
+----
+POINT EMPTY
+
+query I
+SELECT ST_Zmflag(ST_Force4D('POINT EMPTY'::geometry, 7, 8))
+----
+3
+
+query I
+SELECT ST_Zmflag(ST_Force4D('GEOMETRYCOLLECTION ZM EMPTY'::geometry, 7, 8))
+----
+3
+
+# NULL
+query T
+SELECT ST_Force4D(NULL::geometry, 7, 8)
+----
+NULL
+
+# Default and NULL fill values
+query T
+SELECT ST_AsEWKT(ST_Force4D('POINT(1 2)'::geometry))
+----
+POINT(1 2 0 0)
+
+query T
+SELECT ST_AsEWKT(ST_Force4D('POINT(1 2)'::geometry, 7))
+----
+POINT(1 2 7 0)
+
+query T
+SELECT ST_AsEWKT(ST_Force4D('POINT(1 2)'::geometry, NULL, 8))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_Force4D('POINT ZM (1 2 3 4)'::geometry, NULL, 8))
+----
+NULL

@@ -1,0 +1,76 @@
+# Edge cases for ST_Force3DZ, not covered by the PostGIS docs examples.
+
+# Every dimension
+query T
+SELECT ST_AsEWKT(ST_Force3DZ('POINT(1 2)'::geometry, 7))
+----
+POINT(1 2 7)
+
+query T
+SELECT ST_AsEWKT(ST_Force3DZ('POINT Z (1 2 3)'::geometry, 7))
+----
+POINT(1 2 3)
+
+query T
+SELECT ST_AsEWKT(ST_Force3DZ('POINT M (1 2 4)'::geometry, 7))
+----
+POINT(1 2 7)
+
+query T
+SELECT ST_AsEWKT(ST_Force3DZ('POINT ZM (1 2 3 4)'::geometry, 7))
+----
+POINT(1 2 3)
+
+# Every geometry type, and the SRID
+query T
+SELECT ST_AsEWKT(ST_Force3DZ('SRID=4326;LINESTRING M (0 0 1,1 1 2)'::geometry, 7))
+----
+SRID=4326;LINESTRING(0 0 7,1 1 7)
+
+query T
+SELECT ST_AsEWKT(ST_Force3DZ('POLYGON Z ((0 0 1,4 0 1,4 4 1,0 0 1))'::geometry, 7))
+----
+POLYGON((0 0 1,4 0 1,4 4 1,0 0 1))
+
+query T
+SELECT ST_AsEWKT(ST_Force3DZ('MULTIPOINT ZM ((1 2 3 4),(5 6 7 8))'::geometry, 7))
+----
+MULTIPOINT(1 2 3,5 6 7)
+
+query T
+SELECT ST_AsEWKT(ST_Force3DZ('GEOMETRYCOLLECTION(POINT(1 2),LINESTRING(0 0,1 1))'::geometry, 7))
+----
+GEOMETRYCOLLECTION(POINT(1 2 7),LINESTRING(0 0 7,1 1 7))
+
+# EMPTY keeps the new dimension
+query T
+SELECT ST_AsEWKT(ST_Force3DZ('POINT EMPTY'::geometry, 7))
+----
+POINT EMPTY
+
+query I
+SELECT ST_Zmflag(ST_Force3DZ('POINT EMPTY'::geometry, 7))
+----
+2
+
+query I
+SELECT ST_Zmflag(ST_Force3DZ('GEOMETRYCOLLECTION ZM EMPTY'::geometry, 7))
+----
+2
+
+# NULL
+query T
+SELECT ST_Force3DZ(NULL::geometry, 7)
+----
+NULL
+
+# Default and NULL fill values
+query T
+SELECT ST_AsEWKT(ST_Force3DZ('POINT(1 2)'::geometry))
+----
+POINT(1 2 0)
+
+query T
+SELECT ST_AsEWKT(ST_Force3DZ('POINT(1 2)'::geometry, NULL))
+----
+NULL

@@ -90,6 +90,16 @@ pub(crate) fn map_coords(
     map_wkt_coords(to_owned_geometry(geom), None, f)
 }
 
+/// A copy of `geom` in dimension `dim`, with `f` applied to every coordinate. `f` returns
+/// coordinates with the ordinates of `dim`.
+pub(crate) fn map_coords_to_dimension(
+    geom: &impl GeometryTrait<T = f64>,
+    dim: Dimension,
+    f: &impl Fn(Coord<f64>) -> Coord<f64>,
+) -> Wkt<f64> {
+    map_wkt_coords(to_owned_geometry(geom), Some(dim), f)
+}
+
 fn map_wkt_coords(
     geom: Wkt<f64>,
     dim: Option<Dimension>,
