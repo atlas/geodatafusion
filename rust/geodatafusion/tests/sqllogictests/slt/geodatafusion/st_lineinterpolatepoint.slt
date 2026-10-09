@@ -1,0 +1,105 @@
+# Edge cases for ST_LineInterpolatePoint, not covered by the PostGIS docs examples.
+
+# Fractions, vertices included
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 0))
+----
+POINT(0 0)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 0.25))
+----
+POINT(5 0)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 0.5))
+----
+POINT(10 0)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 0.75))
+----
+POINT(10 5)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 1))
+----
+POINT(10 10)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,3 1,7 -2)'::geometry, 0.13))
+----
+POINT(1.006644143732834 0.335548047910945)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,3 1,7 -2)'::geometry, 0.71))
+----
+POINT(5.106351582840936 -0.579763687130702)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,1 0,1 0,2 0)'::geometry, 0.5))
+----
+POINT(1 0)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,3 0,10 0)'::geometry, 0.3))
+----
+POINT(3 0)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,0 0)'::geometry, 0.5))
+----
+POINT(0 0)
+
+# Z and M are interpolated; length is 2D
+query T
+SELECT ST_AsEWKT(ST_LineInterpolatePoint('SRID=4326;LINESTRING ZM (0 0 0 0,10 0 10 20)'::geometry, 0.3))
+----
+SRID=4326;POINT(3 0 3 6)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING Z (0 0 0,0 0 10,10 0 10)'::geometry, 0.5))
+----
+POINT Z (5 0 10)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING M (0 0 0,10 0 10)'::geometry, 0.5))
+----
+POINT M (5 0 5)
+
+# EMPTY and NULL
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING EMPTY'::geometry, 0.5))
+----
+POINT EMPTY
+
+query T
+SELECT ST_LineInterpolatePoint(NULL::geometry, 0.5)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, NULL))
+----
+NULL
+
+# Errors
+query error
+SELECT ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 1.1)
+
+query error
+SELECT ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, -0.1)
+
+query error
+SELECT ST_LineInterpolatePoint('POINT(1 1)'::geometry, 0.5)
+
+query error
+SELECT ST_LineInterpolatePoint('MULTILINESTRING((0 0,1 1))'::geometry, 0.5)
+
+# A column
+query RT rowsort
+SELECT f, ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, f)) FROM (VALUES (0.1), (0.6), (NULL)) AS t(f)
+----
+0.1 POINT(2 0)
+0.6 POINT(10 2)
+NULL NULL
