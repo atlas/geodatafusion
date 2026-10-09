@@ -12,13 +12,12 @@ use datafusion::logical_expr::{Accumulator, AggregateUDFImpl, Documentation, Sig
 use datafusion::scalar::ScalarValue;
 use datafusion_macros::user_doc;
 use geoarrow_array::GeoArrowArray;
-use geoarrow_array::array::from_arrow_array;
 use geoarrow_array::builder::RectBuilder;
 use geoarrow_schema::{BoxType, Dimension, GeoArrowType};
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::bounding_box::util::bounds::{BoundingRect, extent_bounds};
-use crate::util::field::input_metadata;
+use crate::util::field::{geometries_from_array, input_metadata};
 use crate::util::signature::single_geometry;
 
 /// Aggregate function that returns the 2D bounding box of geometries.
@@ -246,7 +245,7 @@ fn extent_update(
     field: &FieldRef,
     include_z: bool,
 ) -> GeoDataFusionResult<()> {
-    let geometries = from_arrow_array(array, field)?;
+    let geometries = geometries_from_array(array, field)?;
     bounds.update(&extent_bounds(geometries.as_ref(), include_z)?);
     Ok(())
 }

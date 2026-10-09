@@ -9,7 +9,6 @@ use geo_traits::{
     LineTrait, MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait,
     RectTrait, TriangleTrait,
 };
-use geoarrow_array::array::from_arrow_array;
 use wkt::Wkt;
 use wkt::types::{
     Coord, Dimension, GeometryCollection, LineString, MultiLineString, MultiPoint, MultiPolygon,
@@ -17,6 +16,7 @@ use wkt::types::{
 };
 
 use crate::error::GeoDataFusionResult;
+use crate::util::field::geometries_from_array;
 use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::ordinates::{m, z};
 
@@ -334,7 +334,7 @@ impl OwnedColumn {
         let rows = if array.data_type() == &DataType::Null {
             vec![None; array.len()]
         } else {
-            map_geometry(from_arrow_array(&array, field)?.as_ref(), &ToOwned)?
+            map_geometry(geometries_from_array(&array, field)?.as_ref(), &ToOwned)?
         };
         Ok(Self { rows, is_scalar })
     }
