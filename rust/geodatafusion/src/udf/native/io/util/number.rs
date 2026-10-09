@@ -87,6 +87,14 @@ pub(crate) fn write_number(out: &mut String, value: f64, max_decimal_digits: i32
     }
 }
 
+/// Writes `value` with exactly `decimals` decimals, as C's `%.*f`, which ST_AsGeoJSON's `bbox`
+/// uses: the exact binary value is rounded half to even, trailing zeros stay, and a negative
+/// `decimals` means C's default of 6.
+pub(crate) fn write_fixed(out: &mut String, value: f64, decimals: i32) {
+    let decimals = usize::try_from(decimals).unwrap_or(6);
+    out.push_str(&format!("{value:.decimals$}"));
+}
+
 /// The shortest round-trip decimal digits of a positive, finite `value`, and the decimal
 /// exponent of the first digit.
 ///

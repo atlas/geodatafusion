@@ -138,6 +138,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.PointFromGeoHash()))
     ctx.register_udf(udf(native.GeomFromGeoHash()))
     ctx.register_udf(udf(native.Box2DFromGeoHash()))
+    ctx.register_udf(udf(native.AsGeoJSON()))
 
     # measurement
     ctx.register_udf(udf(native.Area()))

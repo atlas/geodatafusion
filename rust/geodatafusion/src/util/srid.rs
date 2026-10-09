@@ -56,6 +56,12 @@ fn authority(srid: i32) -> Option<Authority> {
         .map(|(_, _, authority)| *authority)
 }
 
+/// The name of the authority that defines `srid` in PostGIS (`EPSG`, `ESRI`), if any. Output
+/// formats that name the CRS (GeoJSON, GML) need it.
+pub(crate) fn srid_authority_name(srid: i32) -> Option<&'static str> {
+    authority(srid).map(Authority::name)
+}
+
 /// The GeoArrow CRS for a PostGIS SRID: no CRS for [`SRID_UNKNOWN`], `EPSG:n` or `ESRI:n` for
 /// SRIDs PostGIS defines, and an opaque `srid` CRS for anything else.
 pub(crate) fn srid_to_crs(srid: i32) -> Crs {
