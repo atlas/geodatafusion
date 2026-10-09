@@ -1,8 +1,8 @@
 //! Signatures and argument coercion for geodatafusion UDFs.
 
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 
-use arrow_schema::DataType;
+use arrow_schema::{DataType, Field};
 use datafusion::common::plan_err;
 use datafusion::error::Result;
 use datafusion::logical_expr::{Signature, Volatility};
@@ -124,6 +124,10 @@ pub(crate) enum Arg {
     Bytea,
     /// `boolean`: `Boolean` and `Null` become `Boolean`.
     Boolean,
+    /// `geometry[]`: a list of geometries, kept as is. DataFusion's `make_array` drops the
+    /// elements' GeoArrow metadata, so they are read as their storage type (WKB for `Binary`).
+    /// `Null` becomes a list of `Binary`.
+    GeometryArray,
 }
 
 impl Arg {
@@ -143,6 +147,12 @@ impl Arg {
             (Arg::Bytea, Null) => Some(Binary),
             (Arg::Bytea, Binary | LargeBinary | BinaryView) => Some(data_type.clone()),
             (Arg::Boolean, Boolean | Null) => Some(Boolean),
+            (Arg::GeometryArray, Null) => Some(List(Arc::new(Field::new_list_field(Binary, true)))),
+            (Arg::GeometryArray, List(field) | LargeList(field))
+                if any_geometry_type().contains(field.data_type()) =>
+            {
+                Some(data_type.clone())
+            }
             _ => None,
         }
     }
@@ -157,6 +167,7 @@ impl Arg {
             Arg::Text => "text",
             Arg::Bytea => "bytea",
             Arg::Boolean => "boolean",
+            Arg::GeometryArray => "geometry[]",
         }
     }
 }

@@ -92,6 +92,7 @@ geodatafusion/st_makeline 24/24
 geodatafusion/st_makeline_agg 22/22
 geodatafusion/st_makepoint 7/7
 geodatafusion/st_makepointm 4/4
+geodatafusion/st_makepolygon 19/19
 geodatafusion/st_makevalid 26/26
 geodatafusion/st_memunion 27/27
 geodatafusion/st_minimumclearance 11/11
@@ -123,6 +124,7 @@ geodatafusion/st_pointn 19/19
 geodatafusion/st_pointonsurface 18/18
 geodatafusion/st_points 18/18
 geodatafusion/st_polyfromwkb 8/8
+geodatafusion/st_polygon 8/8
 geodatafusion/st_polygonfromtext 10/10
 geodatafusion/st_polygonize 15/15
 geodatafusion/st_project 28/28
@@ -347,7 +349,7 @@ postgis_docs/st_makeenvelope 1/1
 postgis_docs/st_makeline 3/4
 postgis_docs/st_makepoint 4/4
 postgis_docs/st_makepointm 3/3
-postgis_docs/st_makepolygon 0/5
+postgis_docs/st_makepolygon 4/5
 postgis_docs/st_makevalid 4/4
 postgis_docs/st_maxdistance 0/3
 postgis_docs/st_maximuminscribedcircle 0/1
@@ -383,7 +385,7 @@ postgis_docs/st_pointn 0/3
 postgis_docs/st_pointonsurface 5/5
 postgis_docs/st_pointz 3/3
 postgis_docs/st_pointzm 3/3
-postgis_docs/st_polygon 0/2
+postgis_docs/st_polygon 2/2
 postgis_docs/st_polygonfromtext 2/2
 postgis_docs/st_polygonize 1/1
 postgis_docs/st_project 0/1
