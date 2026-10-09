@@ -1,0 +1,93 @@
+# Edge cases for ST_Dimension, not covered by the PostGIS docs examples.
+
+# Every geometry type
+query I
+SELECT ST_Dimension('POINT(1 2)'::geometry)
+----
+0
+
+query I
+SELECT ST_Dimension('MULTIPOINT((1 2),(3 4))'::geometry)
+----
+0
+
+query I
+SELECT ST_Dimension('LINESTRING(0 0,1 1)'::geometry)
+----
+1
+
+query I
+SELECT ST_Dimension('MULTILINESTRING((0 0,1 1),(2 2,3 3))'::geometry)
+----
+1
+
+query I
+SELECT ST_Dimension('POLYGON((0 0,1 0,1 1,0 0))'::geometry)
+----
+2
+
+query I
+SELECT ST_Dimension('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))'::geometry)
+----
+2
+
+# Collections take the largest dimension of their members, including empty ones
+query I
+SELECT ST_Dimension('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(0 0,1 1))'::geometry)
+----
+1
+
+query I
+SELECT ST_Dimension('GEOMETRYCOLLECTION(POINT(1 1),POLYGON EMPTY)'::geometry)
+----
+2
+
+# EMPTY and NULL
+query I
+SELECT ST_Dimension('POINT EMPTY'::geometry)
+----
+0
+
+query I
+SELECT ST_Dimension('LINESTRING EMPTY'::geometry)
+----
+1
+
+query I
+SELECT ST_Dimension('POLYGON EMPTY'::geometry)
+----
+2
+
+query I
+SELECT ST_Dimension('MULTIPOLYGON EMPTY'::geometry)
+----
+2
+
+query I
+SELECT ST_Dimension('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+0
+
+query I
+SELECT ST_Dimension(NULL::geometry)
+----
+NULL
+
+# Z and M don't count
+query I
+SELECT ST_Dimension('POINT ZM (1 2 3 4)'::geometry)
+----
+0
+
+query I
+SELECT ST_Dimension('POLYGON Z ((0 0 0,1 0 0,1 1 1,0 0 0))'::geometry)
+----
+2
+
+# A column, including NULL
+query I rowsort
+SELECT ST_Dimension(g) FROM (VALUES ('POINT(1 1)'::geometry), (NULL::geometry), ('POLYGON((0 0,1 0,1 1,0 0))'::geometry)) AS t(g)
+----
+0
+2
+NULL

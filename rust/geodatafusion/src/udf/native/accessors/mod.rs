@@ -1,4 +1,5 @@
 mod coord_dim;
+mod dimension;
 mod dump;
 mod geometry_type;
 mod is_closed;
@@ -7,8 +8,10 @@ mod line_string;
 mod npoints;
 mod num_interior_rings;
 mod point;
+mod zmflag;
 
 pub use coord_dim::{CoordDim, NDims};
+pub use dimension::Dimension;
 pub use dump::Dump;
 pub use geometry_type::{GeometryType, ST_GeometryType};
 pub use is_closed::IsClosed;
@@ -17,6 +20,7 @@ pub use line_string::{EndPoint, StartPoint};
 pub use npoints::{NPoints, NumPoints};
 pub use num_interior_rings::NumInteriorRings;
 pub use point::{M, X, Y, Z};
+pub use zmflag::{HasM, HasZ, Zmflag};
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(CoordDim.into());
@@ -35,4 +39,8 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(X.into());
     session_context.register_udf(Y.into());
     session_context.register_udf(Z.into());
+    session_context.register_udf(Dimension.into());
+    session_context.register_udf(Zmflag.into());
+    session_context.register_udf(HasZ.into());
+    session_context.register_udf(HasM.into());
 }

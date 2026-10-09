@@ -1,0 +1,67 @@
+# Edge cases for ST_HasZ, not covered by the PostGIS docs examples.
+
+# Every dimension
+query T
+SELECT ST_HasZ('POINT(1 2)'::geometry)
+----
+false
+
+query T
+SELECT ST_HasZ('POINT Z (1 2 3)'::geometry)
+----
+true
+
+query T
+SELECT ST_HasZ('POINT M (1 2 3)'::geometry)
+----
+false
+
+query T
+SELECT ST_HasZ('POINT ZM (1 2 3 4)'::geometry)
+----
+true
+
+query T
+SELECT ST_HasZ('MULTIPOLYGON M (((0 0 1,1 0 1,1 1 1,0 0 1)))'::geometry)
+----
+false
+
+query T
+SELECT ST_HasZ('GEOMETRYCOLLECTION Z (POINT Z (1 2 3))'::geometry)
+----
+true
+
+# EMPTY keeps the dimension it was written with
+query T
+SELECT ST_HasZ('POINT EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_HasZ('POINT Z EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_HasZ('LINESTRING M EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_HasZ('GEOMETRYCOLLECTION ZM EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_HasZ(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_HasZ(g) FROM (VALUES ('POINT ZM (1 2 3 4)'::geometry), (NULL::geometry), ('LINESTRING(0 0,1 1)'::geometry), ('POINT M (1 2 3)'::geometry)) AS t(g)
+----
+NULL
+false
+false
+true

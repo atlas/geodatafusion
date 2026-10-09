@@ -1,6 +1,6 @@
 use geodatafusion::udf::native::accessors::{
-    CoordDim, Dump, EndPoint, GeometryType, IsClosed, IsEmpty, M, NDims, NPoints, NumInteriorRings,
-    NumPoints, ST_GeometryType, StartPoint, X, Y, Z,
+    CoordDim, Dimension, Dump, EndPoint, GeometryType, HasM, HasZ, IsClosed, IsEmpty, M, NDims,
+    NPoints, NumInteriorRings, NumPoints, ST_GeometryType, StartPoint, X, Y, Z, Zmflag,
 };
 
 use crate::impl_udf;
@@ -21,3 +21,7 @@ impl_udf!(NumPoints, PyNumPoints, "NumPoints");
 impl_udf!(NumInteriorRings, PyNumInteriorRings, "NumInteriorRings");
 impl_udf!(GeometryType, PyGeometryType, "GeometryType");
 impl_udf!(ST_GeometryType, PySTGeometryType, "STGeometryType");
+impl_udf!(Dimension, PyDimension, "Dimension");
+impl_udf!(Zmflag, PyZmflag, "Zmflag");
+impl_udf!(HasZ, PyHasZ, "HasZ");
+impl_udf!(HasM, PyHasM, "HasM");

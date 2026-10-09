@@ -32,6 +32,7 @@ geodatafusion/st_covers 25/25
 geodatafusion/st_crosses 20/20
 geodatafusion/st_delaunaytriangles 14/14
 geodatafusion/st_difference 20/20
+geodatafusion/st_dimension 17/17
 geodatafusion/st_disjoint 20/20
 geodatafusion/st_distance 31/31
 geodatafusion/st_dwithin 18/18
@@ -47,6 +48,8 @@ geodatafusion/st_geomfromewkt 13/13
 geodatafusion/st_geomfromgeohash 12/12
 geodatafusion/st_geomfromtext 59/59
 geodatafusion/st_geomfromwkb 16/16
+geodatafusion/st_hasm 12/12
+geodatafusion/st_hasz 12/12
 geodatafusion/st_intersection 20/20
 geodatafusion/st_intersects 25/25
 geodatafusion/st_isclosed 26/26
@@ -117,6 +120,7 @@ geodatafusion/st_ymax 16/16
 geodatafusion/st_ymin 16/16
 geodatafusion/st_z 10/10
 geodatafusion/st_zmax 16/16
+geodatafusion/st_zmflag 12/12
 geodatafusion/st_zmin 16/16
 postgis_docs/box2d 1/2
 postgis_docs/box3d 1/2
@@ -204,7 +208,7 @@ postgis_docs/st_curvetoline 0/4
 postgis_docs/st_delaunaytriangles 3/3
 postgis_docs/st_dfullywithin 0/1
 postgis_docs/st_difference 2/2
-postgis_docs/st_dimension 0/1
+postgis_docs/st_dimension 1/1
 postgis_docs/st_disjoint 2/2
 postgis_docs/st_distance 1/6
 postgis_docs/st_distance_spheroid 0/1
@@ -258,8 +262,8 @@ postgis_docs/st_geomfromtext 6/7
 postgis_docs/st_geomfromtwkb 0/2
 postgis_docs/st_geomfromwkb 1/2
 postgis_docs/st_hasarc 0/1
-postgis_docs/st_hasm 0/2
-postgis_docs/st_hasz 0/2
+postgis_docs/st_hasm 2/2
+postgis_docs/st_hasz 2/2
 postgis_docs/st_hausdorffdistance 0/2
 postgis_docs/st_hexagon 0/1
 postgis_docs/st_interiorringn 0/1
@@ -321,7 +325,7 @@ postgis_docs/st_numpoints 1/1
 postgis_docs/st_offsetcurve 2/6
 postgis_docs/st_orderingequals 0/3
 postgis_docs/st_orientedenvelope 2/2
-postgis_docs/st_overlaps 2/3
+postgis_docs/st_overlaps 3/3
 postgis_docs/st_patchn 0/1
 postgis_docs/st_perimeter 0/4
 postgis_docs/st_point 3/6
@@ -385,5 +389,5 @@ postgis_docs/st_within 1/1
 postgis_docs/st_x 2/2
 postgis_docs/st_y 2/2
 postgis_docs/st_z 1/1
-postgis_docs/st_zmflag 0/4
+postgis_docs/st_zmflag 3/4
 smoke/basic 5/5
