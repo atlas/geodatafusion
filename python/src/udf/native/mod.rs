@@ -114,6 +114,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<editors::PySetPoint>()?;
     m.add_class::<editors::PyRemovePoint>()?;
     m.add_class::<editors::PyRemoveRepeatedPoints>()?;
+    m.add_class::<editors::PySegmentize>()?;
 
     // io
     m.add_class::<io::PyAsBinary>()?;

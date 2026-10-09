@@ -10,6 +10,7 @@ mod project;
 mod quantize_coordinates;
 mod remove_repeated_points;
 mod reverse;
+mod segmentize;
 mod shift_longitude;
 mod snap_to_grid;
 mod swap_ordinates;
@@ -26,6 +27,7 @@ pub use project::Project;
 pub use quantize_coordinates::QuantizeCoordinates;
 pub use remove_repeated_points::RemoveRepeatedPoints;
 pub use reverse::Reverse;
+pub use segmentize::Segmentize;
 pub use shift_longitude::ShiftLongitude;
 pub use snap_to_grid::SnapToGrid;
 pub use swap_ordinates::SwapOrdinates;
@@ -52,4 +54,5 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(SetPoint.into());
     session_context.register_udf(RemovePoint.into());
     session_context.register_udf(RemoveRepeatedPoints.into());
+    session_context.register_udf(Segmentize.into());
 }

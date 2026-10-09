@@ -123,6 +123,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.SetPoint()))
     ctx.register_udf(udf(native.RemovePoint()))
     ctx.register_udf(udf(native.RemoveRepeatedPoints()))
+    ctx.register_udf(udf(native.Segmentize()))
 
     # io
     ctx.register_udf(udf(native.AsText()))
