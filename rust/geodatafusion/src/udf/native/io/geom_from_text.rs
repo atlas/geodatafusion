@@ -20,8 +20,8 @@ use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::io::util::expected_type::ExpectedType;
-use crate::udf::native::io::util::wkt::{ewkt_srid_prefix, parse_ewkt};
 use crate::util::args::scalar_srid;
+use crate::util::ewkt::{ewkt_srid_prefix, parse_ewkt};
 use crate::util::field::{input_metadata, wkb_return_field};
 use crate::util::signature::{Arg, coerce_args};
 use crate::util::srid::{SRID_UNKNOWN, crs_to_srid, srid_to_crs};

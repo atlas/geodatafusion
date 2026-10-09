@@ -21,8 +21,8 @@ use geoarrow_schema::{GeoArrowType, Metadata, WkbType};
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::io::util::wkb::ewkb_srid;
-use crate::udf::native::io::util::wkt::{ewkt_srid_prefix, parse_ewkt};
 use crate::udf::native::util::box_geometry::box_geometry;
+use crate::util::ewkt::{ewkt_srid_prefix, parse_ewkt};
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
 use crate::util::signature::{Arg, coerce_args};
 use crate::util::srid::{SRID_UNKNOWN, crs_to_srid, srid_to_crs};

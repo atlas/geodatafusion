@@ -236,7 +236,7 @@ impl EwkbWriter<'_> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::udf::native::io::util::wkt::parse_ewkt;
+    use crate::util::ewkt::parse_ewkt;
 
     fn hex(bytes: &[u8]) -> String {
         bytes.iter().map(|b| format!("{b:02X}")).collect()

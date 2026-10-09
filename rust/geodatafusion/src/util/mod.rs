@@ -2,6 +2,7 @@
 
 pub(crate) mod args;
 pub(crate) mod collect;
+pub(crate) mod ewkt;
 pub(crate) mod field;
 pub(crate) mod kernel;
 pub(crate) mod ordinates;

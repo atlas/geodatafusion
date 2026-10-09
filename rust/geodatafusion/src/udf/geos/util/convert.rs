@@ -299,7 +299,8 @@ fn polygon_from_geos(geom: &impl Geom, dim: Dimension) -> GeoDataFusionResult<Po
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::udf::native::io::util::wkt::{WktFlavor, parse_ewkt, write_wkt};
+    use crate::udf::native::io::util::wkt::{WktFlavor, write_wkt};
+    use crate::util::ewkt::parse_ewkt;
 
     fn round_trip(wkt: &str) -> String {
         let (_, geom) = parse_ewkt(wkt).unwrap();
