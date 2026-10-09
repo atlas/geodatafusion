@@ -1,0 +1,121 @@
+# Edge cases for ST_IsPolygonCW.
+
+# Exterior and interior rings
+query T
+SELECT ST_IsPolygonCW('POLYGON((0 0,0 1,1 1,0 0))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsPolygonCW('POLYGON((0 0,1 1,0 1,0 0))'::geometry)
+----
+false
+
+query T
+SELECT ST_IsPolygonCW('POLYGON((0 0,0 4,4 4,4 0,0 0),(1 1,2 1,2 2,1 1))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsPolygonCW('POLYGON((0 0,4 0,4 4,0 4,0 0),(1 1,2 2,2 1,1 1))'::geometry)
+----
+false
+
+query T
+SELECT ST_IsPolygonCW('POLYGON((0 0,0 4,4 4,4 0,0 0),(1 1,2 2,2 1,1 1))'::geometry)
+----
+false
+
+# Every polygon of a collection
+query T
+SELECT ST_IsPolygonCW('MULTIPOLYGON(((0 0,0 1,1 1,0 0)),((5 5,6 6,5 6,5 5)))'::geometry)
+----
+false
+
+query T
+SELECT ST_IsPolygonCW('MULTIPOLYGON(((0 0,0 1,1 1,0 0)),((5 5,5 6,6 6,5 5)))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsPolygonCW('MULTIPOLYGON(((0 0,1 1,0 1,0 0)),((5 5,6 6,5 6,5 5)))'::geometry)
+----
+false
+
+query T
+SELECT ST_IsPolygonCW('GEOMETRYCOLLECTION(POLYGON((0 0,0 1,1 1,0 0)),LINESTRING(0 0,1 1))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsPolygonCW('GEOMETRYCOLLECTION(POLYGON((0 0,1 1,0 1,0 0)),POINT(1 1))'::geometry)
+----
+false
+
+# Rings with no area are neither
+query T
+SELECT ST_IsPolygonCW('POLYGON((0 0,1 0,2 0,0 0))'::geometry)
+----
+false
+
+query T
+SELECT ST_IsPolygonCW('POLYGON((0 0,1 1,0 0,1 1,0 0))'::geometry)
+----
+false
+
+# Far from the origin
+query T
+SELECT ST_IsPolygonCW('POLYGON((1000000000 1000000000,1000000000 1000000001,1000000001 1000000001,1000000000 1000000000))'::geometry)
+----
+true
+
+# Other types and EMPTY are true
+query T
+SELECT ST_IsPolygonCW('POINT(1 1)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsPolygonCW('LINESTRING(0 0,1 1)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsPolygonCW('POLYGON EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_IsPolygonCW('MULTIPOLYGON EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_IsPolygonCW('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+true
+
+# Z and M don't count
+query T
+SELECT ST_IsPolygonCW('POLYGON Z ((0 0 5,0 1 0,1 1 9,0 0 5))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsPolygonCW('POLYGON M ((0 0 5,1 1 0,0 1 9,0 0 5))'::geometry)
+----
+false
+
+# NULL
+query T
+SELECT ST_IsPolygonCW(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_IsPolygonCW(g) FROM (VALUES ('POLYGON((0 0,0 1,1 1,0 0))'::geometry), (NULL::geometry), ('POLYGON((0 0,1 1,0 1,0 0))'::geometry)) AS t(g)
+----
+NULL
+false
+true

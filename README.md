@@ -81,8 +81,8 @@ geodatafusion::register(&ctx);
 | ST_IsClosed         | ✅          | Tests if a LineStrings's start and end points are coincident.                                           |
 | ST_IsCollection     | ✅          | Tests if a geometry is a geometry collection type.                                                      |
 | ST_IsEmpty          | ✅          | Tests if a geometry is empty.                                                                           |
-| ST_IsPolygonCCW     |             | Tests if Polygons have exterior rings oriented counter-clockwise and interior rings oriented clockwise. |
-| ST_IsPolygonCW      |             | Tests if Polygons have exterior rings oriented clockwise and interior rings oriented counter-clockwise. |
+| ST_IsPolygonCCW     | ✅          | Tests if Polygons have exterior rings oriented counter-clockwise and interior rings oriented clockwise. |
+| ST_IsPolygonCW      | ✅          | Tests if Polygons have exterior rings oriented clockwise and interior rings oriented counter-clockwise. |
 | ST_IsRing           |             | Tests if a LineString is closed and simple.                                                             |
 | ST_IsSimple         |             | Tests if a geometry has no points of self-intersection or self-tangency.                                |
 | ST_M                | ✅          | Returns the M coordinate of a Point.                                                                    |

@@ -59,6 +59,8 @@ geodatafusion/st_intersection 20/20
 geodatafusion/st_intersects 25/25
 geodatafusion/st_isclosed 26/26
 geodatafusion/st_iscollection 14/14
+geodatafusion/st_ispolygonccw 22/22
+geodatafusion/st_ispolygoncw 22/22
 geodatafusion/st_isvalid 22/22
 geodatafusion/st_isvalidreason 13/13
 geodatafusion/st_length 17/17

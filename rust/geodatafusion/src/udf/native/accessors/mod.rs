@@ -10,6 +10,7 @@ mod interior_ring_n;
 mod is_closed;
 mod is_collection;
 pub(crate) mod is_empty;
+mod is_polygon_cw;
 mod line_string;
 mod n_rings;
 mod npoints;
@@ -32,6 +33,7 @@ pub use interior_ring_n::InteriorRingN;
 pub use is_closed::IsClosed;
 pub use is_collection::IsCollection;
 pub use is_empty::IsEmpty;
+pub use is_polygon_cw::{IsPolygonCCW, IsPolygonCW};
 pub use line_string::{EndPoint, StartPoint};
 pub use n_rings::NRings;
 pub use npoints::{NPoints, NumPoints};
@@ -73,4 +75,6 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(Points.into());
     session_context.register_udf(Envelope.into());
     session_context.register_udf(BoundingDiagonal.into());
+    session_context.register_udf(IsPolygonCW.into());
+    session_context.register_udf(IsPolygonCCW.into());
 }
