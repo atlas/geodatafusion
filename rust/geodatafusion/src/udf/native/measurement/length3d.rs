@@ -142,14 +142,17 @@ impl GeometryKernel for Measure {
 impl Measure {
     fn measure(self, geom: &impl GeometryTrait<T = f64>) -> f64 {
         match (self, geom.as_type()) {
-            (Measure::Length, GeometryType::LineString(line)) => line_length(line),
-            (Measure::Length, GeometryType::MultiLineString(lines)) => {
-                lines.line_strings().map(|line| line_length(&line)).sum()
+            (Measure::Length, GeometryType::LineString(line)) => line_length(line, true),
+            (Measure::Length, GeometryType::MultiLineString(lines)) => lines
+                .line_strings()
+                .map(|line| line_length(&line, true))
+                .sum(),
+            (Measure::Perimeter, GeometryType::Polygon(polygon)) => {
+                polygon_perimeter(polygon, true)
             }
-            (Measure::Perimeter, GeometryType::Polygon(polygon)) => polygon_perimeter(polygon),
             (Measure::Perimeter, GeometryType::MultiPolygon(polygons)) => polygons
                 .polygons()
-                .map(|polygon| polygon_perimeter(&polygon))
+                .map(|polygon| polygon_perimeter(&polygon, true))
                 .sum(),
             (_, GeometryType::GeometryCollection(collection)) => collection
                 .geometries()
@@ -164,23 +167,28 @@ impl Measure {
     }
 }
 
-fn polygon_perimeter(polygon: &impl PolygonTrait<T = f64>) -> f64 {
+/// The length of a polygon's rings, in 3D if `spatial` and the polygon has Z.
+pub(super) fn polygon_perimeter(polygon: &impl PolygonTrait<T = f64>, spatial: bool) -> f64 {
     polygon
         .exterior()
         .into_iter()
         .chain(polygon.interiors())
-        .map(|ring| line_length(&ring))
+        .map(|ring| line_length(&ring, spatial))
         .sum()
 }
 
-fn line_length(line: &impl LineStringTrait<T = f64>) -> f64 {
+/// The length of a line, in 3D if `spatial` and the line has Z.
+fn line_length(line: &impl LineStringTrait<T = f64>, spatial: bool) -> f64 {
     let coords: Vec<_> = line.coords().collect();
     coords
         .windows(2)
         .map(|pair| {
             let (a, b) = (&pair[0], &pair[1]);
             let (dx, dy) = (b.x() - a.x(), b.y() - a.y());
-            let dz = z(a).zip(z(b)).map_or(0.0, |(za, zb)| zb - za);
+            let dz = match (spatial, z(a).zip(z(b))) {
+                (true, Some((za, zb))) => zb - za,
+                _ => 0.0,
+            };
             (dx * dx + dy * dy + dz * dz).sqrt()
         })
         .sum()

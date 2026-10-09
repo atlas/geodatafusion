@@ -128,6 +128,7 @@ geodatafusion/st_numpoints 15/15
 geodatafusion/st_offsetcurve 31/31
 geodatafusion/st_orientedenvelope 18/18
 geodatafusion/st_overlaps 20/20
+geodatafusion/st_perimeter 11/11
 geodatafusion/st_point 6/6
 geodatafusion/st_pointfromgeohash 13/13
 geodatafusion/st_pointfromtext 10/10
@@ -221,7 +222,7 @@ postgis_docs/st_3dlineinterpolatepoint 1/1
 postgis_docs/st_3dlongestline 0/3
 postgis_docs/st_3dmakebox 1/1
 postgis_docs/st_3dmaxdistance 0/1
-postgis_docs/st_3dperimeter 0/1
+postgis_docs/st_3dperimeter 1/1
 postgis_docs/st_3dshortestline 0/3
 postgis_docs/st_addmeasure 0/4
 postgis_docs/st_addpoint 1/1
@@ -395,7 +396,7 @@ postgis_docs/st_orderingequals 0/3
 postgis_docs/st_orientedenvelope 2/2
 postgis_docs/st_overlaps 3/3
 postgis_docs/st_patchn 0/1
-postgis_docs/st_perimeter 0/4
+postgis_docs/st_perimeter 2/4
 postgis_docs/st_point 3/6
 postgis_docs/st_pointfromgeohash 3/3
 postgis_docs/st_pointfromtext 2/2
