@@ -127,6 +127,9 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.RemovePoint()))
     ctx.register_udf(udf(native.RemoveRepeatedPoints()))
     ctx.register_udf(udf(native.Segmentize()))
+    ctx.register_udf(udf(native.LineExtend()))
+    ctx.register_udf(udf(native.Scroll()))
+    ctx.register_udf(udf(native.RemoveSmallParts()))
 
     # io
     ctx.register_udf(udf(native.AsText()))
@@ -185,6 +188,7 @@ def register_all_native(ctx: SessionContext):
     # processing
     ctx.register_udf(udf(native.Simplify()))
     ctx.register_udf(udf(native.SimplifyVW()))
+    ctx.register_udf(udf(native.ChaikinSmoothing()))
 
     # relationships
     ctx.register_udf(udf(native.DWithin()))

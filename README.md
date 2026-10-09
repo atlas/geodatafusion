@@ -112,7 +112,7 @@ geodatafusion::register(&ctx);
 | ST_AddPoint                      | ✅          | Add a point to a LineString.                                                                        |
 | ST_CollectionExtract             | ✅          | Given a geometry collection, returns a multi-geometry containing only elements of a specified type. |
 | ST_CollectionHomogenize          | ✅          | Returns the simplest representation of a geometry collection.                                       |
-| ST_Scroll                        |             | Change start point of a closed LineString.                                                          |
+| ST_Scroll                        | ✅          | Change start point of a closed LineString.                                                          |
 | ST_FlipCoordinates               | ✅          | Returns a version of a geometry with X and Y axis flipped.                                          |
 | ST_Force2D                       | ✅          | Force the geometries into a "2-dimensional mode".                                                   |
 | ST_Force3D                       | ✅          | Force the geometries into XYZ mode. This is an alias for ST_Force3DZ.                               |
@@ -124,7 +124,7 @@ geodatafusion::register(&ctx);
 | ST_ForcePolygonCW                | ✅          | Orients all exterior rings clockwise and all interior rings counter-clockwise.                      |
 | ST_ForceSFS                      |             | Force the geometries to use SFS 1.1 geometry types only.                                            |
 | ST_ForceRHR                      | ✅          | Force the orientation of the vertices in a polygon to follow the Right-Hand-Rule.                   |
-| ST_LineExtend                    |             | Returns a line extended forwards and backwards by specified distances.                              |
+| ST_LineExtend                    | ✅          | Returns a line extended forwards and backwards by specified distances.                              |
 | ST_Multi                         | ✅          | Return the geometry as a MULTI\* geometry.                                                          |
 | ST_Normalize                     | ✅          | Return the geometry in its canonical form.                                                          |
 | ST_Project                       | ✅          | Returns a point projected from a start point by a distance and bearing (azimuth).                   |
@@ -132,7 +132,7 @@ geodatafusion::register(&ctx);
 | ST_RemovePoint                   | ✅          | Remove a point from a linestring.                                                                   |
 | ST_RemoveRepeatedPoints          | ✅          | Returns a version of a geometry with duplicate points removed.                                      |
 | ST_RemoveIrrelevantPointsForView |             | Removes points that are irrelevant for rendering a specific rectangluar view of a geometry.         |
-| ST_RemoveSmallParts              |             | Removes small parts (polygon rings or linestrings) of a geometry.                                   |
+| ST_RemoveSmallParts              | ✅          | Removes small parts (polygon rings or linestrings) of a geometry.                                   |
 | ST_Reverse                       | ✅          | Return the geometry with vertex order reversed.                                                     |
 | ST_Segmentize                    | ✅          | Returns a modified geometry/geography having no segment longer than a given distance.               |
 | ST_SetPoint                      | ✅          | Replace point of a linestring with a given point.                                                   |
@@ -357,7 +357,7 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 | ST_Buffer                   | ✅          | Computes a geometry covering all points within a given distance from a geometry.                  |
 | ST_BuildArea                | ✅          | Creates a polygonal geometry formed by the linework of a geometry.                                |
 | ST_Centroid                 | ✅          | Returns the geometric center of a geometry.                                                       |
-| ST_ChaikinSmoothing         |             | Returns a smoothed version of a geometry, using the Chaikin algorithm                             |
+| ST_ChaikinSmoothing         | ✅          | Returns a smoothed version of a geometry, using the Chaikin algorithm                             |
 | ST_ConcaveHull              | ✅          | Computes a possibly concave geometry that contains all input geometry vertices                    |
 | ST_ConvexHull               | ✅          | Computes the convex hull of a geometry.                                                           |
 | ST_DelaunayTriangles        | ✅          | Returns the Delaunay triangulation of the vertices of a geometry.                                 |
