@@ -1,6 +1,6 @@
 use geodatafusion::udf::native::editors::{
     CollectionExtract, CollectionHomogenize, FlipCoordinates, Force2D, Force3DM, Force3DZ, Force4D,
-    ForceCollection, ForcePolygonCCW, ForcePolygonCW, Multi, QuantizeCoordinates, Reverse,
+    ForceCollection, ForcePolygonCCW, ForcePolygonCW, Multi, Project, QuantizeCoordinates, Reverse,
     ShiftLongitude, SnapToGrid, SwapOrdinates,
 };
 
@@ -30,3 +30,4 @@ impl_udf!(
     PyCollectionHomogenize,
     "CollectionHomogenize"
 );
+impl_udf!(Project, PyProject, "Project");

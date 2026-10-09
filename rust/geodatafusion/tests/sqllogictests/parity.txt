@@ -125,6 +125,7 @@ geodatafusion/st_points 18/18
 geodatafusion/st_polyfromwkb 8/8
 geodatafusion/st_polygonfromtext 10/10
 geodatafusion/st_polygonize 15/15
+geodatafusion/st_project 28/28
 geodatafusion/st_quantizecoordinates 20/20
 geodatafusion/st_reduceprecision 14/14
 geodatafusion/st_relate 21/21
