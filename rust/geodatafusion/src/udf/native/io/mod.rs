@@ -1,6 +1,7 @@
 //! Geometry Input and Output
 
 mod as_binary;
+mod as_encoded_polyline;
 mod as_geojson;
 mod as_text;
 mod geo_hash;
@@ -8,9 +9,11 @@ mod geom_from_geo_hash;
 mod geom_from_geojson;
 mod geom_from_text;
 mod geom_from_wkb;
+mod line_from_encoded_polyline;
 pub(crate) mod util;
 
 pub use as_binary::{AsBinary, AsEWKB, AsHEXEWKB};
+pub use as_encoded_polyline::AsEncodedPolyline;
 pub use as_geojson::AsGeoJSON;
 pub use as_text::{AsEWKT, AsText};
 pub use geo_hash::GeoHash;
@@ -24,6 +27,7 @@ pub use geom_from_wkb::{
     GeomCollFromWKB, GeomFromEWKB, GeomFromWKB, LineFromWKB, MLineFromWKB, MPointFromWKB,
     MPolyFromWKB, PointFromWKB, PolyFromWKB,
 };
+pub use line_from_encoded_polyline::LineFromEncodedPolyline;
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(AsBinary.into());
@@ -55,4 +59,6 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(GeomCollFromText.into());
     session_context.register_udf(AsGeoJSON.into());
     session_context.register_udf(GeomFromGeoJSON.into());
+    session_context.register_udf(AsEncodedPolyline.into());
+    session_context.register_udf(LineFromEncodedPolyline.into());
 }

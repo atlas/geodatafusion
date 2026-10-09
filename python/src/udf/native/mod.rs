@@ -131,6 +131,8 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<io::PyBox2DFromGeoHash>()?;
     m.add_class::<io::PyAsGeoJSON>()?;
     m.add_class::<io::PyGeomFromGeoJSON>()?;
+    m.add_class::<io::PyAsEncodedPolyline>()?;
+    m.add_class::<io::PyLineFromEncodedPolyline>()?;
 
     // measurement
     m.add_class::<measurement::PyArea>()?;

@@ -207,7 +207,7 @@ geodatafusion::register(&ctx);
 | ST_GeomFromKML             |             | Takes as input KML representation of geometry and outputs a PostGIS geometry object                    |
 | ST_GeomFromTWKB            |             | Creates a geometry instance from a TWKB ("Tiny Well-Known Binary") geometry representation.            |
 | ST_GMLToSQL                |             | Return a specified ST_Geometry value from GML representation. This is an alias name for ST_GeomFromGML |
-| ST_LineFromEncodedPolyline |             | Creates a LineString from an Encoded Polyline.                                                         |
+| ST_LineFromEncodedPolyline | ✅          | Creates a LineString from an Encoded Polyline.                                                         |
 | ST_PointFromGeoHash        | ✅          | Return a point from a GeoHash string.                                                                  |
 | ST_FromFlatGeobufToTable   |             | Creates a table based on the structure of FlatGeobuf data.                                             |
 | ST_FromFlatGeobuf          |             | Reads FlatGeobuf data.                                                                                 |
@@ -233,7 +233,7 @@ geodatafusion::register(&ctx);
 
 | Name                 | Implemented | Description                                                             |
 | -------------------- | ----------- | ----------------------------------------------------------------------- |
-| ST_AsEncodedPolyline |             | Returns an Encoded Polyline from a LineString geometry.                 |
+| ST_AsEncodedPolyline | ✅          | Returns an Encoded Polyline from a LineString geometry.                 |
 | ST_AsFlatGeobuf      |             | Return a FlatGeobuf representation of a set of rows.                    |
 | ST_AsGeobuf          |             | Return a Geobuf representation of a set of rows.                        |
 | ST_AsGeoJSON         | ✅          | Return a geometry or feature in GeoJSON format.                         |

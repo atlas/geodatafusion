@@ -1,0 +1,98 @@
+# Edge cases for ST_LineFromEncodedPolyline, not covered by the PostGIS docs examples.
+
+# Precisions; a negative one means the default
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('_p~iF~ps|U_ulLnnqC_mqNvxq`@'))
+----
+SRID=4326;LINESTRING(-120.2 38.5,-120.95 40.7,-126.453 43.252)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('_izlhA~rlgdF_{geC~ywl@_kwzCn`{nI', 6))
+----
+SRID=4326;LINESTRING(-120.2 38.5,-120.95 40.7,-126.453 43.252)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('_p~iF~ps|U', 0))
+----
+SRID=4326;LINESTRING(-12020000 3850000)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('_p~iF~ps|U', 1))
+----
+SRID=4326;LINESTRING(-1202000 385000)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('_p~iF~ps|U', 9))
+----
+SRID=4326;LINESTRING(-0.01202 0.00385)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('_p~iF~ps|U', 20))
+----
+SRID=4326;LINESTRING(-1.202e-13 3.85e-14)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('_p~iF~ps|U', -1))
+----
+SRID=4326;LINESTRING(-120.2 38.5)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('_p~iF~ps|U', -3))
+----
+SRID=4326;LINESTRING(-120.2 38.5)
+
+# Text isn't validated: a cut-off value, and characters outside the alphabet
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('_p~iF~ps|U'))
+----
+SRID=4326;LINESTRING(-120.2 38.5)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('_p~iF'))
+----
+SRID=4326;LINESTRING(-0.00001 38.5)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline(' !!'))
+----
+SRID=4326;LINESTRING(0.00001 -0.00001,0 0)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('AAAA'))
+----
+SRID=4326;LINESTRING(0.00001 0.00001,0.00002 0.00002)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('???'))
+----
+SRID=4326;LINESTRING(0 0,-0.00001 0)
+
+# Round trip
+query T
+SELECT ST_AsEncodedPolyline(ST_LineFromEncodedPolyline('_p~iF~ps|U_ulLnnqC_mqNvxq`@'))
+----
+_p~iF~ps|U_ulLnnqC_mqNvxq`@
+
+# EMPTY and NULL
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline(''))
+----
+SRID=4326;LINESTRING EMPTY
+
+query T
+SELECT ST_LineFromEncodedPolyline(NULL)
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline('_p~iF~ps|U', NULL))
+----
+NULL
+
+# A column
+query T rowsort
+SELECT ST_AsEWKT(ST_LineFromEncodedPolyline(t)) FROM (VALUES ('_p~iF~ps|U'), (NULL), ('')) AS v(t)
+----
+NULL
+SRID=4326;LINESTRING EMPTY
+SRID=4326;LINESTRING(-120.2 38.5)
