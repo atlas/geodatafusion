@@ -6,6 +6,7 @@ pub mod bounding_box;
 pub mod constructors;
 pub mod editors;
 pub mod io;
+pub mod linear_referencing;
 pub mod measurement;
 pub mod operators;
 pub mod processing;

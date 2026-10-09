@@ -4,6 +4,7 @@ mod bounding_box;
 mod constructors;
 mod editors;
 mod io;
+mod linear_referencing;
 mod measurement;
 mod operators;
 mod processing;
@@ -154,6 +155,11 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<io::PyGeomFromGeoJSON>()?;
     m.add_class::<io::PyAsEncodedPolyline>()?;
     m.add_class::<io::PyLineFromEncodedPolyline>()?;
+
+    // linear_referencing
+    m.add_class::<linear_referencing::PyLineInterpolatePoint>()?;
+    m.add_class::<linear_referencing::PyLineInterpolatePoint3D>()?;
+    m.add_class::<linear_referencing::PyLineInterpolatePoints>()?;
 
     // measurement
     m.add_class::<measurement::PyArea>()?;

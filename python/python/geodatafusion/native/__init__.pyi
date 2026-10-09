@@ -4,6 +4,7 @@ from ._bounding_box import *
 from ._constructors import *
 from ._editors import *
 from ._io import *
+from ._linear_referencing import *
 from ._measurement import *
 from ._operators import *
 from ._processing import *

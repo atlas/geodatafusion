@@ -1,0 +1,42 @@
+# Edge cases for ST_3DLineInterpolatePoint, not covered by the PostGIS docs examples.
+
+# Length in 3D
+query T
+SELECT ST_AsText(ST_3DLineInterpolatePoint('LINESTRING Z (0 0 0,0 0 10,10 0 10)'::geometry, 0.5))
+----
+POINT Z (0 0 10)
+
+query T
+SELECT ST_AsText(ST_3DLineInterpolatePoint('LINESTRING Z (0 0 0,0 0 10,10 0 10)'::geometry, 0.25))
+----
+POINT Z (0 0 5)
+
+query T
+SELECT ST_AsText(ST_3DLineInterpolatePoint('LINESTRING ZM (0 0 0 0,3 4 12 10)'::geometry, 0.5))
+----
+POINT ZM (1.5 2 6 5)
+
+query T
+SELECT ST_AsText(ST_3DLineInterpolatePoint('LINESTRING(0 0,10 0)'::geometry, 0.5))
+----
+POINT(5 0)
+
+query T
+SELECT ST_AsText(ST_3DLineInterpolatePoint('LINESTRING M (0 0 0,10 0 10)'::geometry, 0.5))
+----
+POINT M (5 0 5)
+
+# EMPTY and NULL
+query T
+SELECT ST_AsText(ST_3DLineInterpolatePoint('LINESTRING Z EMPTY'::geometry, 0.5))
+----
+POINT Z EMPTY
+
+query T
+SELECT ST_3DLineInterpolatePoint(NULL::geometry, 0.5)
+----
+NULL
+
+# Errors
+query error
+SELECT ST_3DLineInterpolatePoint('LINESTRING(0 0,1 1)'::geometry, 2)

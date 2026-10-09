@@ -164,6 +164,11 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.AsEncodedPolyline()))
     ctx.register_udf(udf(native.LineFromEncodedPolyline()))
 
+    # linear referencing
+    ctx.register_udf(udf(native.LineInterpolatePoint()))
+    ctx.register_udf(udf(native.LineInterpolatePoint3D()))
+    ctx.register_udf(udf(native.LineInterpolatePoints()))
+
     # measurement
     ctx.register_udf(udf(native.Area()))
     ctx.register_udf(udf(native.Distance()))

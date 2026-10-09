@@ -8,6 +8,7 @@ geodatafusion/geometry 64/64
 geodatafusion/geometrytype 18/18
 geodatafusion/operators 29/29
 geodatafusion/st_3dextent 10/10
+geodatafusion/st_3dlineinterpolatepoint 8/8
 geodatafusion/st_3dmakebox 5/5
 geodatafusion/st_addpoint 20/20
 geodatafusion/st_affine 17/17
@@ -90,6 +91,8 @@ geodatafusion/st_linefromencodedpolyline 18/18
 geodatafusion/st_linefrommultipoint 10/10
 geodatafusion/st_linefromtext 10/10
 geodatafusion/st_linefromwkb 8/8
+geodatafusion/st_lineinterpolatepoint 21/21
+geodatafusion/st_lineinterpolatepoints 16/16
 geodatafusion/st_linemerge 21/21
 geodatafusion/st_m 10/10
 geodatafusion/st_makebox2d 7/7
@@ -211,7 +214,7 @@ postgis_docs/st_3ddistance 0/2
 postgis_docs/st_3ddwithin 0/1
 postgis_docs/st_3dintersects 0/2
 postgis_docs/st_3dlength 0/1
-postgis_docs/st_3dlineinterpolatepoint 0/1
+postgis_docs/st_3dlineinterpolatepoint 1/1
 postgis_docs/st_3dlongestline 0/3
 postgis_docs/st_3dmakebox 1/1
 postgis_docs/st_3dmaxdistance 0/1
@@ -349,7 +352,7 @@ postgis_docs/st_linefromencodedpolyline 2/2
 postgis_docs/st_linefrommultipoint 1/1
 postgis_docs/st_linefromtext 1/1
 postgis_docs/st_linefromwkb 1/1
-postgis_docs/st_lineinterpolatepoint 0/3
+postgis_docs/st_lineinterpolatepoint 2/3
 postgis_docs/st_linelocatepoint 0/2
 postgis_docs/st_linemerge 5/5
 postgis_docs/st_linestringfromwkb 1/1
