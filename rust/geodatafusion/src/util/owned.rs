@@ -82,6 +82,96 @@ pub(crate) fn to_owned_geometry(geom: &impl GeometryTrait<T = f64>) -> Wkt<f64> 
     }
 }
 
+/// A copy of `geom` with `f` applied to every coordinate, keeping its dimension.
+pub(crate) fn map_coords(
+    geom: &impl GeometryTrait<T = f64>,
+    f: &impl Fn(Coord<f64>) -> Coord<f64>,
+) -> Wkt<f64> {
+    map_wkt_coords(to_owned_geometry(geom), None, f)
+}
+
+fn map_wkt_coords(
+    geom: Wkt<f64>,
+    dim: Option<Dimension>,
+    f: &impl Fn(Coord<f64>) -> Coord<f64>,
+) -> Wkt<f64> {
+    match geom {
+        Wkt::Point(point) => Wkt::Point(map_point(point, dim, f)),
+        Wkt::LineString(line) => Wkt::LineString(map_line_string(line, dim, f)),
+        Wkt::Polygon(polygon) => Wkt::Polygon(map_polygon(polygon, dim, f)),
+        Wkt::MultiPoint(points) => {
+            let (points, own_dim) = points.into_inner();
+            Wkt::MultiPoint(MultiPoint::new(
+                points.into_iter().map(|p| map_point(p, dim, f)).collect(),
+                dim.unwrap_or(own_dim),
+            ))
+        }
+        Wkt::MultiLineString(lines) => {
+            let (lines, own_dim) = lines.into_inner();
+            Wkt::MultiLineString(MultiLineString::new(
+                lines
+                    .into_iter()
+                    .map(|line| map_line_string(line, dim, f))
+                    .collect(),
+                dim.unwrap_or(own_dim),
+            ))
+        }
+        Wkt::MultiPolygon(polygons) => {
+            let (polygons, own_dim) = polygons.into_inner();
+            Wkt::MultiPolygon(MultiPolygon::new(
+                polygons
+                    .into_iter()
+                    .map(|polygon| map_polygon(polygon, dim, f))
+                    .collect(),
+                dim.unwrap_or(own_dim),
+            ))
+        }
+        Wkt::GeometryCollection(collection) => {
+            let (members, own_dim) = collection.into_inner();
+            Wkt::GeometryCollection(GeometryCollection::new(
+                members
+                    .into_iter()
+                    .map(|member| map_wkt_coords(member, dim, f))
+                    .collect(),
+                dim.unwrap_or(own_dim),
+            ))
+        }
+    }
+}
+
+fn map_point(
+    point: Point<f64>,
+    dim: Option<Dimension>,
+    f: &impl Fn(Coord<f64>) -> Coord<f64>,
+) -> Point<f64> {
+    let (coord, own_dim) = point.into_inner();
+    Point::new(coord.map(f), dim.unwrap_or(own_dim))
+}
+
+fn map_line_string(
+    line: LineString<f64>,
+    dim: Option<Dimension>,
+    f: &impl Fn(Coord<f64>) -> Coord<f64>,
+) -> LineString<f64> {
+    let (coords, own_dim) = line.into_inner();
+    LineString::new(coords.into_iter().map(f).collect(), dim.unwrap_or(own_dim))
+}
+
+fn map_polygon(
+    polygon: Polygon<f64>,
+    dim: Option<Dimension>,
+    f: &impl Fn(Coord<f64>) -> Coord<f64>,
+) -> Polygon<f64> {
+    let (rings, own_dim) = polygon.into_inner();
+    Polygon::new(
+        rings
+            .into_iter()
+            .map(|ring| map_line_string(ring, dim, f))
+            .collect(),
+        dim.unwrap_or(own_dim),
+    )
+}
+
 /// An owned copy of a point that is part of a geometry with dimension `dim`.
 pub(crate) fn point_to_owned(point: &impl PointTrait<T = f64>, dim: Dimensions) -> Wkt<f64> {
     Wkt::Point(owned_point(point, dimension(dim)))

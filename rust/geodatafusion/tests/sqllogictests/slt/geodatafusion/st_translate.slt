@@ -1,0 +1,100 @@
+# Edge cases for ST_Translate, not covered by the PostGIS docs examples.
+
+# 2D and 3D offsets
+query T
+SELECT ST_AsText(ST_Translate('POINT(1 1)'::geometry, 1, 2))
+----
+POINT(2 3)
+
+query T
+SELECT ST_AsEWKT(ST_Translate('POINT Z (1 1 1)'::geometry, 1, 2, 3))
+----
+POINT(2 3 4)
+
+query T
+SELECT ST_AsEWKT(ST_Translate('POINT Z (1 1 1)'::geometry, 1, 2))
+----
+POINT(2 3 1)
+
+# deltaz doesn't move 2D or M geometries
+query T
+SELECT ST_AsEWKT(ST_Translate('POINT(1 1)'::geometry, 1, 2, 3))
+----
+POINT(2 3)
+
+query T
+SELECT ST_AsEWKT(ST_Translate('POINT M (1 1 1)'::geometry, 1, 2, 3))
+----
+POINTM(2 3 1)
+
+query T
+SELECT ST_AsEWKT(ST_Translate('POINT ZM (1 1 1 1)'::geometry, 1, 2, 3))
+----
+POINT(2 3 4 1)
+
+# Every geometry type
+query T
+SELECT ST_AsText(ST_Translate('LINESTRING(0 0,1 1)'::geometry, -1, 0.5))
+----
+LINESTRING(-1 0.5,0 1.5)
+
+query T
+SELECT ST_AsText(ST_Translate('POLYGON((0 0,4 0,4 4,0 0),(1 1,2 1,2 2,1 1))'::geometry, 10, 10))
+----
+POLYGON((10 10,14 10,14 14,10 10),(11 11,12 11,12 12,11 11))
+
+query T
+SELECT ST_AsText(ST_Translate('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5)))'::geometry, 1, 1))
+----
+MULTIPOLYGON(((1 1,2 1,2 2,1 1)),((6 6,7 6,7 7,6 6)))
+
+query T
+SELECT ST_AsText(ST_Translate('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(0 0,1 1))'::geometry, 1, 1))
+----
+GEOMETRYCOLLECTION(POINT(2 2),LINESTRING(1 1,2 2))
+
+query T
+SELECT ST_AsText(ST_Translate('POINT(0.1 0.2)'::geometry, 0.2, 0.1))
+----
+POINT(0.3 0.3)
+
+# EMPTY and the SRID
+query T
+SELECT ST_AsText(ST_Translate('POINT EMPTY'::geometry, 1, 2))
+----
+POINT EMPTY
+
+query T
+SELECT ST_AsText(ST_Translate('MULTIPOINT(EMPTY,(1 1))'::geometry, 1, 2))
+----
+MULTIPOINT(EMPTY,(2 3))
+
+query T
+SELECT ST_AsEWKT(ST_Translate('SRID=4326;LINESTRING(0 0,1 1)'::geometry, 1, 2))
+----
+SRID=4326;LINESTRING(1 2,2 3)
+
+# NULL
+query T
+SELECT ST_Translate(NULL::geometry, 1, 2)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_Translate('POINT(1 1)'::geometry, NULL, 2))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_Translate('POINT Z (1 1 1)'::geometry, 1, 2, NULL))
+----
+NULL
+
+# Columns
+query IT rowsort
+SELECT d, ST_AsText(ST_Translate(g, d, d)) FROM (VALUES ('POINT(1 1)'::geometry, 1), ('LINESTRING(0 0,1 2)'::geometry, 2), (NULL::geometry, 1), ('POINT(1 1)'::geometry, NULL)) AS t(g, d)
+----
+1 NULL
+1 POINT(2 2)
+2 LINESTRING(2 2,3 4)
+NULL NULL

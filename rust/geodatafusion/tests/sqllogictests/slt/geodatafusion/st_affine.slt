@@ -1,0 +1,96 @@
+# Edge cases for ST_Affine, not covered by the PostGIS docs examples.
+
+# The 3D and 2D forms
+query T
+SELECT ST_AsEWKT(ST_Affine('POINT Z (1 2 3)'::geometry, 1,2,3,4,5,6,7,8,9,10,11,12))
+----
+POINT(24 43 62)
+
+query T
+SELECT ST_AsEWKT(ST_Affine('POINT(1 2)'::geometry, 1,2,3,4,5,6))
+----
+POINT(10 17)
+
+query T
+SELECT ST_AsEWKT(ST_Affine('POINT Z (1 2 3)'::geometry, 1,2,3,4,5,6))
+----
+POINT(10 17 3)
+
+# A 2D geometry is transformed with Z 0 and stays 2D; M is unchanged
+query T
+SELECT ST_AsEWKT(ST_Affine('POINT(1 2)'::geometry, 1,2,3,4,5,6,7,8,9,10,11,12))
+----
+POINT(15 25)
+
+query T
+SELECT ST_AsEWKT(ST_Affine('POINT M (1 2 3)'::geometry, 1,2,3,4,5,6,7,8,9,10,11,12))
+----
+POINTM(15 25 3)
+
+query T
+SELECT ST_AsEWKT(ST_Affine('POINT ZM (1 2 3 4)'::geometry, 1,2,3,4,5,6,7,8,9,10,11,12))
+----
+POINT(24 43 62 4)
+
+# Every geometry type
+query T
+SELECT ST_AsText(ST_Affine('LINESTRING(0 0,1 1,2 0)'::geometry, 2,0,0,2,1,1))
+----
+LINESTRING(1 1,3 3,5 1)
+
+query T
+SELECT ST_AsText(ST_Affine('POLYGON((0 0,4 0,4 4,0 0),(1 1,2 1,2 2,1 1))'::geometry, 0,-1,1,0,0,0))
+----
+POLYGON((0 0,0 4,-4 4,0 0),(-1 1,-1 2,-2 2,-1 1))
+
+query T
+SELECT ST_AsText(ST_Affine('MULTIPOINT((1 1),(2 2))'::geometry, 1,0,0,1,5,5))
+----
+MULTIPOINT((6 6),(7 7))
+
+query T
+SELECT ST_AsText(ST_Affine('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(0 0,1 1))'::geometry, -1,0,0,-1,0,0))
+----
+GEOMETRYCOLLECTION(POINT(-1 -1),LINESTRING(0 0,-1 -1))
+
+# Floating point: rotation by a quarter turn
+query T
+SELECT ST_AsText(ST_Affine('POINT(1 0)'::geometry, cos(pi()/2), -sin(pi()/2), sin(pi()/2), cos(pi()/2), 0, 0))
+----
+POINT(6.123233995736766e-17 1)
+
+# EMPTY and the SRID
+query T
+SELECT ST_AsText(ST_Affine('POINT EMPTY'::geometry, 1,2,3,4,5,6))
+----
+POINT EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_Affine('SRID=4326;GEOMETRYCOLLECTION EMPTY'::geometry, 1,2,3,4,5,6))
+----
+SRID=4326;GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_Affine('SRID=3857;LINESTRING(0 0,1 1)'::geometry, 1,0,0,1,10,20))
+----
+SRID=3857;LINESTRING(10 20,11 21)
+
+# NULL
+query T
+SELECT ST_Affine(NULL::geometry, 1,2,3,4,5,6)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_Affine('POINT(1 2)'::geometry, 1,2,3,NULL,5,6))
+----
+NULL
+
+# Columns
+query IT rowsort
+SELECT k, ST_AsText(ST_Affine(g, k, 0, 0, k, 0, 0)) FROM (VALUES ('POINT(1 1)'::geometry, 2), ('LINESTRING(0 0,1 2)'::geometry, 3), (NULL::geometry, 1), ('POINT(1 1)'::geometry, NULL)) AS t(g, k)
+----
+1 NULL
+2 POINT(2 2)
+3 LINESTRING(0 0,3 6)
+NULL NULL

@@ -396,13 +396,13 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 
 | Name          | Implemented | Description                                                    |
 | ------------- | ----------- | -------------------------------------------------------------- |
-| ST_Affine     |             | Apply a 3D affine transformation to a geometry.                |
+| ST_Affine     | ✅          | Apply a 3D affine transformation to a geometry.                |
 | ST_Rotate     |             | Rotates a geometry about an origin point.                      |
 | ST_RotateX    |             | Rotates a geometry about the X axis.                           |
 | ST_RotateY    |             | Rotates a geometry about the Y axis.                           |
 | ST_RotateZ    |             | Rotates a geometry about the Z axis.                           |
 | ST_Scale      |             | Scales a geometry by given factors.                            |
-| ST_Translate  |             | Translates a geometry by given offsets.                        |
+| ST_Translate  | ✅          | Translates a geometry by given offsets.                        |
 | ST_TransScale |             | Translates and scales a geometry by given offsets and factors. |
 
 ### Clustering Functions
