@@ -1,0 +1,114 @@
+# Edge cases for ST_Multi, not covered by the PostGIS docs examples.
+
+# Single geometries
+query T
+SELECT ST_AsText(ST_Multi('POINT(1 2)'::geometry))
+----
+MULTIPOINT((1 2))
+
+query T
+SELECT ST_AsText(ST_Multi('LINESTRING(0 0,1 1)'::geometry))
+----
+MULTILINESTRING((0 0,1 1))
+
+query T
+SELECT ST_AsText(ST_Multi('POLYGON((0 0,1 0,1 1,0 0))'::geometry))
+----
+MULTIPOLYGON(((0 0,1 0,1 1,0 0)))
+
+# Collections
+query T
+SELECT ST_AsText(ST_Multi('MULTIPOINT((1 2))'::geometry))
+----
+MULTIPOINT((1 2))
+
+query T
+SELECT ST_AsText(ST_Multi('MULTIPOINT((1 2),(3 4))'::geometry))
+----
+MULTIPOINT((1 2),(3 4))
+
+query T
+SELECT ST_AsText(ST_Multi('MULTIPOINT(EMPTY,(1 1))'::geometry))
+----
+MULTIPOINT(EMPTY,(1 1))
+
+query T
+SELECT ST_AsText(ST_Multi('MULTILINESTRING((0 0,1 1),(2 2,3 3))'::geometry))
+----
+MULTILINESTRING((0 0,1 1),(2 2,3 3))
+
+query T
+SELECT ST_AsText(ST_Multi('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),EMPTY)'::geometry))
+----
+MULTIPOLYGON(((0 0,1 0,1 1,0 0)),EMPTY)
+
+query T
+SELECT ST_AsText(ST_Multi('GEOMETRYCOLLECTION(POINT(1 2))'::geometry))
+----
+GEOMETRYCOLLECTION(POINT(1 2))
+
+query T
+SELECT ST_AsText(ST_Multi('GEOMETRYCOLLECTION(MULTIPOINT((1 2),(3 4)))'::geometry))
+----
+GEOMETRYCOLLECTION(MULTIPOINT((1 2),(3 4)))
+
+# EMPTY
+query T
+SELECT ST_AsText(ST_Multi('POINT EMPTY'::geometry))
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsText(ST_Multi('LINESTRING EMPTY'::geometry))
+----
+MULTILINESTRING EMPTY
+
+query T
+SELECT ST_AsText(ST_Multi('POLYGON EMPTY'::geometry))
+----
+MULTIPOLYGON EMPTY
+
+query T
+SELECT ST_AsText(ST_Multi('MULTIPOINT EMPTY'::geometry))
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsText(ST_Multi('GEOMETRYCOLLECTION EMPTY'::geometry))
+----
+GEOMETRYCOLLECTION EMPTY
+
+# Z, M and the SRID are kept
+query T
+SELECT ST_AsEWKT(ST_Multi('SRID=4326;POINT ZM (1 2 3 4)'::geometry))
+----
+SRID=4326;MULTIPOINT(1 2 3 4)
+
+query T
+SELECT ST_AsEWKT(ST_Multi('LINESTRING M (0 0 1,1 1 2)'::geometry))
+----
+MULTILINESTRINGM((0 0 1,1 1 2))
+
+query T
+SELECT ST_AsEWKT(ST_Multi('SRID=3857;MULTIPOINT Z ((1 2 3),(4 5 6))'::geometry))
+----
+SRID=3857;MULTIPOINT(1 2 3,4 5 6)
+
+query I
+SELECT ST_Zmflag(ST_Multi('POINT Z EMPTY'::geometry))
+----
+2
+
+# NULL
+query T
+SELECT ST_Multi(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_AsText(ST_Multi(g)) FROM (VALUES ('POINT(1 2)'::geometry), (NULL::geometry), ('MULTIPOINT((1 2),(3 4))'::geometry)) AS t(g)
+----
+MULTIPOINT((1 2))
+MULTIPOINT((1 2),(3 4))
+NULL

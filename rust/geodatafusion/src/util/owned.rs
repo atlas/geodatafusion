@@ -296,18 +296,24 @@ pub(crate) fn owned_coord(coord: &impl CoordTrait<T = f64>) -> Coord<f64> {
     }
 }
 
-fn owned_point(point: &impl PointTrait<T = f64>, dim: Dimension) -> Point<f64> {
+/// An owned copy of a point that is part of a geometry with WKT dimension `dim`.
+pub(crate) fn owned_point(point: &impl PointTrait<T = f64>, dim: Dimension) -> Point<f64> {
     Point::new(point.coord().map(|coord| owned_coord(&coord)), dim)
 }
 
-fn owned_line_string(line: &impl LineStringTrait<T = f64>, dim: Dimension) -> LineString<f64> {
+/// An owned copy of a linestring that is part of a geometry with WKT dimension `dim`.
+pub(crate) fn owned_line_string(
+    line: &impl LineStringTrait<T = f64>,
+    dim: Dimension,
+) -> LineString<f64> {
     LineString::new(
         line.coords().map(|coord| owned_coord(&coord)).collect(),
         dim,
     )
 }
 
-fn owned_polygon(polygon: &impl PolygonTrait<T = f64>, dim: Dimension) -> Polygon<f64> {
+/// An owned copy of a polygon that is part of a geometry with WKT dimension `dim`.
+pub(crate) fn owned_polygon(polygon: &impl PolygonTrait<T = f64>, dim: Dimension) -> Polygon<f64> {
     let rings = polygon
         .exterior()
         .into_iter()
