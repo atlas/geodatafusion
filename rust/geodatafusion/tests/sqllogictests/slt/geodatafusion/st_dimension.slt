@@ -91,3 +91,14 @@ SELECT ST_Dimension(g) FROM (VALUES ('POINT(1 1)'::geometry), (NULL::geometry), 
 0
 2
 NULL
+
+# Nested collections
+query I
+SELECT ST_Dimension('GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(LINESTRING(0 0,1 1)),POINT(1 1))'::geometry)
+----
+1
+
+query I
+SELECT ST_Dimension('GEOMETRYCOLLECTION(GEOMETRYCOLLECTION EMPTY)'::geometry)
+----
+0

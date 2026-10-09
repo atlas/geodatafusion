@@ -35,7 +35,7 @@ static SIGNATURE: LazyLock<Signature> =
 /// Returns a geometry from Well-Known Binary (WKB).
 #[user_doc(
     doc_section(label = "Geometry Input"),
-    description = "Constructs a geometry from the OGC Well-Known Binary representation, in either byte order. EWKB is accepted too, and its SRID kept; the srid argument overrides it. Unlike PostGIS, an embedded SRID must be the same in every row, because geodatafusion stores one CRS per column, and curves, triangles and nested collections are not supported.",
+    description = "Constructs a geometry from the OGC Well-Known Binary representation, in either byte order. EWKB is accepted too, and its SRID kept; the srid argument overrides it. Unlike PostGIS, an embedded SRID must be the same in every row, because geodatafusion stores one CRS per column, and curves and triangles are not supported.",
     syntax_example = "ST_GeomFromWKB(geom, srid)",
     argument(name = "geom", description = "bytea"),
     argument(name = "srid", description = "integer"),
@@ -108,7 +108,7 @@ static GEOMFROMEWKB_ALIASES: LazyLock<Vec<String>> =
 /// Returns a geometry from Extended Well-Known Binary (EWKB).
 #[user_doc(
     doc_section(label = "Geometry Input"),
-    description = "Constructs a geometry from the Extended Well-Known Binary representation, in either byte order, keeping its SRID. GeomFromEWKB is an alias. ISO WKB is accepted too. Unlike PostGIS, the SRID must be the same in every row, because geodatafusion stores one CRS per column, and curves, triangles and nested collections are not supported.",
+    description = "Constructs a geometry from the Extended Well-Known Binary representation, in either byte order, keeping its SRID. GeomFromEWKB is an alias. ISO WKB is accepted too. Unlike PostGIS, the SRID must be the same in every row, because geodatafusion stores one CRS per column, and curves and triangles are not supported.",
     syntax_example = "ST_GeomFromEWKB(EWKB)",
     argument(name = "EWKB", description = "bytea"),
     related_udf(name = "st_asewkb"),

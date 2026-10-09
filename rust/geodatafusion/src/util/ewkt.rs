@@ -315,11 +315,6 @@ impl Parser<'_> {
                     vec![]
                 } else {
                     self.list(|parser| {
-                        if parser.peek_word() == "GEOMETRYCOLLECTION" {
-                            return Err(WktParseError::Unsupported(
-                                "a nested GEOMETRYCOLLECTION".to_string(),
-                            ));
-                        }
                         let member = parser.geometry()?;
                         // Every member must have the collection's dimension.
                         dim.set(member.dim())?;
