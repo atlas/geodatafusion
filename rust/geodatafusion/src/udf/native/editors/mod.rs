@@ -5,6 +5,7 @@ mod force;
 mod force_collection;
 mod force_polygon_cw;
 mod multi;
+mod project;
 mod quantize_coordinates;
 mod reverse;
 mod shift_longitude;
@@ -18,6 +19,7 @@ pub use force::{Force2D, Force3DM, Force3DZ, Force4D};
 pub use force_collection::ForceCollection;
 pub use force_polygon_cw::{ForcePolygonCCW, ForcePolygonCW};
 pub use multi::Multi;
+pub use project::Project;
 pub use quantize_coordinates::QuantizeCoordinates;
 pub use reverse::Reverse;
 pub use shift_longitude::ShiftLongitude;
@@ -41,4 +43,5 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(ForceCollection.into());
     session_context.register_udf(CollectionExtract.into());
     session_context.register_udf(CollectionHomogenize.into());
+    session_context.register_udf(Project.into());
 }

@@ -113,6 +113,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.ForceCollection()))
     ctx.register_udf(udf(native.CollectionExtract()))
     ctx.register_udf(udf(native.CollectionHomogenize()))
+    ctx.register_udf(udf(native.Project()))
 
     # io
     ctx.register_udf(udf(native.AsText()))
