@@ -97,7 +97,7 @@ geodatafusion::register(&ctx);
 | ST_PointN           | ✅          | Returns the Nth point in the first LineString or circular LineString in a geometry.                     |
 | ST_Points           | ✅          | Returns a MultiPoint containing the coordinates of a geometry.                                          |
 | ST_StartPoint       | ✅          | Returns the first point of a LineString.                                                                |
-| ST_Summary          |             | Returns a text summary of the contents of a geometry.                                                   |
+| ST_Summary          | ✅          | Returns a text summary of the contents of a geometry.                                                   |
 | ST_X                | ✅          | Returns the X coordinate of a Point.                                                                    |
 | ST_Y                | ✅          | Returns the Y coordinate of a Point.                                                                    |
 | ST_Z                | ✅          | Returns the Z coordinate of a Point.                                                                    |

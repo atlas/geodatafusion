@@ -152,6 +152,7 @@ geodatafusion/st_snap 12/12
 geodatafusion/st_snaptogrid 41/41
 geodatafusion/st_srid 5/5
 geodatafusion/st_startpoint 16/16
+geodatafusion/st_summary 31/31
 geodatafusion/st_swapordinates 18/18
 geodatafusion/st_symdifference 20/20
 geodatafusion/st_tileenvelope 31/31

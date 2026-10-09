@@ -2,7 +2,7 @@ use geodatafusion::udf::native::accessors::{
     Boundary, BoundingDiagonal, CoordDim, Dimension, Dump, EndPoint, Envelope, ExteriorRing,
     GeometryN, GeometryType, HasM, HasZ, InteriorRingN, IsClosed, IsCollection, IsEmpty,
     IsPolygonCCW, IsPolygonCW, M, NDims, NPoints, NRings, NumGeometries, NumInteriorRings,
-    NumPoints, PointN, Points, ST_GeometryType, StartPoint, X, Y, Z, Zmflag,
+    NumPoints, PointN, Points, ST_GeometryType, StartPoint, Summary, X, Y, Z, Zmflag,
 };
 
 use crate::impl_udf;
@@ -40,3 +40,4 @@ impl_udf!(BoundingDiagonal, PyBoundingDiagonal, "BoundingDiagonal");
 impl_udf!(IsPolygonCW, PyIsPolygonCW, "IsPolygonCW");
 impl_udf!(IsPolygonCCW, PyIsPolygonCCW, "IsPolygonCCW");
 impl_udf!(Boundary, PyBoundary, "Boundary");
+impl_udf!(Summary, PySummary, "Summary");

@@ -57,6 +57,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.IsPolygonCW()))
     ctx.register_udf(udf(native.IsPolygonCCW()))
     ctx.register_udf(udf(native.Boundary()))
+    ctx.register_udf(udf(native.Summary()))
 
     # affine transformations
     ctx.register_udf(udf(native.Affine()))
