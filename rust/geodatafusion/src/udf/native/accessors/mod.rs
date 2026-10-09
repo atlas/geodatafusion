@@ -14,6 +14,8 @@ mod npoints;
 mod num_geometries;
 mod num_interior_rings;
 mod point;
+mod point_n;
+mod points;
 mod zmflag;
 
 pub use coord_dim::{CoordDim, NDims};
@@ -32,6 +34,8 @@ pub use npoints::{NPoints, NumPoints};
 pub use num_geometries::NumGeometries;
 pub use num_interior_rings::NumInteriorRings;
 pub use point::{M, X, Y, Z};
+pub use point_n::PointN;
+pub use points::Points;
 pub use zmflag::{HasM, HasZ, Zmflag};
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
@@ -61,4 +65,6 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(NRings.into());
     session_context.register_udf(ExteriorRing.into());
     session_context.register_udf(InteriorRingN.into());
+    session_context.register_udf(PointN.into());
+    session_context.register_udf(Points.into());
 }

@@ -95,7 +95,9 @@ geodatafusion/st_point 6/6
 geodatafusion/st_pointfromgeohash 13/13
 geodatafusion/st_pointfromtext 10/10
 geodatafusion/st_pointfromwkb 8/8
+geodatafusion/st_pointn 19/19
 geodatafusion/st_pointonsurface 18/18
+geodatafusion/st_points 18/18
 geodatafusion/st_polyfromwkb 8/8
 geodatafusion/st_polygonfromtext 10/10
 geodatafusion/st_polygonize 15/15
