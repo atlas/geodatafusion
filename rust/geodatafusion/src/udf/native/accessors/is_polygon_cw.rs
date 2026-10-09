@@ -10,11 +10,12 @@ use datafusion::logical_expr::{
 };
 use datafusion_macros::user_doc;
 use geo_traits::{
-    CoordTrait, GeometryCollectionTrait, GeometryTrait, GeometryType, LineStringTrait,
-    MultiPolygonTrait, PolygonTrait,
+    GeometryCollectionTrait, GeometryTrait, GeometryType, LineStringTrait, MultiPolygonTrait,
+    PolygonTrait,
 };
 
 use crate::error::GeoDataFusionResult;
+use crate::udf::native::util::orientation::ring_signed_area;
 use crate::util::field::geometry_array;
 use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::owned::to_owned_geometry;
@@ -173,19 +174,4 @@ impl Orientation {
             .interiors()
             .all(|ring| ring_signed_area(&ring) * interior_sign > 0.0)
     }
-}
-
-/// Twice the signed area of a ring (the shoelace formula): positive when counter-clockwise,
-/// negative when clockwise, and zero when it has no area. Coordinates are taken relative to the
-/// first one, to lose less precision far from the origin.
-fn ring_signed_area(ring: &impl LineStringTrait<T = f64>) -> f64 {
-    let Some(origin) = ring.coord(0) else {
-        return 0.0;
-    };
-    let (x0, y0) = (origin.x(), origin.y());
-    let coords: Vec<(f64, f64)> = ring.coords().map(|c| (c.x() - x0, c.y() - y0)).collect();
-    coords
-        .windows(2)
-        .map(|pair| pair[0].0 * pair[1].1 - pair[1].0 * pair[0].1)
-        .sum()
 }
