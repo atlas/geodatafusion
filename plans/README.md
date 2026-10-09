@@ -202,6 +202,14 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    (E)WKT parser; an `SRID=n;` prefix there is an error, since it can't set the column's CRS.
    Parity 2902/3219 -> 3091/3395. Left in batch 4: ST_AsTWKB, ST_GeomFromTWKB, ST_AsSVG and
    ST_AsLatLonText, all ranked below 150 by use.
+   G1 batch 3 done: ST_Multi, ST_ForceCollection, ST_CollectionExtract,
+   ST_CollectionHomogenize, ST_AddPoint, ST_SetPoint, ST_RemovePoint, ST_RemoveRepeatedPoints,
+   ST_Segmentize, ST_LineExtend, ST_Scroll, ST_Project, ST_RemoveSmallParts, ST_Boundary,
+   ST_ChaikinSmoothing, ST_MakePolygon, ST_Polygon, ST_LineFromMultiPoint, ST_TileEnvelope,
+   ST_Hexagon, ST_Square and ST_Summary (geometry forms; ST_Project's and ST_Segmentize's
+   geography forms wait for batch 4 of G6). The (E)WKT parser now reads nested
+   GEOMETRYCOLLECTIONs, which WKB output holds. Parity 3091/3395 -> 3622/3882, every
+   hand-written record passing.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
