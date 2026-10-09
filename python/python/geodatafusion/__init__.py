@@ -104,6 +104,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.Force3DM()))
     ctx.register_udf(udf(native.Force4D()))
     ctx.register_udf(udf(native.ShiftLongitude()))
+    ctx.register_udf(udf(native.Reverse()))
 
     # io
     ctx.register_udf(udf(native.AsText()))
