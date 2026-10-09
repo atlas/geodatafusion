@@ -144,7 +144,7 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    (E)WKT parser behind ST_GeomFromText, ST_GeomFromEWKT and ST_AsEWKT. Parity 116/637 ->
    265/773. Most records that used EWKT now fail on functions from other groups instead. Left
    for later G4 batches: EWKB, the type-checked `*FromText` constructors, and routing plain
-   text geometry arguments through the new parser.
+   text geometry arguments through the new parser (all since done).
 3. **Migrations:** each group moves its existing functions to its template and output encoding,
    in one breaking release (E6 H3a: no public user breaks). The functions changing backend move
    (E2).
@@ -196,6 +196,12 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    2902/3219, every hand-written record passing. Several doc examples pass an untyped 3D WKT
    string (`'POLYGON((0 0 2, ...))'`), which the untagged-text path rejects without a Z tag:
    routing untagged text through the PostGIS (E)WKT parser is the G4 follow-up noted in step 2.
+   G4 batch 4 in part: ST_AsGeoJSON, ST_GeomFromGeoJSON, ST_AsEncodedPolyline and
+   ST_LineFromEncodedPolyline (with PostGIS's 32-bit overflow above 7 decimals), and the
+   GeomFromEWKT/GeomFromEWKB aliases. Untagged text arguments are now read with the PostGIS
+   (E)WKT parser; an `SRID=n;` prefix there is an error, since it can't set the column's CRS.
+   Parity 2902/3219 -> 3091/3395. Left in batch 4: ST_AsTWKB, ST_GeomFromTWKB, ST_AsSVG and
+   ST_AsLatLonText, all ranked below 150 by use.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
