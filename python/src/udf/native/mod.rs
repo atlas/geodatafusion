@@ -44,6 +44,8 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<accessors::PyPoints>()?;
     m.add_class::<accessors::PyEnvelope>()?;
     m.add_class::<accessors::PyBoundingDiagonal>()?;
+    m.add_class::<accessors::PyIsPolygonCW>()?;
+    m.add_class::<accessors::PyIsPolygonCCW>()?;
 
     // bounding_box
     m.add_class::<bounding_box::PyBox2D>()?;

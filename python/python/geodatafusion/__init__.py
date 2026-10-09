@@ -54,6 +54,8 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.Points()))
     ctx.register_udf(udf(native.Envelope()))
     ctx.register_udf(udf(native.BoundingDiagonal()))
+    ctx.register_udf(udf(native.IsPolygonCW()))
+    ctx.register_udf(udf(native.IsPolygonCCW()))
 
     # bounding box
     ctx.register_udf(udf(native.Box2D()))
