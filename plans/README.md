@@ -181,6 +181,13 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    ST_DWithin, ST_Multi, ST_AsGeoJSON/ST_GeomFromGeoJSON. Then ST_Transform (G3, PROJ),
    ST_Buffer/ST_Union/ST_Intersection (G3), ST_Collect/ST_MakeLine (G1, G5). G6 batches 2–4
    (operators, types and casts, geography) unblock parts of G2, G3 and G5.
+   *Status:* G1 batch 1 done: ST_Dimension, ST_Zmflag, ST_HasZ, ST_HasM, ST_IsCollection,
+   ST_NumGeometries, ST_GeometryN, ST_NRings, ST_ExteriorRing, ST_InteriorRingN, ST_PointN,
+   ST_Points, ST_Envelope, ST_BoundingDiagonal (on PostGIS's single-precision box by default),
+   ST_IsPolygonCW, ST_IsPolygonCCW, ST_Expand (all six overloads) and ST_MakeEnvelope. Parity
+   2189/2555 -> 2534/2875, every hand-written record passing. The doc examples still failing
+   use TIN, POLYHEDRALSURFACE or curves, `generate_series` in a SELECT list, or a scalar
+   function in FROM.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
