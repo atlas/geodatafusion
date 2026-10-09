@@ -105,7 +105,8 @@ pub(crate) fn empty_line_string(dim: Dimensions) -> Wkt<f64> {
     Wkt::LineString(LineString::new(vec![], dimension(dim)))
 }
 
-fn dimension(dim: Dimensions) -> Dimension {
+/// The WKT dimension of a geo-traits dimension; unknown dimensions are 2D.
+pub(crate) fn dimension(dim: Dimensions) -> Dimension {
     match dim {
         Dimensions::Xyz => Dimension::XYZ,
         Dimensions::Xym => Dimension::XYM,
@@ -114,7 +115,8 @@ fn dimension(dim: Dimensions) -> Dimension {
     }
 }
 
-fn owned_coord(coord: &impl CoordTrait<T = f64>) -> Coord<f64> {
+/// An owned copy of a coordinate, Z and M included.
+pub(crate) fn owned_coord(coord: &impl CoordTrait<T = f64>) -> Coord<f64> {
     Coord {
         x: coord.x(),
         y: coord.y(),
