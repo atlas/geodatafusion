@@ -52,7 +52,7 @@ geodatafusion::register(&ctx);
 | ST_PointM             | ✅          | Creates a Point with X, Y, M and SRID values.                                                                              |
 | ST_PointZM            | ✅          | Creates a Point with X, Y, Z, M and SRID values.                                                                           |
 | ST_Polygon            | ✅          | Creates a Polygon from a LineString with a specified SRID.                                                                 |
-| ST_TileEnvelope       |             | Creates a rectangular Polygon in Web Mercator (SRID:3857) using the XYZ tile system.                                       |
+| ST_TileEnvelope       | ✅          | Creates a rectangular Polygon in Web Mercator (SRID:3857) using the XYZ tile system.                                       |
 | ST_HexagonGrid        |             | Returns a set of hexagons and cell indices that completely cover the bounds of the geometry argument.                      |
 | ST_Hexagon            |             | Returns a single hexagon, using the provided edge size and cell coordinate within the hexagon grid space.                  |
 | ST_SquareGrid         |             | Returns a set of grid squares and cell indices that completely cover the bounds of the geometry argument.                  |

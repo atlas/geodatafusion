@@ -1,6 +1,6 @@
 use geodatafusion::udf::native::constructors::{
     Collect, CollectAgg, MakeEnvelope, MakeLine, MakeLineAgg, MakePoint, MakePointM, MakePolygon,
-    Point, PointM, PointZ, PointZM, Polygon,
+    Point, PointM, PointZ, PointZM, Polygon, TileEnvelope,
 };
 
 use crate::{impl_udaf, impl_udf};
@@ -19,3 +19,4 @@ impl_udf!(MakePointM, PyMakePointM, "MakePointM");
 impl_udf!(MakeEnvelope, PyMakeEnvelope, "MakeEnvelope");
 impl_udf!(MakePolygon, PyMakePolygon, "MakePolygon");
 impl_udf!(Polygon, PyPolygon, "Polygon");
+impl_udf!(TileEnvelope, PyTileEnvelope, "TileEnvelope");
