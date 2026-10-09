@@ -1,6 +1,7 @@
 use geodatafusion::udf::native::editors::{
-    FlipCoordinates, Force2D, Force3DM, Force3DZ, Force4D, ForceCollection, ForcePolygonCCW,
-    ForcePolygonCW, Multi, QuantizeCoordinates, Reverse, ShiftLongitude, SnapToGrid, SwapOrdinates,
+    CollectionExtract, CollectionHomogenize, FlipCoordinates, Force2D, Force3DM, Force3DZ, Force4D,
+    ForceCollection, ForcePolygonCCW, ForcePolygonCW, Multi, QuantizeCoordinates, Reverse,
+    ShiftLongitude, SnapToGrid, SwapOrdinates,
 };
 
 use crate::impl_udf;
@@ -23,3 +24,9 @@ impl_udf!(
 );
 impl_udf!(Multi, PyMulti, "Multi");
 impl_udf!(ForceCollection, PyForceCollection, "ForceCollection");
+impl_udf!(CollectionExtract, PyCollectionExtract, "CollectionExtract");
+impl_udf!(
+    CollectionHomogenize,
+    PyCollectionHomogenize,
+    "CollectionHomogenize"
+);

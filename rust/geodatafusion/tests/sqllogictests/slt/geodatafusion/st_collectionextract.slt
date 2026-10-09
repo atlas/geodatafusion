@@ -1,0 +1,138 @@
+# Edge cases for ST_CollectionExtract, not covered by the PostGIS docs examples.
+
+# Each type, and the highest dimension
+query T
+SELECT ST_AsText(ST_CollectionExtract('GEOMETRYCOLLECTION(POINT(0 0),LINESTRING(0 0,1 1),POLYGON((0 0,1 0,1 1,0 0)),MULTIPOINT((2 2),(3 3)),MULTILINESTRING((5 5,6 6)))'::geometry, 1))
+----
+MULTIPOINT((0 0),(2 2),(3 3))
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('GEOMETRYCOLLECTION(POINT(0 0),LINESTRING(0 0,1 1),POLYGON((0 0,1 0,1 1,0 0)),MULTIPOINT((2 2),(3 3)),MULTILINESTRING((5 5,6 6)))'::geometry, 2))
+----
+MULTILINESTRING((0 0,1 1),(5 5,6 6))
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('GEOMETRYCOLLECTION(POINT(0 0),LINESTRING(0 0,1 1),POLYGON((0 0,1 0,1 1,0 0)),MULTIPOINT((2 2),(3 3)),MULTILINESTRING((5 5,6 6)))'::geometry, 3))
+----
+MULTIPOLYGON(((0 0,1 0,1 1,0 0)))
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('GEOMETRYCOLLECTION(POINT(0 0),LINESTRING(0 0,1 1),POLYGON((0 0,1 0,1 1,0 0)),MULTIPOINT((2 2),(3 3)),MULTILINESTRING((5 5,6 6)))'::geometry))
+----
+MULTIPOLYGON(((0 0,1 0,1 1,0 0)))
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('GEOMETRYCOLLECTION(POINT(0 0),LINESTRING(0 0,1 1),POLYGON((0 0,1 0,1 1,0 0)),MULTIPOINT((2 2),(3 3)),MULTILINESTRING((5 5,6 6)))'::geometry, 0))
+----
+MULTIPOLYGON(((0 0,1 0,1 1,0 0)))
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('GEOMETRYCOLLECTION(POLYGON((0 0,1 0,1 1,0 0)),MULTIPOLYGON(((5 5,6 5,6 6,5 5)),((7 7,8 7,8 8,7 7))))'::geometry, 3))
+----
+MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5)),((7 7,8 7,8 8,7 7)))
+
+# Geometries that aren't collections
+query T
+SELECT ST_AsText(ST_CollectionExtract('POINT(0 0)'::geometry, 1))
+----
+POINT(0 0)
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('POINT(0 0)'::geometry, 2))
+----
+LINESTRING EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('POINT(0 0)'::geometry, 3))
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('POINT(0 0)'::geometry))
+----
+POINT(0 0)
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('LINESTRING(0 0,1 1)'::geometry, 1))
+----
+POINT EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('POLYGON EMPTY'::geometry))
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('MULTIPOINT((1 1))'::geometry, 1))
+----
+MULTIPOINT((1 1))
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('MULTIPOINT((1 1))'::geometry, 2))
+----
+MULTILINESTRING EMPTY
+
+# Empty parts are dropped, but count for the dimension
+query T
+SELECT ST_AsText(ST_CollectionExtract('GEOMETRYCOLLECTION(POINT(1 1),POINT EMPTY)'::geometry, 1))
+----
+MULTIPOINT((1 1))
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('GEOMETRYCOLLECTION(LINESTRING EMPTY,POINT(1 1))'::geometry))
+----
+MULTILINESTRING EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('GEOMETRYCOLLECTION(MULTIPOLYGON EMPTY,POINT(1 1))'::geometry))
+----
+MULTIPOINT((1 1))
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('GEOMETRYCOLLECTION(POINT EMPTY)'::geometry))
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('MULTIPOINT EMPTY'::geometry))
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('GEOMETRYCOLLECTION EMPTY'::geometry))
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('GEOMETRYCOLLECTION EMPTY'::geometry, 2))
+----
+MULTILINESTRING EMPTY
+
+# Z, M and the SRID are kept
+query T
+SELECT ST_AsEWKT(ST_CollectionExtract('SRID=4326;GEOMETRYCOLLECTION Z (POINT Z (1 1 1),LINESTRING Z (0 0 0,1 1 1))'::geometry, 1))
+----
+SRID=4326;MULTIPOINT(1 1 1)
+
+query T
+SELECT ST_AsEWKT(ST_CollectionExtract('GEOMETRYCOLLECTION M (POINT M (1 1 1))'::geometry, 2))
+----
+MULTILINESTRINGM EMPTY
+
+# NULL
+query T
+SELECT ST_CollectionExtract(NULL::geometry, 1)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_CollectionExtract('POINT(0 0)'::geometry, NULL))
+----
+NULL
+
+# Only types 0 to 3
+query error
+SELECT ST_CollectionExtract('POINT(0 0)'::geometry, 4)
+
+query error
+SELECT ST_CollectionExtract('POINT(0 0)'::geometry, -1)

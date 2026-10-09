@@ -1,6 +1,6 @@
 mod bounding_diagonal;
 mod coord_dim;
-mod dimension;
+pub(crate) mod dimension;
 mod dump;
 mod envelope;
 mod exterior_ring;
