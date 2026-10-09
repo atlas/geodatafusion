@@ -142,6 +142,7 @@ geodatafusion/st_rotatex 10/10
 geodatafusion/st_rotatey 10/10
 geodatafusion/st_rotatez 10/10
 geodatafusion/st_scale 26/26
+geodatafusion/st_segmentize 26/26
 geodatafusion/st_setpoint 14/14
 geodatafusion/st_setsrid 11/11
 geodatafusion/st_sharedpaths 9/9
@@ -410,7 +411,7 @@ postgis_docs/st_rotatey 1/1
 postgis_docs/st_rotatez 1/2
 postgis_docs/st_scale 4/4
 postgis_docs/st_scroll 0/1
-postgis_docs/st_segmentize 0/3
+postgis_docs/st_segmentize 2/3
 postgis_docs/st_seteffectivearea 0/1
 postgis_docs/st_setpoint 2/3
 postgis_docs/st_setsrid 1/2

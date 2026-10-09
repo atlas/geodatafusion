@@ -1,8 +1,8 @@
 use geodatafusion::udf::native::editors::{
     AddPoint, CollectionExtract, CollectionHomogenize, FlipCoordinates, Force2D, Force3DM,
     Force3DZ, Force4D, ForceCollection, ForcePolygonCCW, ForcePolygonCW, Multi, Project,
-    QuantizeCoordinates, RemovePoint, RemoveRepeatedPoints, Reverse, SetPoint, ShiftLongitude,
-    SnapToGrid, SwapOrdinates,
+    QuantizeCoordinates, RemovePoint, RemoveRepeatedPoints, Reverse, Segmentize, SetPoint,
+    ShiftLongitude, SnapToGrid, SwapOrdinates,
 };
 
 use crate::impl_udf;
@@ -40,3 +40,4 @@ impl_udf!(
     PyRemoveRepeatedPoints,
     "RemoveRepeatedPoints"
 );
+impl_udf!(Segmentize, PySegmentize, "Segmentize");
