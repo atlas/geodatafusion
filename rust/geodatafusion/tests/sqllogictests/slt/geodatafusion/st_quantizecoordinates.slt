@@ -1,0 +1,107 @@
+# Edge cases for ST_QuantizeCoordinates, not covered by the PostGIS docs examples.
+
+# Precisions, including negative and very large ones
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT ZM (1.23456789 123.456789 -98765.4321 0.000123456)'::geometry, 0))
+----
+POINT ZM (1 123 -98765 0.0001220703125)
+
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT ZM (1.23456789 123.456789 -98765.4321 0.000123456)'::geometry, 2))
+----
+POINT ZM (1.234375 123.453125 -98765.4296875 0.0001220703125)
+
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT ZM (1.23456789 123.456789 -98765.4321 0.000123456)'::geometry, 4))
+----
+POINT ZM (1.23455810546875 123.456787109375 -98765.43209838867 0.0001220703125)
+
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT ZM (1.23456789 123.456789 -98765.4321 0.000123456)'::geometry, 6))
+----
+POINT ZM (1.234567642211914 123.45678853988647 -98765.43209981918 0.000123023986816)
+
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT ZM (1.23456789 123.456789 -98765.4321 0.000123456)'::geometry, -2))
+----
+POINT ZM (1 96 -98752 0.0001220703125)
+
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT ZM (1.23456789 123.456789 -98765.4321 0.000123456)'::geometry, -40))
+----
+POINT ZM (1 96 -98304 0.0001220703125)
+
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT ZM (1.23456789 123.456789 -98765.4321 0.000123456)'::geometry, 40))
+----
+POINT ZM (1.23456789 123.456789 -98765.4321 0.000123456)
+
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT(10000000000.123 0.5)'::geometry, 2))
+----
+POINT(10000000000.121094 0.5)
+
+# prec_y, prec_z and prec_m default to prec_x, also when NULL
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT ZM (1.23456789 123.456789 -98765.4321 0.000123456)'::geometry, 2, 4))
+----
+POINT ZM (1.234375 123.456787109375 -98765.4296875 0.0001220703125)
+
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT ZM (1.23456789 123.456789 -98765.4321 0.000123456)'::geometry, 2, NULL, 0, 6))
+----
+POINT ZM (1.234375 123.453125 -98765 0.000123023986816)
+
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT ZM (1.23456789 123.456789 -98765.4321 0.000123456)'::geometry, 2, 4, 0, NULL))
+----
+POINT ZM (1.234375 123.456787109375 -98765 0.0001220703125)
+
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT M (1.23456789 1.23456789 1.23456789)'::geometry, 2, 4, 0, 6))
+----
+POINT M (1.234375 1.23455810546875 1.234567642211914)
+
+# Every geometry type, and the SRID
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('LINESTRING(1.23456789 2.3456789,3.456789 4.56789)'::geometry, 1))
+----
+LINESTRING(1.21875 2.34375,3.4375 4.5625)
+
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('GEOMETRYCOLLECTION(POINT(1.23456789 2.3456789),POLYGON((0 0,1.23456789 0,1.23456789 1.23456789,0 0)))'::geometry, 3))
+----
+GEOMETRYCOLLECTION(POINT(1.234375 2.34521484375),POLYGON((0 0,1.234375 0,1.234375 1.234375,0 0)))
+
+query T
+SELECT ST_AsEWKT(ST_QuantizeCoordinates('SRID=4326;POINT(1.23456789 2.3456789)'::geometry, 2))
+----
+SRID=4326;POINT(1.234375 2.34375)
+
+# Zero, EMPTY and NULL
+query T
+SELECT ST_AsText(ST_QuantizeCoordinates('POINT(0 -0.0001)'::geometry, 2))
+----
+POINT(0 -0.000091552734375)
+
+query T
+SELECT ST_AsEWKT(ST_QuantizeCoordinates('SRID=4326;POINT EMPTY'::geometry, 2))
+----
+SRID=4326;POINT EMPTY
+
+query T
+SELECT ST_QuantizeCoordinates(NULL::geometry, 2)
+----
+NULL
+
+# A NULL prec_x is an error
+query error
+SELECT ST_QuantizeCoordinates('POINT(1 1)'::geometry, NULL)
+
+# Columns
+query IT rowsort
+SELECT p, ST_AsText(ST_QuantizeCoordinates(g, p)) FROM (VALUES ('POINT(1.23456789 2.3456789)'::geometry, 1), ('LINESTRING(0.3333333 0.3,1.7777777 1.1)'::geometry, 3), (NULL::geometry, 1)) AS t(g, p)
+----
+1 NULL
+1 POINT(1.21875 2.34375)
+3 LINESTRING(0.3330078125 0.2998046875,1.77734375 1.099609375)
