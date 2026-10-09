@@ -2,6 +2,7 @@ mod accessors;
 mod affine_transformations;
 mod bounding_box;
 mod constructors;
+mod editors;
 mod io;
 mod measurement;
 mod operators;
@@ -85,6 +86,10 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<constructors::PyMakePoint>()?;
     m.add_class::<constructors::PyMakePointM>()?;
     m.add_class::<constructors::PyMakeEnvelope>()?;
+
+    // editors
+    m.add_class::<editors::PyFlipCoordinates>()?;
+    m.add_class::<editors::PySwapOrdinates>()?;
 
     // io
     m.add_class::<io::PyAsBinary>()?;

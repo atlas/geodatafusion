@@ -96,6 +96,10 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.MakePointM()))
     ctx.register_udf(udf(native.MakeEnvelope()))
 
+    # editors
+    ctx.register_udf(udf(native.FlipCoordinates()))
+    ctx.register_udf(udf(native.SwapOrdinates()))
+
     # io
     ctx.register_udf(udf(native.AsText()))
     ctx.register_udf(udf(native.AsBinary()))
