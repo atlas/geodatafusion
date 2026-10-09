@@ -60,6 +60,7 @@ def register_all_native(ctx: SessionContext):
     # affine transformations
     ctx.register_udf(udf(native.Affine()))
     ctx.register_udf(udf(native.Translate()))
+    ctx.register_udf(udf(native.Scale()))
 
     # bounding box
     ctx.register_udf(udf(native.Box2D()))
