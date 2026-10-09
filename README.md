@@ -46,12 +46,12 @@ geodatafusion::register(&ctx);
 | ST_MakeLine           | ✅          | Creates a LineString from Point, MultiPoint, or LineString geometries. The aggregate form is ST_MakeLine_Agg.              |
 | ST_MakePoint          | ✅          | Creates a 2D, 3DZ or 4D Point.                                                                                             |
 | ST_MakePointM         | ✅          | Creates a Point from X, Y and M values.                                                                                    |
-| ST_MakePolygon        |             | Creates a Polygon from a shell and optional list of holes.                                                                 |
+| ST_MakePolygon        | ✅          | Creates a Polygon from a shell and optional list of holes.                                                                 |
 | ST_Point              | ✅          | Creates a Point with X, Y and SRID values.                                                                                 |
 | ST_PointZ             | ✅          | Creates a Point with X, Y, Z and SRID values.                                                                              |
 | ST_PointM             | ✅          | Creates a Point with X, Y, M and SRID values.                                                                              |
 | ST_PointZM            | ✅          | Creates a Point with X, Y, Z, M and SRID values.                                                                           |
-| ST_Polygon            |             | Creates a Polygon from a LineString with a specified SRID.                                                                 |
+| ST_Polygon            | ✅          | Creates a Polygon from a LineString with a specified SRID.                                                                 |
 | ST_TileEnvelope       |             | Creates a rectangular Polygon in Web Mercator (SRID:3857) using the XYZ tile system.                                       |
 | ST_HexagonGrid        |             | Returns a set of hexagons and cell indices that completely cover the bounds of the geometry argument.                      |
 | ST_Hexagon            |             | Returns a single hexagon, using the provided edge size and cell coordinate within the hexagon grid space.                  |

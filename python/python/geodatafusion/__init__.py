@@ -95,6 +95,8 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.MakePoint()))
     ctx.register_udf(udf(native.MakePointM()))
     ctx.register_udf(udf(native.MakeEnvelope()))
+    ctx.register_udf(udf(native.MakePolygon()))
+    ctx.register_udf(udf(native.Polygon()))
 
     # editors
     ctx.register_udf(udf(native.FlipCoordinates()))

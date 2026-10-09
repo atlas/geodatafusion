@@ -86,6 +86,8 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<constructors::PyMakePoint>()?;
     m.add_class::<constructors::PyMakePointM>()?;
     m.add_class::<constructors::PyMakeEnvelope>()?;
+    m.add_class::<constructors::PyMakePolygon>()?;
+    m.add_class::<constructors::PyPolygon>()?;
 
     // editors
     m.add_class::<editors::PyFlipCoordinates>()?;
