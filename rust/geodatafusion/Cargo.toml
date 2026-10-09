@@ -24,6 +24,12 @@ geos-3_11 = ["dep:geos", "geos/v3_11_0"]
 # The bundled version (geos-src 0.2.4, GEOS 3.14.1) is pinned to the PostGIS image the parity
 # tests are recorded with; see tests/sqllogictests/README.md.
 geos-static = ["geos-3_11", "geos/static"]
+# Enables PROJ-backed UDFs (ST_Transform and the pipeline functions). Links the system PROJ if
+# pkg-config finds PROJ >= 9.6.2; otherwise proj-sys builds its bundled PROJ 9.6.2 from source,
+# which needs cmake and sqlite3. PROJ reads proj.db at runtime (PROJ_DATA to point it elsewhere).
+proj = ["dep:proj-sys"]
+# Always builds the bundled PROJ 9.6.2 from source, ignoring the system library.
+proj-bundled = ["proj", "proj-sys/bundled_proj"]
 
 [dependencies]
 arrow-arith = { workspace = true }
@@ -38,6 +44,7 @@ geo-traits = { workspace = true }
 geoarrow-array = { workspace = true }
 geoarrow-schema = { workspace = true }
 geos = { workspace = true, optional = true }
+proj-sys = { workspace = true, optional = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 wkb = { workspace = true }
@@ -75,5 +82,6 @@ harness = false
 required-features = ["sql"]
 
 [package.metadata.docs.rs]
-# Not geos-static, which would build GEOS from source; geos/dox skips linking it.
-features = ["geos-3_11", "geos/dox"]
+# Not geos-static or proj-bundled, which would build GEOS and PROJ from source; geos/dox and
+# proj-sys/nobuild skip linking them.
+features = ["geos-3_11", "geos/dox", "proj", "proj-sys/nobuild"]

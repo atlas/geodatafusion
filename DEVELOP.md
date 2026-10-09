@@ -11,6 +11,7 @@ This is a Rust workspace with multiple crates:
         - `native/` - Operations that are natively implemented, without the use of other dependencies like `geo`
         - `geo/` - Operations implemented using the `geo` crate
         - `geos/` - Operations implemented using the `geos` crate (bindings to the native GEOS library), gated behind the `geos-3_11` feature (and `geos-static` to build GEOS from source)
+        - `proj/` - Coordinate transformations with PROJ (through `proj-sys`), gated behind the `proj` feature (and `proj-bundled` to build PROJ from source)
 - `rust/geodatafusion-flatgeobuf` - FlatGeobuf format support
 - `rust/geodatafusion-geoparquet` - GeoParquet format support
 - `rust/geodatafusion-geojson` - GeoJSON format support
@@ -124,6 +125,17 @@ GEOS from source (`geos-src`, which needs cmake and a C++ compiler) and links it
 `--all-features` includes it, so `cargo test --all-features` and `cargo slt` run against the
 bundled GEOS 3.14.1, the version the parity tests are recorded with (see
 `rust/geodatafusion/tests/sqllogictests/README.md`). The first build takes a minute or two.
+
+### PROJ-backed functions
+
+Functions in the `proj/` provider (ST_Transform, ST_TransformPipeline,
+ST_InverseTransformPipeline) call [PROJ](https://proj.org/) through `proj-sys`, behind the
+`proj` feature. It links the system PROJ when pkg-config finds PROJ 9.6.2 or later, and
+otherwise builds the bundled PROJ 9.6.2. `proj-bundled` always builds the bundled one, and
+`--all-features` includes it. The source build needs cmake, a C++ compiler, the `sqlite3`
+command and the SQLite development files (`sqlite3 libsqlite3-dev` on Debian and Ubuntu); it
+takes about a minute. PROJ reads its database, `proj.db`, at runtime: from the install prefix
+it was built with, or from `PROJ_DATA`.
 
 ### Code Style
 

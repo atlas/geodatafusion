@@ -65,6 +65,9 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
 
     crate::udf::native::types::register(session_context);
 
+    #[cfg(feature = "proj")]
+    crate::udf::proj::srs::register(session_context);
+
     #[cfg(feature = "sql")]
     crate::sql::register(session_context);
 }
