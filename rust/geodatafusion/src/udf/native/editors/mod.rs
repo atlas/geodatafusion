@@ -1,3 +1,5 @@
+mod collection_extract;
+mod collection_homogenize;
 mod flip_coordinates;
 mod force;
 mod force_collection;
@@ -9,6 +11,8 @@ mod shift_longitude;
 mod snap_to_grid;
 mod swap_ordinates;
 
+pub use collection_extract::CollectionExtract;
+pub use collection_homogenize::CollectionHomogenize;
 pub use flip_coordinates::FlipCoordinates;
 pub use force::{Force2D, Force3DM, Force3DZ, Force4D};
 pub use force_collection::ForceCollection;
@@ -35,4 +39,6 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(QuantizeCoordinates.into());
     session_context.register_udf(Multi.into());
     session_context.register_udf(ForceCollection.into());
+    session_context.register_udf(CollectionExtract.into());
+    session_context.register_udf(CollectionHomogenize.into());
 }

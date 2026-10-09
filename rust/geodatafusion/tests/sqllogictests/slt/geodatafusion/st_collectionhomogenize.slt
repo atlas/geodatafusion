@@ -1,0 +1,132 @@
+# Edge cases for ST_CollectionHomogenize, not covered by the PostGIS docs examples.
+
+# One type
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION(POINT(1 1))'::geometry))
+----
+POINT(1 1)
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION(POINT(1 1),POINT(2 2))'::geometry))
+----
+MULTIPOINT((1 1),(2 2))
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION(MULTIPOINT((1 1),(2 2)),POINT(3 3))'::geometry))
+----
+MULTIPOINT((1 1),(2 2),(3 3))
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION(LINESTRING(0 0,1 1),LINESTRING(2 2,3 3))'::geometry))
+----
+MULTILINESTRING((0 0,1 1),(2 2,3 3))
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION(POLYGON((0 0,1 0,1 1,0 0)))'::geometry))
+----
+POLYGON((0 0,1 0,1 1,0 0))
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION(MULTIPOINT((1 1)))'::geometry))
+----
+POINT(1 1)
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('MULTIPOINT((1 1))'::geometry))
+----
+POINT(1 1)
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('MULTIPOINT((1 1),(2 2))'::geometry))
+----
+MULTIPOINT((1 1),(2 2))
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))'::geometry))
+----
+POLYGON((0 0,1 0,1 1,0 0))
+
+# Several types, grouped as points, linestrings, polygons
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(0 0,1 1))'::geometry))
+----
+GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(0 0,1 1))
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION(POLYGON((0 0,1 0,1 1,0 0)),POINT(1 1),LINESTRING(0 0,1 1),POINT(2 2))'::geometry))
+----
+GEOMETRYCOLLECTION(MULTIPOINT((1 1),(2 2)),LINESTRING(0 0,1 1),POLYGON((0 0,1 0,1 1,0 0)))
+
+# Empty parts
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION(POINT(1 1),POINT EMPTY)'::geometry))
+----
+MULTIPOINT((1 1),EMPTY)
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION(LINESTRING EMPTY,POINT(1 1))'::geometry))
+----
+GEOMETRYCOLLECTION(POINT(1 1),LINESTRING EMPTY)
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION(MULTIPOINT EMPTY,POINT(1 1))'::geometry))
+----
+POINT(1 1)
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('MULTIPOINT((1 1),EMPTY)'::geometry))
+----
+MULTIPOINT((1 1),EMPTY)
+
+# EMPTY and single geometries
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION(POINT EMPTY)'::geometry))
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('MULTIPOINT EMPTY'::geometry))
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('MULTIPOINT(EMPTY,EMPTY)'::geometry))
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('GEOMETRYCOLLECTION EMPTY'::geometry))
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('POINT EMPTY'::geometry))
+----
+POINT EMPTY
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('POINT(1 1)'::geometry))
+----
+POINT(1 1)
+
+query T
+SELECT ST_AsText(ST_CollectionHomogenize('LINESTRING(0 0,1 1)'::geometry))
+----
+LINESTRING(0 0,1 1)
+
+# Z, M and the SRID are kept
+query T
+SELECT ST_AsEWKT(ST_CollectionHomogenize('SRID=4326;GEOMETRYCOLLECTION Z (POINT Z (1 1 1),POINT Z (2 2 2))'::geometry))
+----
+SRID=4326;MULTIPOINT(1 1 1,2 2 2)
+
+query T
+SELECT ST_AsEWKT(ST_CollectionHomogenize('GEOMETRYCOLLECTION M (LINESTRING M (0 0 1,1 1 2))'::geometry))
+----
+LINESTRINGM(0 0 1,1 1 2)
+
+# NULL
+query T
+SELECT ST_CollectionHomogenize(NULL::geometry)
+----
+NULL

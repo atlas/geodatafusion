@@ -110,8 +110,8 @@ geodatafusion::register(&ctx);
 | Name                             | Implemented | Description                                                                                         |
 | -------------------------------- | ----------- | --------------------------------------------------------------------------------------------------- |
 | ST_AddPoint                      |             | Add a point to a LineString.                                                                        |
-| ST_CollectionExtract             |             | Given a geometry collection, returns a multi-geometry containing only elements of a specified type. |
-| ST_CollectionHomogenize          |             | Returns the simplest representation of a geometry collection.                                       |
+| ST_CollectionExtract             | ✅          | Given a geometry collection, returns a multi-geometry containing only elements of a specified type. |
+| ST_CollectionHomogenize          | ✅          | Returns the simplest representation of a geometry collection.                                       |
 | ST_Scroll                        |             | Change start point of a closed LineString.                                                          |
 | ST_FlipCoordinates               | ✅          | Returns a version of a geometry with X and Y axis flipped.                                          |
 | ST_Force2D                       | ✅          | Force the geometries into a "2-dimensional mode".                                                   |

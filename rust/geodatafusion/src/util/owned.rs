@@ -182,6 +182,32 @@ fn map_polygon(
     )
 }
 
+/// Owned copies of the points, linestrings and polygons a geometry is made of, in order, through
+/// MULTI* geometries and nested collections. Empty parts are included; an empty MULTI* or
+/// collection has none.
+pub(crate) fn owned_atoms(geom: &impl GeometryTrait<T = f64>) -> Vec<Wkt<f64>> {
+    let dim = dimension(geom.dim());
+    match geom.as_type() {
+        GeometryType::MultiPoint(points) => points
+            .points()
+            .map(|point| Wkt::Point(owned_point(&point, dim)))
+            .collect(),
+        GeometryType::MultiLineString(lines) => lines
+            .line_strings()
+            .map(|line| Wkt::LineString(owned_line_string(&line, dim)))
+            .collect(),
+        GeometryType::MultiPolygon(polygons) => polygons
+            .polygons()
+            .map(|polygon| Wkt::Polygon(owned_polygon(&polygon, dim)))
+            .collect(),
+        GeometryType::GeometryCollection(collection) => collection
+            .geometries()
+            .flat_map(|member| owned_atoms(&member))
+            .collect(),
+        _ => vec![to_owned_geometry(geom)],
+    }
+}
+
 /// The role of a linestring in a geometry, for [`map_line_strings`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum LinePart {

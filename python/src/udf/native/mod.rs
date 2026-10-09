@@ -102,6 +102,8 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<editors::PyQuantizeCoordinates>()?;
     m.add_class::<editors::PyMulti>()?;
     m.add_class::<editors::PyForceCollection>()?;
+    m.add_class::<editors::PyCollectionExtract>()?;
+    m.add_class::<editors::PyCollectionHomogenize>()?;
 
     // io
     m.add_class::<io::PyAsBinary>()?;
