@@ -120,10 +120,10 @@ geodatafusion::register(&ctx);
 | ST_Force3DM                      | ✅          | Force the geometries into XYM mode.                                                                 |
 | ST_Force4D                       | ✅          | Force the geometries into XYZM mode.                                                                |
 | ST_ForceCollection               |             | Convert the geometry into a GEOMETRYCOLLECTION.                                                     |
-| ST_ForcePolygonCCW               |             | Orients all exterior rings counter-clockwise and all interior rings clockwise.                      |
-| ST_ForcePolygonCW                |             | Orients all exterior rings clockwise and all interior rings counter-clockwise.                      |
+| ST_ForcePolygonCCW               | ✅          | Orients all exterior rings counter-clockwise and all interior rings clockwise.                      |
+| ST_ForcePolygonCW                | ✅          | Orients all exterior rings clockwise and all interior rings counter-clockwise.                      |
 | ST_ForceSFS                      |             | Force the geometries to use SFS 1.1 geometry types only.                                            |
-| ST_ForceRHR                      |             | Force the orientation of the vertices in a polygon to follow the Right-Hand-Rule.                   |
+| ST_ForceRHR                      | ✅          | Force the orientation of the vertices in a polygon to follow the Right-Hand-Rule.                   |
 | ST_LineExtend                    |             | Returns a line extended forwards and backwards by specified distances.                              |
 | ST_Multi                         |             | Return the geometry as a MULTI\* geometry.                                                          |
 | ST_Normalize                     | ✅          | Return the geometry in its canonical form.                                                          |
