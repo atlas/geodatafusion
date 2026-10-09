@@ -133,7 +133,7 @@ geodatafusion::register(&ctx);
 | ST_RemoveRepeatedPoints          |             | Returns a version of a geometry with duplicate points removed.                                      |
 | ST_RemoveIrrelevantPointsForView |             | Removes points that are irrelevant for rendering a specific rectangluar view of a geometry.         |
 | ST_RemoveSmallParts              |             | Removes small parts (polygon rings or linestrings) of a geometry.                                   |
-| ST_Reverse                       |             | Return the geometry with vertex order reversed.                                                     |
+| ST_Reverse                       | ✅          | Return the geometry with vertex order reversed.                                                     |
 | ST_Segmentize                    |             | Returns a modified geometry/geography having no segment longer than a given distance.               |
 | ST_SetPoint                      |             | Replace point of a linestring with a given point.                                                   |
 | ST_ShiftLongitude                | ✅          | Shifts the longitude coordinates of a geometry between -180..180 and 0..360.                        |

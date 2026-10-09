@@ -182,6 +182,77 @@ fn map_polygon(
     )
 }
 
+/// The role of a linestring in a geometry, for [`map_line_strings`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum LinePart {
+    Line,
+    ExteriorRing,
+    InteriorRing,
+}
+
+/// A copy of `geom` with `f` applied to the coordinates of every linestring and polygon ring.
+/// Points are copied unchanged.
+pub(crate) fn map_line_strings(
+    geom: &impl GeometryTrait<T = f64>,
+    f: &impl Fn(LinePart, Vec<Coord<f64>>) -> Vec<Coord<f64>>,
+) -> Wkt<f64> {
+    map_wkt_line_strings(to_owned_geometry(geom), f)
+}
+
+fn map_wkt_line_strings(
+    geom: Wkt<f64>,
+    f: &impl Fn(LinePart, Vec<Coord<f64>>) -> Vec<Coord<f64>>,
+) -> Wkt<f64> {
+    let line = |line: LineString<f64>, part| {
+        let (coords, dim) = line.into_inner();
+        LineString::new(f(part, coords), dim)
+    };
+    let polygon = |polygon: Polygon<f64>| {
+        let (rings, dim) = polygon.into_inner();
+        let rings = rings
+            .into_iter()
+            .enumerate()
+            .map(|(index, ring)| {
+                let part = match index {
+                    0 => LinePart::ExteriorRing,
+                    _ => LinePart::InteriorRing,
+                };
+                line(ring, part)
+            })
+            .collect();
+        Polygon::new(rings, dim)
+    };
+    match geom {
+        Wkt::Point(_) | Wkt::MultiPoint(_) => geom,
+        Wkt::LineString(l) => Wkt::LineString(line(l, LinePart::Line)),
+        Wkt::Polygon(p) => Wkt::Polygon(polygon(p)),
+        Wkt::MultiLineString(lines) => {
+            let (lines, dim) = lines.into_inner();
+            Wkt::MultiLineString(MultiLineString::new(
+                lines.into_iter().map(|l| line(l, LinePart::Line)).collect(),
+                dim,
+            ))
+        }
+        Wkt::MultiPolygon(polygons) => {
+            let (polygons, dim) = polygons.into_inner();
+            Wkt::MultiPolygon(MultiPolygon::new(
+                polygons.into_iter().map(polygon).collect(),
+                dim,
+            ))
+        }
+        Wkt::GeometryCollection(collection) => {
+            let (members, dim) = collection.into_inner();
+            Wkt::GeometryCollection(GeometryCollection::new(
+                members
+                    .into_iter()
+                    .map(|member| map_wkt_line_strings(member, f))
+                    .collect(),
+                dim,
+            ))
+        }
+    }
+}
+
 /// An owned copy of a point that is part of a geometry with dimension `dim`.
 pub(crate) fn point_to_owned(point: &impl PointTrait<T = f64>, dim: Dimensions) -> Wkt<f64> {
     Wkt::Point(owned_point(point, dimension(dim)))
