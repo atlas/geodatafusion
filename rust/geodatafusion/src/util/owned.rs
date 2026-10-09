@@ -374,7 +374,8 @@ impl GeometryKernel for ToOwned {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::udf::native::io::util::wkt::{WktFlavor, parse_ewkt, write_wkt};
+    use crate::udf::native::io::util::wkt::{WktFlavor, write_wkt};
+    use crate::util::ewkt::parse_ewkt;
 
     #[test]
     fn test_to_owned_geometry_keeps_z_and_m() {
