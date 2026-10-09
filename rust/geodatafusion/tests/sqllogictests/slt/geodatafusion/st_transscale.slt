@@ -1,0 +1,59 @@
+# Edge cases for ST_TransScale, not covered by the PostGIS docs examples.
+
+# Translate, then scale
+query T
+SELECT ST_AsText(ST_TransScale('POINT(1 2)'::geometry, 1, 1, 2, 3))
+----
+POINT(4 9)
+
+query T
+SELECT ST_AsText(ST_TransScale('LINESTRING(0 0,1 1)'::geometry, -1, 0.5, 0.5, -2))
+----
+LINESTRING(-0.5 -1,0 -3)
+
+query T
+SELECT ST_AsText(ST_TransScale('POLYGON((0 0,4 0,4 4,0 0),(1 1,2 1,2 2,1 1))'::geometry, 1, 1, 1, 1))
+----
+POLYGON((1 1,5 1,5 5,1 1),(2 2,3 2,3 3,2 2))
+
+query T
+SELECT ST_AsText(ST_TransScale('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(0 0,1 2))'::geometry, 0.1, 0.2, 3, 3))
+----
+GEOMETRYCOLLECTION(POINT(3.3 3.6),LINESTRING(0.3 0.6,3.3 6.6))
+
+query T
+SELECT ST_AsText(ST_TransScale('POINT(0.1 0.2)'::geometry, 0.2, 0.1, 0.3, 0.7))
+----
+POINT(0.09 0.21)
+
+# Z and M are unchanged
+query T
+SELECT ST_AsEWKT(ST_TransScale('POINT ZM (1 2 3 4)'::geometry, 1, 1, 2, 2))
+----
+POINT(4 6 3 4)
+
+query T
+SELECT ST_AsEWKT(ST_TransScale('POINT M (1 2 3)'::geometry, 1, 1, 2, 2))
+----
+POINTM(4 6 3)
+
+# EMPTY, the SRID and NULL
+query T
+SELECT ST_AsText(ST_TransScale('POINT EMPTY'::geometry, 1, 1, 2, 2))
+----
+POINT EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_TransScale('SRID=4326;POINT(1 2)'::geometry, 1, 1, 2, 2))
+----
+SRID=4326;POINT(4 6)
+
+query T
+SELECT ST_TransScale(NULL::geometry, 1, 1, 2, 2)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_TransScale('POINT(1 2)'::geometry, 1, 1, NULL, 2))
+----
+NULL

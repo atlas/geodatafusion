@@ -127,6 +127,7 @@ geodatafusion/st_startpoint 16/16
 geodatafusion/st_symdifference 20/20
 geodatafusion/st_touches 20/20
 geodatafusion/st_translate 18/18
+geodatafusion/st_transscale 11/11
 geodatafusion/st_unaryunion 14/14
 geodatafusion/st_union 20/20
 geodatafusion/st_union_agg 33/33
@@ -401,7 +402,7 @@ postgis_docs/st_touches 2/2
 postgis_docs/st_transform 0/3
 postgis_docs/st_transformpipeline 0/2
 postgis_docs/st_translate 3/4
-postgis_docs/st_transscale 0/2
+postgis_docs/st_transscale 1/2
 postgis_docs/st_triangulatepolygon 0/3
 postgis_docs/st_union 1/1
 postgis_docs/st_voronoilines 1/1

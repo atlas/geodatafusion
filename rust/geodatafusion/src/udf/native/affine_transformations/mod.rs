@@ -1,12 +1,14 @@
 mod affine;
 mod rotate;
 mod scale;
+mod trans_scale;
 mod translate;
 pub(crate) mod util;
 
 pub use affine::Affine;
 pub use rotate::{Rotate, RotateX, RotateY, RotateZ};
 pub use scale::Scale;
+pub use trans_scale::TransScale;
 pub use translate::Translate;
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
@@ -17,4 +19,5 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(RotateX.into());
     session_context.register_udf(RotateY.into());
     session_context.register_udf(RotateZ.into());
+    session_context.register_udf(TransScale.into());
 }

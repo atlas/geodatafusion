@@ -56,6 +56,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<affine_transformations::PyRotateX>()?;
     m.add_class::<affine_transformations::PyRotateY>()?;
     m.add_class::<affine_transformations::PyRotateZ>()?;
+    m.add_class::<affine_transformations::PyTransScale>()?;
 
     // bounding_box
     m.add_class::<bounding_box::PyBox2D>()?;
