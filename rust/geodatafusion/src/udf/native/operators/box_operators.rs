@@ -19,6 +19,7 @@ use geo_traits::GeometryTrait;
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::bounding_box::util::bounds::BoundingRect;
+use crate::udf::native::util::float_box::FloatBox;
 use crate::util::field::geometry_array;
 use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::signature::{Arg, coerce_args};
@@ -327,52 +328,6 @@ fn overlap(a: (f64, f64), b: (f64, f64)) -> bool {
 
 fn contains(a: &FloatBox, b: &FloatBox) -> bool {
     a.x.0 <= b.x.0 && a.x.1 >= b.x.1 && a.y.0 <= b.y.0 && a.y.1 >= b.y.1
-}
-
-/// A bounding box as PostGIS's operators see it: each range rounded outward to single
-/// precision. Z and M are there when the geometry has them.
-#[derive(Debug, Clone, Copy)]
-struct FloatBox {
-    x: (f64, f64),
-    y: (f64, f64),
-    z: Option<(f64, f64)>,
-    m: Option<(f64, f64)>,
-}
-
-impl FloatBox {
-    /// The box of `rect`, or `None` for an EMPTY geometry.
-    fn new(rect: &BoundingRect) -> Option<Self> {
-        if rect.is_empty() {
-            return None;
-        }
-        let round = |(min, max): (f64, f64)| (round_down(min), round_up(max));
-        Some(Self {
-            x: round((rect.minx(), rect.maxx())),
-            y: round((rect.miny(), rect.maxy())),
-            z: rect.z_range().map(round),
-            m: rect.m_range().map(round),
-        })
-    }
-}
-
-/// The largest single-precision float not above `value`.
-fn round_down(value: f64) -> f64 {
-    let rounded = value as f32;
-    if rounded as f64 <= value {
-        rounded as f64
-    } else {
-        rounded.next_down() as f64
-    }
-}
-
-/// The smallest single-precision float not below `value`.
-fn round_up(value: f64) -> f64 {
-    let rounded = value as f32;
-    if rounded as f64 >= value {
-        rounded as f64
-    } else {
-        rounded.next_up() as f64
-    }
 }
 
 /// The bounding box of every geometry, keeping the box of an EMPTY geometry (which is empty) apart
