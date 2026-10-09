@@ -50,6 +50,9 @@ geodatafusion/st_force3d 12/12
 geodatafusion/st_force3dm 14/14
 geodatafusion/st_force3dz 14/14
 geodatafusion/st_force4d 16/16
+geodatafusion/st_forcepolygonccw 14/14
+geodatafusion/st_forcepolygoncw 14/14
+geodatafusion/st_forcerhr 14/14
 geodatafusion/st_geohash 23/23
 geodatafusion/st_geomcollfromtext 10/10
 geodatafusion/st_geomcollfromwkb 8/8
