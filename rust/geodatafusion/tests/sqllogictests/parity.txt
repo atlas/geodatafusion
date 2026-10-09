@@ -44,6 +44,7 @@ geodatafusion/st_equals 20/20
 geodatafusion/st_expand 35/35
 geodatafusion/st_extent 8/8
 geodatafusion/st_exteriorring 16/16
+geodatafusion/st_flipcoordinates 11/11
 geodatafusion/st_geohash 23/23
 geodatafusion/st_geomcollfromtext 10/10
 geodatafusion/st_geomcollfromwkb 8/8
@@ -124,6 +125,7 @@ geodatafusion/st_simplifyvw 31/31
 geodatafusion/st_snap 12/12
 geodatafusion/st_srid 5/5
 geodatafusion/st_startpoint 16/16
+geodatafusion/st_swapordinates 18/18
 geodatafusion/st_symdifference 20/20
 geodatafusion/st_touches 20/20
 geodatafusion/st_translate 18/18
@@ -395,7 +397,7 @@ postgis_docs/st_square 0/1
 postgis_docs/st_srid 1/1
 postgis_docs/st_startpoint 3/4
 postgis_docs/st_subdivide 0/2
-postgis_docs/st_swapordinates 0/1
+postgis_docs/st_swapordinates 1/1
 postgis_docs/st_symdifference 2/2
 postgis_docs/st_tileenvelope 0/2
 postgis_docs/st_touches 2/2
