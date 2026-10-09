@@ -1,6 +1,8 @@
+mod bounding_diagonal;
 mod coord_dim;
 mod dimension;
 mod dump;
+mod envelope;
 mod exterior_ring;
 mod geometry_n;
 mod geometry_type;
@@ -18,9 +20,11 @@ mod point_n;
 mod points;
 mod zmflag;
 
+pub use bounding_diagonal::BoundingDiagonal;
 pub use coord_dim::{CoordDim, NDims};
 pub use dimension::Dimension;
 pub use dump::Dump;
+pub use envelope::Envelope;
 pub use exterior_ring::ExteriorRing;
 pub use geometry_n::GeometryN;
 pub use geometry_type::{GeometryType, ST_GeometryType};
@@ -67,4 +71,6 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(InteriorRingN.into());
     session_context.register_udf(PointN.into());
     session_context.register_udf(Points.into());
+    session_context.register_udf(Envelope.into());
+    session_context.register_udf(BoundingDiagonal.into());
 }

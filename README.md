@@ -65,7 +65,7 @@ geodatafusion::register(&ctx);
 | ------------------- | ----------- | ------------------------------------------------------------------------------------------------------- |
 | GeometryType        | ✅          | Returns the type of a geometry as text.                                                                 |
 | ST_Boundary         |             | Returns the boundary of a geometry.                                                                     |
-| ST_BoundingDiagonal |             | Returns the diagonal of a geometry's bounding box.                                                      |
+| ST_BoundingDiagonal | ✅          | Returns the diagonal of a geometry's bounding box.                                                      |
 | ST_CoordDim         | ✅          | Return the coordinate dimension of a geometry.                                                          |
 | ST_Dimension        | ✅          | Returns the topological dimension of a geometry.                                                        |
 | ST_Dump             | ✅          | Returns a set of geometry_dump rows for the components of a geometry.                                   |
@@ -73,7 +73,7 @@ geodatafusion::register(&ctx);
 | ST_DumpSegments     |             | Returns a set of geometry_dump rows for the segments in a geometry.                                     |
 | ST_DumpRings        |             | Returns a set of geometry_dump rows for the exterior and interior rings of a Polygon.                   |
 | ST_EndPoint         | ✅          | Returns the last point of a LineString or CircularLineString.                                           |
-| ST_Envelope         |             | Returns a geometry representing the bounding box of a geometry.                                         |
+| ST_Envelope         | ✅          | Returns a geometry representing the bounding box of a geometry.                                         |
 | ST_ExteriorRing     | ✅          | Returns a LineString representing the exterior ring of a Polygon.                                       |
 | ST_GeometryN        | ✅          | Return an element of a geometry collection.                                                             |
 | ST_GeometryType     | ✅          | Returns the SQL-MM type of a geometry as text.                                                          |
