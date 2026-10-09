@@ -52,6 +52,7 @@ geodatafusion/st_force3d 12/12
 geodatafusion/st_force3dm 14/14
 geodatafusion/st_force3dz 14/14
 geodatafusion/st_force4d 16/16
+geodatafusion/st_forcecollection 21/21
 geodatafusion/st_forcepolygonccw 14/14
 geodatafusion/st_forcepolygoncw 14/14
 geodatafusion/st_forcerhr 14/14
@@ -99,6 +100,7 @@ geodatafusion/st_mpointfromtext 10/10
 geodatafusion/st_mpointfromwkb 8/8
 geodatafusion/st_mpolyfromtext 10/10
 geodatafusion/st_mpolyfromwkb 8/8
+geodatafusion/st_multi 21/21
 geodatafusion/st_ndims 11/11
 geodatafusion/st_node 18/18
 geodatafusion/st_normalize 12/12
@@ -268,7 +270,7 @@ postgis_docs/st_force_3d 1/2
 postgis_docs/st_force_3dm 1/2
 postgis_docs/st_force_3dz 1/2
 postgis_docs/st_force_4d 1/2
-postgis_docs/st_force_collection 0/3
+postgis_docs/st_force_collection 1/3
 postgis_docs/st_forcecurve 0/1
 postgis_docs/st_forcerhr 1/1
 postgis_docs/st_frechetdistance 0/1
@@ -353,7 +355,7 @@ postgis_docs/st_minimumclearanceline 1/1
 postgis_docs/st_mlinefromtext 1/1
 postgis_docs/st_mpointfromtext 2/2
 postgis_docs/st_mpolyfromtext 2/2
-postgis_docs/st_multi 0/1
+postgis_docs/st_multi 1/1
 postgis_docs/st_ndims 1/1
 postgis_docs/st_node 2/2
 postgis_docs/st_normalize 1/1
