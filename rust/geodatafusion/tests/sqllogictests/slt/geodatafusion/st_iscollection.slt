@@ -1,0 +1,76 @@
+# Edge cases for ST_IsCollection, not covered by the PostGIS docs examples.
+
+# Every geometry type
+query T
+SELECT ST_IsCollection('POINT(1 2)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsCollection('LINESTRING(0 0,1 1)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsCollection('POLYGON((0 0,1 0,1 1,0 0))'::geometry)
+----
+false
+
+query T
+SELECT ST_IsCollection('MULTIPOINT((1 2))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsCollection('MULTILINESTRING((0 0,1 1))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsCollection('MULTIPOLYGON(((0 0,1 0,1 1,0 0)))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsCollection('GEOMETRYCOLLECTION(POINT(1 1))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsCollection('MULTIPOINT ZM ((1 2 3 4))'::geometry)
+----
+true
+
+# EMPTY and NULL
+query T
+SELECT ST_IsCollection('POINT EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_IsCollection('MULTIPOINT EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_IsCollection('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_IsCollection('MULTIPOLYGON EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_IsCollection(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query T rowsort
+SELECT ST_IsCollection(g) FROM (VALUES ('POINT(1 1)'::geometry), (NULL::geometry), ('MULTIPOINT((1 1),(2 2))'::geometry)) AS t(g)
+----
+NULL
+false
+true

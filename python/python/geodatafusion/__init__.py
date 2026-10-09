@@ -44,6 +44,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.Zmflag()))
     ctx.register_udf(udf(native.HasZ()))
     ctx.register_udf(udf(native.HasM()))
+    ctx.register_udf(udf(native.IsCollection()))
 
     # bounding box
     ctx.register_udf(udf(native.Box2D()))

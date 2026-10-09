@@ -3,6 +3,7 @@ mod dimension;
 mod dump;
 mod geometry_type;
 mod is_closed;
+mod is_collection;
 pub(crate) mod is_empty;
 mod line_string;
 mod npoints;
@@ -15,6 +16,7 @@ pub use dimension::Dimension;
 pub use dump::Dump;
 pub use geometry_type::{GeometryType, ST_GeometryType};
 pub use is_closed::IsClosed;
+pub use is_collection::IsCollection;
 pub use is_empty::IsEmpty;
 pub use line_string::{EndPoint, StartPoint};
 pub use npoints::{NPoints, NumPoints};
@@ -43,4 +45,5 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(Zmflag.into());
     session_context.register_udf(HasZ.into());
     session_context.register_udf(HasM.into());
+    session_context.register_udf(IsCollection.into());
 }

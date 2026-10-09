@@ -34,6 +34,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<accessors::PyZmflag>()?;
     m.add_class::<accessors::PyHasZ>()?;
     m.add_class::<accessors::PyHasM>()?;
+    m.add_class::<accessors::PyIsCollection>()?;
 
     // bounding_box
     m.add_class::<bounding_box::PyBox2D>()?;
