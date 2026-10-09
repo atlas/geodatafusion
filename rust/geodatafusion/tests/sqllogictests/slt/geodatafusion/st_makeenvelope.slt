@@ -1,0 +1,62 @@
+# Edge cases for ST_MakeEnvelope, not covered by the PostGIS docs examples.
+
+# With and without an SRID
+query T
+SELECT ST_AsEWKT(ST_MakeEnvelope(10, 10, 11, 11, 4326))
+----
+SRID=4326;POLYGON((10 10,10 11,11 11,11 10,10 10))
+
+query T
+SELECT ST_AsEWKT(ST_MakeEnvelope(10, 10, 11, 11))
+----
+POLYGON((10 10,10 11,11 11,11 10,10 10))
+
+query T
+SELECT ST_AsEWKT(ST_MakeEnvelope(-1.5, 2.25, 3, 4, 3857))
+----
+SRID=3857;POLYGON((-1.5 2.25,-1.5 4,3 4,3 2.25,-1.5 2.25))
+
+query T
+SELECT ST_AsEWKT(ST_MakeEnvelope(0, 0, 1, 1, 0))
+----
+POLYGON((0 0,0 1,1 1,1 0,0 0))
+
+# The coordinates are used as given
+query T
+SELECT ST_AsText(ST_MakeEnvelope(11, 11, 10, 10))
+----
+POLYGON((11 11,11 10,10 10,10 11,11 11))
+
+query T
+SELECT ST_AsText(ST_MakeEnvelope(1, 1, 1, 1))
+----
+POLYGON((1 1,1 1,1 1,1 1,1 1))
+
+query T
+SELECT ST_AsText(ST_MakeEnvelope(0, 0, 0, 5))
+----
+POLYGON((0 0,0 5,0 5,0 0,0 0))
+
+# NULL
+query T
+SELECT ST_MakeEnvelope(NULL, 0, 1, 1)
+----
+NULL
+
+query T
+SELECT ST_MakeEnvelope(0, 0, 1, NULL)
+----
+NULL
+
+query T
+SELECT ST_MakeEnvelope(0, 0, 1, 1, NULL)
+----
+NULL
+
+# Columns
+query T rowsort
+SELECT ST_AsEWKT(ST_MakeEnvelope(x, y, x + 1, y + 1, 4326)) FROM (VALUES (0, 0), (5, NULL), (2, 3)) AS t(x, y)
+----
+NULL
+SRID=4326;POLYGON((0 0,0 1,1 1,1 0,0 0))
+SRID=4326;POLYGON((2 3,2 4,3 4,3 3,2 3))

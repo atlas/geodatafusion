@@ -1,8 +1,10 @@
 mod collect;
+mod make_envelope;
 mod make_line;
 mod point;
 
 pub use collect::{Collect, CollectAgg};
+pub use make_envelope::MakeEnvelope;
 pub use make_line::{MakeLine, MakeLineAgg};
 pub use point::{MakePoint, MakePointM, Point, PointM, PointZ, PointZM};
 
@@ -17,4 +19,5 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(PointM.into());
     session_context.register_udf(PointZ.into());
     session_context.register_udf(PointZM.into());
+    session_context.register_udf(MakeEnvelope.into());
 }
