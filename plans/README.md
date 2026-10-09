@@ -42,7 +42,8 @@ these decisions. Decisions backed by an experiment cite it.
 | Functions | Group | Decided because |
 |---|---|---|
 | ST_IsValid | G2 | `geo` matches PostGIS on 100% of the E2 corpus. |
-| ST_Perimeter, ST_HausdorffDistance, ST_FrechetDistance, ST_Azimuth, ST_DistanceSphere, ST_DistanceSpheroid, ST_LengthSpheroid, ST_LineLocatePoint | G2, provisional | Not in E2's corpus. Run E2's agreement test before implementing. A function that fails it moves per the backend policy. |
+| ST_HausdorffDistance, ST_FrechetDistance, ST_Azimuth, ST_DistanceSphere, ST_DistanceSpheroid, ST_LengthSpheroid | G2, provisional | Not in E2's corpus. Run E2's agreement test before implementing. A function that fails it moves per the backend policy. |
+| ST_Perimeter, ST_LineLocatePoint | G1 | Moved from provisional G2 for the reason ST_Length is G1: summing segment lengths and projecting onto segments need no library. Checked against PostGIS with hand-written records. |
 | ST_ConvexHull, ST_OrientedEnvelope, ST_Centroid, ST_PointOnSurface, all spatial predicates (ST_Contains, ST_ContainsProperly, ST_Covers, ST_CoveredBy, ST_Crosses, ST_Disjoint, ST_Equals, ST_Intersects, ST_Overlaps, ST_Touches, ST_Within), ST_Relate, ST_RelateMatch | G3 | `geo` fails E2's agreement test (51–99.95%), and GEOS 3.14.1 with PostGIS's EMPTY rules reaches 100% for the tested ones. The untested predicates follow their family. |
 | ST_Area, ST_Distance, ST_DWithin, ST_Simplify, ST_SimplifyVW | G1 | Neither `geo` nor GEOS matches. The differences are a formula (ST_Area: the JTS ring formula matches 100%), tie-breaking (ST_Simplify) and collapse rules (ST_SimplifyVW) (E2). PostGIS computes distances itself. |
 | ST_Length | G1 | `geo` matches with E2's rules, but summing segment lengths needs no library. |
@@ -210,6 +211,14 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    geography forms wait for batch 4 of G6). The (E)WKT parser now reads nested
    GEOMETRYCOLLECTIONs, which WKB output holds. Parity 3091/3395 -> 3622/3882, every
    hand-written record passing.
+   G1 batch 4 in part: ST_LineInterpolatePoint, ST_LineInterpolatePoints,
+   ST_3DLineInterpolatePoint, ST_LineSubstring, ST_LineLocatePoint, ST_AddMeasure,
+   ST_InterpolatePoint, ST_LocateAlong, ST_FilterByM, ST_IsValidTrajectory, ST_3DLength,
+   ST_3DPerimeter and ST_Perimeter, with PostGIS's arithmetic fitted where its results show it
+   (interpolation by fractions of the length, substrings by absolute lengths). Parity 3622/3882
+   -> 3856/4097. Left in batch 4: ST_LocateBetween and ST_LocateBetweenElevations (polygon
+   clipping by M or Z, and offsets that PostGIS takes from GEOS), and the closest point of
+   approach functions, all ranked below 170 by use.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
