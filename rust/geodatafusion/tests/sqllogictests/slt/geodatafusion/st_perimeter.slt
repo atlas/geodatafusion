@@ -1,0 +1,58 @@
+# Edge cases for ST_Perimeter on geometry, not covered by the PostGIS docs examples.
+
+# Polygons, in 2D
+query R
+SELECT ST_Perimeter('POLYGON((0 0,3 0,3 4,0 0))'::geometry)
+----
+12
+
+query R
+SELECT ST_Perimeter('POLYGON((0 0,10 0,10 10,0 10,0 0),(1 1,2 1,2 2,1 1))'::geometry)
+----
+43.4142135624
+
+query R
+SELECT ST_Perimeter('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5)))'::geometry)
+----
+6.82842712475
+
+query R
+SELECT ST_Perimeter('POLYGON Z ((0 0 0,3 0 4,3 3 4,0 0 0))'::geometry)
+----
+10.2426406871
+
+query R
+SELECT ST_Perimeter('GEOMETRYCOLLECTION(LINESTRING(0 0,3 4),POLYGON((0 0,1 0,1 1,0 0)))'::geometry)
+----
+3.41421356237
+
+query R
+SELECT ST_Perimeter('LINESTRING(0 0,3 4)'::geometry)
+----
+0
+
+query R
+SELECT ST_Perimeter('POINT(1 1)'::geometry)
+----
+0
+
+query R
+SELECT ST_Perimeter('POLYGON EMPTY'::geometry)
+----
+0
+
+query R
+SELECT ST_Perimeter('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+0
+
+query R
+SELECT ST_Perimeter2D('POLYGON((0 0,3 0,3 4,0 0))'::geometry)
+----
+12
+
+# NULL
+query R
+SELECT ST_Perimeter(NULL::geometry)
+----
+NULL
