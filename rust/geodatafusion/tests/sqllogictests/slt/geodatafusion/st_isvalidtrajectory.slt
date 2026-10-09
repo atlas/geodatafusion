@@ -1,0 +1,58 @@
+# Edge cases for ST_IsValidTrajectory, not covered by the PostGIS docs examples.
+
+# Strictly increasing M
+query T
+SELECT ST_IsValidTrajectory('LINESTRING M (0 0 1,1 1 2)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsValidTrajectory('LINESTRING M (0 0 1,1 1 1)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsValidTrajectory('LINESTRING M (0 0 2,1 1 1)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsValidTrajectory('LINESTRING ZM (0 0 0 1,1 1 1 2)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsValidTrajectory('LINESTRING M (0 0 1,1 1 2,2 2 1.5)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsValidTrajectory('LINESTRING M EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_IsValidTrajectory('LINESTRING(0 0,1 1)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsValidTrajectory('LINESTRING Z (0 0 1,1 1 2)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsValidTrajectory('POINT M (0 0 1)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsValidTrajectory('MULTILINESTRING M ((0 0 1,1 1 2))'::geometry)
+----
+false
+
+# NULL
+query T
+SELECT ST_IsValidTrajectory(NULL::geometry)
+----
+NULL

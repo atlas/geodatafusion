@@ -361,7 +361,7 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 | ST_ConcaveHull              | ✅          | Computes a possibly concave geometry that contains all input geometry vertices                    |
 | ST_ConvexHull               | ✅          | Computes the convex hull of a geometry.                                                           |
 | ST_DelaunayTriangles        | ✅          | Returns the Delaunay triangulation of the vertices of a geometry.                                 |
-| ST_FilterByM                |             | Removes vertices based on their M value                                                           |
+| ST_FilterByM                | ✅          | Removes vertices based on their M value                                                           |
 | ST_GeneratePoints           |             | Generates a multipoint of random points contained in a Polygon or MultiPolygon.                   |
 | ST_GeometricMedian          |             | Returns the geometric median of a MultiPoint.                                                     |
 | ST_LineMerge                | ✅          | Return the lines formed by sewing together a MultiLineString.                                     |
@@ -447,5 +447,14 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 | ST_LocateAlong             |             | Returns the point(s) on a geometry that match a measure value.             |
 | ST_LocateBetween           |             | Returns the portions of a geometry that match a measure range.             |
 | ST_LocateBetweenElevations |             | Returns the portions of a geometry that lie in an elevation (Z) range.     |
-| ST_InterpolatePoint        |             | Returns the interpolated measure of a geometry closest to a point.         |
-| ST_AddMeasure              |             | Interpolates measures along a linear geometry.                             |
+| ST_InterpolatePoint        | ✅          | Returns the interpolated measure of a geometry closest to a point.         |
+| ST_AddMeasure              | ✅          | Interpolates measures along a linear geometry.                             |
+
+### Trajectory Functions
+
+| Name                      | Implemented | Description                                                                            |
+| ------------------------- | ----------- | -------------------------------------------------------------------------------------- |
+| ST_IsValidTrajectory      | ✅          | Tests if the geometry is a valid trajectory.                                           |
+| ST_ClosestPointOfApproach |             | Returns a measure at the closest point of approach of two trajectories.                |
+| ST_DistanceCPA            |             | Returns the distance between the closest point of approach of two trajectories.        |
+| ST_CPAWithin              |             | Tests if the closest point of approach of two trajectories is within the specified distance. |

@@ -12,5 +12,6 @@ pub mod operators;
 pub mod processing;
 pub mod relationships;
 pub mod srs;
+pub mod trajectory;
 pub mod types;
 pub(crate) mod util;

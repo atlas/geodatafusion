@@ -1,5 +1,6 @@
 use geodatafusion::udf::native::linear_referencing::{
-    LineInterpolatePoint, LineInterpolatePoint3D, LineInterpolatePoints, LineSubstring,
+    AddMeasure, InterpolatePoint, LineInterpolatePoint, LineInterpolatePoint3D,
+    LineInterpolatePoints, LineSubstring,
 };
 
 use crate::impl_udf;
@@ -20,3 +21,5 @@ impl_udf!(
     "LineInterpolatePoints"
 );
 impl_udf!(LineSubstring, PyLineSubstring, "LineSubstring");
+impl_udf!(AddMeasure, PyAddMeasure, "AddMeasure");
+impl_udf!(InterpolatePoint, PyInterpolatePoint, "InterpolatePoint");

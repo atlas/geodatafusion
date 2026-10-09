@@ -61,6 +61,8 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
 
     crate::udf::native::srs::register(session_context);
 
+    crate::udf::native::trajectory::register(session_context);
+
     crate::udf::native::types::register(session_context);
 
     #[cfg(feature = "sql")]

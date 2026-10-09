@@ -10,6 +10,7 @@ mod operators;
 mod processing;
 mod relationships;
 mod srs;
+mod trajectory;
 mod types;
 
 use pyo3::prelude::*;
@@ -161,6 +162,8 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<linear_referencing::PyLineInterpolatePoint3D>()?;
     m.add_class::<linear_referencing::PyLineInterpolatePoints>()?;
     m.add_class::<linear_referencing::PyLineSubstring>()?;
+    m.add_class::<linear_referencing::PyAddMeasure>()?;
+    m.add_class::<linear_referencing::PyInterpolatePoint>()?;
 
     // measurement
     m.add_class::<measurement::PyArea>()?;
@@ -190,6 +193,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<processing::PySimplify>()?;
     m.add_class::<processing::PySimplifyVW>()?;
     m.add_class::<processing::PyChaikinSmoothing>()?;
+    m.add_class::<processing::PyFilterByM>()?;
 
     // relationships
     m.add_class::<relationships::PyDWithin>()?;
@@ -198,6 +202,9 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     // srs
     m.add_class::<srs::PySetSRID>()?;
     m.add_class::<srs::PySRID>()?;
+
+    // trajectory
+    m.add_class::<trajectory::PyIsValidTrajectory>()?;
 
     // types
     m.add_class::<types::PyGeometry>()?;
