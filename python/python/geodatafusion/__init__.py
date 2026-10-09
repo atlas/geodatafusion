@@ -65,6 +65,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.RotateX()))
     ctx.register_udf(udf(native.RotateY()))
     ctx.register_udf(udf(native.RotateZ()))
+    ctx.register_udf(udf(native.TransScale()))
 
     # bounding box
     ctx.register_udf(udf(native.Box2D()))

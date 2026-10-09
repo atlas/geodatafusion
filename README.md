@@ -403,7 +403,7 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 | ST_RotateZ    | ✅          | Rotates a geometry about the Z axis.                           |
 | ST_Scale      | ✅          | Scales a geometry by given factors.                            |
 | ST_Translate  | ✅          | Translates a geometry by given offsets.                        |
-| ST_TransScale |             | Translates and scales a geometry by given offsets and factors. |
+| ST_TransScale | ✅          | Translates and scales a geometry by given offsets and factors. |
 
 ### Clustering Functions
 
