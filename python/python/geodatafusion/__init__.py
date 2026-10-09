@@ -40,6 +40,10 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.X()))
     ctx.register_udf(udf(native.Y()))
     ctx.register_udf(udf(native.Z()))
+    ctx.register_udf(udf(native.Dimension()))
+    ctx.register_udf(udf(native.Zmflag()))
+    ctx.register_udf(udf(native.HasZ()))
+    ctx.register_udf(udf(native.HasM()))
 
     # bounding box
     ctx.register_udf(udf(native.Box2D()))

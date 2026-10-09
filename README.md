@@ -67,7 +67,7 @@ geodatafusion::register(&ctx);
 | ST_Boundary         |             | Returns the boundary of a geometry.                                                                     |
 | ST_BoundingDiagonal |             | Returns the diagonal of a geometry's bounding box.                                                      |
 | ST_CoordDim         | ✅          | Return the coordinate dimension of a geometry.                                                          |
-| ST_Dimension        |             | Returns the topological dimension of a geometry.                                                        |
+| ST_Dimension        | ✅          | Returns the topological dimension of a geometry.                                                        |
 | ST_Dump             | ✅          | Returns a set of geometry_dump rows for the components of a geometry.                                   |
 | ST_DumpPoints       |             | Returns a set of geometry_dump rows for the coordinates in a geometry.                                  |
 | ST_DumpSegments     |             | Returns a set of geometry_dump rows for the segments in a geometry.                                     |
@@ -101,9 +101,9 @@ geodatafusion::register(&ctx);
 | ST_X                | ✅          | Returns the X coordinate of a Point.                                                                    |
 | ST_Y                | ✅          | Returns the Y coordinate of a Point.                                                                    |
 | ST_Z                | ✅          | Returns the Z coordinate of a Point.                                                                    |
-| ST_Zmflag           |             | Returns a code indicating the ZM coordinate dimension of a geometry.                                    |
-| ST_HasZ             |             | Checks if a geometry has a Z dimension.                                                                 |
-| ST_HasM             |             | Checks if a geometry has an M (measure) dimension.                                                      |
+| ST_Zmflag           | ✅          | Returns a code indicating the ZM coordinate dimension of a geometry.                                    |
+| ST_HasZ             | ✅          | Checks if a geometry has a Z dimension.                                                                 |
+| ST_HasM             | ✅          | Checks if a geometry has an M (measure) dimension.                                                      |
 
 ### Geometry Editors
 
