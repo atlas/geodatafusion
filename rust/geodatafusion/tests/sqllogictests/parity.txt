@@ -124,6 +124,7 @@ geodatafusion/st_rotatez 10/10
 geodatafusion/st_scale 26/26
 geodatafusion/st_setsrid 11/11
 geodatafusion/st_sharedpaths 9/9
+geodatafusion/st_shiftlongitude 11/11
 geodatafusion/st_simplify 42/42
 geodatafusion/st_simplifypreservetopology 15/15
 geodatafusion/st_simplifyvw 31/31
@@ -390,7 +391,7 @@ postgis_docs/st_seteffectivearea 0/1
 postgis_docs/st_setpoint 0/3
 postgis_docs/st_setsrid 1/2
 postgis_docs/st_sharedpaths 2/2
-postgis_docs/st_shiftlongitude 0/1
+postgis_docs/st_shiftlongitude 1/1
 postgis_docs/st_shortestline 0/2
 postgis_docs/st_simplify 1/1
 postgis_docs/st_simplifypolygonhull 0/3
