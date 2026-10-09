@@ -117,6 +117,7 @@ geodatafusion/st_points 18/18
 geodatafusion/st_polyfromwkb 8/8
 geodatafusion/st_polygonfromtext 10/10
 geodatafusion/st_polygonize 15/15
+geodatafusion/st_quantizecoordinates 20/20
 geodatafusion/st_reduceprecision 14/14
 geodatafusion/st_relate 21/21
 geodatafusion/st_relatematch 7/7
@@ -377,7 +378,7 @@ postgis_docs/st_polygon 0/2
 postgis_docs/st_polygonfromtext 2/2
 postgis_docs/st_polygonize 1/1
 postgis_docs/st_project 0/1
-postgis_docs/st_quantizecoordinates 0/2
+postgis_docs/st_quantizecoordinates 1/2
 postgis_docs/st_reduceprecision 5/5
 postgis_docs/st_relate 2/3
 postgis_docs/st_relatematch 2/2

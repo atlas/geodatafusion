@@ -128,7 +128,7 @@ geodatafusion::register(&ctx);
 | ST_Multi                         |             | Return the geometry as a MULTI\* geometry.                                                          |
 | ST_Normalize                     | ✅          | Return the geometry in its canonical form.                                                          |
 | ST_Project                       |             | Returns a point projected from a start point by a distance and bearing (azimuth).                   |
-| ST_QuantizeCoordinates           |             | Sets least significant bits of coordinates to zero                                                  |
+| ST_QuantizeCoordinates           | ✅          | Sets least significant bits of coordinates to zero                                                  |
 | ST_RemovePoint                   |             | Remove a point from a linestring.                                                                   |
 | ST_RemoveRepeatedPoints          |             | Returns a version of a geometry with duplicate points removed.                                      |
 | ST_RemoveIrrelevantPointsForView |             | Removes points that are irrelevant for rendering a specific rectangluar view of a geometry.         |
