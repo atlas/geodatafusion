@@ -125,7 +125,7 @@ Fix these in the owning group's first batch, each with a hand-written `.slt` reg
 | G4 | `ST_AsText`/`ST_AsBinary` output carries a GeoArrow tag, which breaks pandas/pyarrow and leaks through `UNION ALL` and `CAST` into unreadable Parquet (E4). |
 | G5 | `ST_Extent` fails with partial aggregation (no `state_fields`) and returns an infinite box for no rows. |
 | G6 | The GeoParquet reader turns a missing `crs` into no CRS; GeoParquet defines it as OGC:CRS84 (E4). |
-| Upstream | DataFusion 54/55: `COALESCE(<Binary>, NULL)` fails to plan ("Expect to get struct but got Binary"), which hits WKB geometry columns; CASE, COALESCE, make_array and array_agg drop extension metadata. geoarrow-rs: one-member GEOMETRYCOLLECTION collapses (an 8-line fix is in `experiments/e7-union-outputs/`), mixed-dimension and `MULTIPOLYGON(EMPTY, ...)` panics (still in 0.9.0). GEOS 3.14/3.15: `ST_Relate('POLYGON EMPTY', 'GEOMETRYCOLLECTION(LINESTRING EMPTY, POINT(1 1))')` segfaults. PostGIS 3.6.4: `ST_3DExtent` of 2D points under `GROUP BY` returns an uninitialised Z max (6.95e-310). |
+| Upstream | DataFusion 54/55: `COALESCE(<Binary>, NULL)` fails to plan ("Expect to get struct but got Binary"), which hits WKB geometry columns; CASE, COALESCE, make_array and array_agg drop extension metadata. geoarrow-rs: one-member GEOMETRYCOLLECTION collapses (an 8-line fix is in `experiments/e7-union-outputs/`), mixed-dimension and `MULTIPOLYGON(EMPTY, ...)` panics (still in 0.9.0). GEOS 3.14/3.15: `ST_Relate('POLYGON EMPTY', 'GEOMETRYCOLLECTION(LINESTRING EMPTY, POINT(1 1))')` segfaults. PostGIS 3.6.4: `ST_3DExtent` of 2D points under `GROUP BY` returns an uninitialised Z max (6.95e-310), and `ST_Scale` with an empty factor point reads uninitialised memory. |
 
 ## Phasing
 
@@ -188,6 +188,14 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    2189/2555 -> 2534/2875, every hand-written record passing. The doc examples still failing
    use TIN, POLYHEDRALSURFACE or curves, `generate_series` in a SELECT list, or a scalar
    function in FROM.
+   G1 batch 2 done: the affine transformations (ST_Affine, ST_Translate, ST_Scale, ST_Rotate,
+   ST_RotateX/Y/Z, ST_TransScale), computed as PostGIS's SQL definitions so results match to the
+   bit, and the editors ST_FlipCoordinates, ST_SwapOrdinates, ST_Force2D/3D/3DZ/3DM/4D,
+   ST_ShiftLongitude, ST_Reverse, ST_ForcePolygonCW/CCW/RHR, ST_SnapToGrid and
+   ST_QuantizeCoordinates (its bit count fitted to PostGIS's results). Parity 2534/2875 ->
+   2902/3219, every hand-written record passing. Several doc examples pass an untyped 3D WKT
+   string (`'POLYGON((0 0 2, ...))'`), which the untagged-text path rejects without a Z tag:
+   routing untagged text through the PostGIS (E)WKT parser is the G4 follow-up noted in step 2.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
