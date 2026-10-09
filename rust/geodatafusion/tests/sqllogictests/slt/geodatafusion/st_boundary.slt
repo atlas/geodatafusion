@@ -1,0 +1,168 @@
+# Edge cases for ST_Boundary, not covered by the PostGIS docs examples.
+
+# Points have none
+query T
+SELECT ST_AsText(ST_Boundary('POINT(1 1)'::geometry))
+----
+POINT EMPTY
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTIPOINT((1 1),(2 2))'::geometry))
+----
+MULTIPOINT EMPTY
+
+# Lines: the endpoints, by the mod-2 rule for several
+query T
+SELECT ST_AsText(ST_Boundary('LINESTRING(0 0,1 1,2 0)'::geometry))
+----
+MULTIPOINT((0 0),(2 0))
+
+query T
+SELECT ST_AsText(ST_Boundary('LINESTRING(0 0,1 1,2 0,0 0)'::geometry))
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTILINESTRING((0 0,1 1),(1 1,2 2))'::geometry))
+----
+MULTIPOINT((0 0),(2 2))
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTILINESTRING((0 0,1 1),(1 1,2 2),(1 1,3 3))'::geometry))
+----
+MULTIPOINT((0 0),(2 2),(1 1),(3 3))
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTILINESTRING((0 0,1 1),(0 0,1 1))'::geometry))
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTILINESTRING((0 0,1 1),(1 1,0 0))'::geometry))
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTILINESTRING((0 0,1 1,0 0))'::geometry))
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTILINESTRING((0 0,1 1),EMPTY)'::geometry))
+----
+MULTIPOINT((0 0),(1 1))
+
+# Polygons: the rings
+query T
+SELECT ST_AsText(ST_Boundary('POLYGON((0 0,4 0,4 4,0 0))'::geometry))
+----
+LINESTRING(0 0,4 0,4 4,0 0)
+
+query T
+SELECT ST_AsText(ST_Boundary('POLYGON((0 0,4 0,4 4,0 0),(1 1,2 1,2 2,1 1))'::geometry))
+----
+MULTILINESTRING((0 0,4 0,4 4,0 0),(1 1,2 1,2 2,1 1))
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5)))'::geometry))
+----
+MULTILINESTRING((0 0,1 0,1 1,0 0),(5 5,6 5,6 6,5 5))
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),EMPTY)'::geometry))
+----
+LINESTRING(0 0,1 0,1 1,0 0)
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTIPOLYGON(((0 0,4 0,4 4,0 0),(1 1,2 1,2 2,1 1)))'::geometry))
+----
+MULTILINESTRING((0 0,4 0,4 4,0 0),(1 1,2 1,2 2,1 1))
+
+# Collections
+query T
+SELECT ST_AsText(ST_Boundary('GEOMETRYCOLLECTION(POINT(1 1))'::geometry))
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_AsText(ST_Boundary('GEOMETRYCOLLECTION(LINESTRING(0 0,1 1))'::geometry))
+----
+MULTIPOINT((0 0),(1 1))
+
+query T
+SELECT ST_AsText(ST_Boundary('GEOMETRYCOLLECTION(POLYGON((0 0,4 0,4 4,0 0)),LINESTRING(0 0,1 1))'::geometry))
+----
+GEOMETRYCOLLECTION(MULTIPOINT((0 0),(1 1)),LINESTRING(0 0,4 0,4 4,0 0))
+
+query T
+SELECT ST_AsText(ST_Boundary('GEOMETRYCOLLECTION(LINESTRING(0 0,1 1),LINESTRING(1 1,2 2))'::geometry))
+----
+MULTIPOINT((0 0),(1 1),(1 1),(2 2))
+
+# EMPTY
+query T
+SELECT ST_AsText(ST_Boundary('POINT EMPTY'::geometry))
+----
+POINT EMPTY
+
+query T
+SELECT ST_AsText(ST_Boundary('LINESTRING EMPTY'::geometry))
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsText(ST_Boundary('POLYGON EMPTY'::geometry))
+----
+MULTILINESTRING EMPTY
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTIPOINT EMPTY'::geometry))
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTILINESTRING EMPTY'::geometry))
+----
+MULTIPOINT EMPTY
+
+query T
+SELECT ST_AsText(ST_Boundary('MULTIPOLYGON EMPTY'::geometry))
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_AsText(ST_Boundary('GEOMETRYCOLLECTION EMPTY'::geometry))
+----
+GEOMETRYCOLLECTION EMPTY
+
+# Z, M and the SRID
+query T
+SELECT ST_AsEWKT(ST_Boundary('POLYGON Z ((0 0 1,4 0 1,4 4 1,0 0 1))'::geometry))
+----
+LINESTRING(0 0 1,4 0 1,4 4 1,0 0 1)
+
+query T
+SELECT ST_AsEWKT(ST_Boundary('LINESTRING Z (0 0 1,1 1 2,2 0 3)'::geometry))
+----
+MULTIPOINT(0 0 1,2 0 3)
+
+query T
+SELECT ST_AsEWKT(ST_Boundary('LINESTRING Z (0 0 0,1 1 1,0 0 5)'::geometry))
+----
+MULTIPOINT(0 0 0,0 0 5)
+
+query T
+SELECT ST_AsEWKT(ST_Boundary('LINESTRING M (0 0 1,1 1 2,2 0 3)'::geometry))
+----
+MULTIPOINTM(0 0 1,2 0 3)
+
+query T
+SELECT ST_AsEWKT(ST_Boundary('SRID=4326;MULTILINESTRING((0 0,1 1),(2 2,3 3))'::geometry))
+----
+SRID=4326;MULTIPOINT(0 0,1 1,2 2,3 3)
+
+# NULL
+query T
+SELECT ST_Boundary(NULL::geometry)
+----
+NULL

@@ -5,7 +5,7 @@ use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
 };
 use datafusion_macros::user_doc;
-use geo_traits::{GeometryTrait, GeometryType};
+use geo_traits::GeometryTrait;
 use wkt::Wkt;
 use wkt::types::{
     GeometryCollection, LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon,
@@ -90,56 +90,58 @@ impl GeometryKernel for CollectionHomogenizeKernel {
         geom: &impl GeometryTrait<T = f64>,
         _row: usize,
     ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
-        let dim = dimension(geom.dim());
-        let empty_of_type = match geom.as_type() {
-            GeometryType::MultiPoint(_) => Wkt::MultiPoint(MultiPoint::new(vec![], dim)),
-            GeometryType::MultiLineString(_) => {
-                Wkt::MultiLineString(MultiLineString::new(vec![], dim))
-            }
-            GeometryType::MultiPolygon(_) => Wkt::MultiPolygon(MultiPolygon::new(vec![], dim)),
-            GeometryType::GeometryCollection(_) => {
-                Wkt::GeometryCollection(GeometryCollection::new(vec![], dim))
-            }
-            // Not a collection.
-            _ => return Ok(Some(to_owned_geometry(geom))),
-        };
-        if is_geometry_topologically_empty(geom) {
-            return Ok(Some(empty_of_type));
+        Ok(Some(homogenize(to_owned_geometry(geom))))
+    }
+}
+
+/// PostGIS's homogenized form of a geometry, as ST_CollectionHomogenize returns it. ST_Boundary
+/// homogenizes the boundaries of collection members the same way.
+pub(crate) fn homogenize(geom: Wkt<f64>) -> Wkt<f64> {
+    let dim = dimension(geom.dim());
+    let empty_of_type = match &geom {
+        Wkt::MultiPoint(_) => Wkt::MultiPoint(MultiPoint::new(vec![], dim)),
+        Wkt::MultiLineString(_) => Wkt::MultiLineString(MultiLineString::new(vec![], dim)),
+        Wkt::MultiPolygon(_) => Wkt::MultiPolygon(MultiPolygon::new(vec![], dim)),
+        Wkt::GeometryCollection(_) => Wkt::GeometryCollection(GeometryCollection::new(vec![], dim)),
+        // Not a collection.
+        _ => return geom,
+    };
+    if is_geometry_topologically_empty(&geom) {
+        return empty_of_type;
+    }
+    // Empty parts stay in their group.
+    let mut points: Vec<Point<f64>> = vec![];
+    let mut lines: Vec<LineString<f64>> = vec![];
+    let mut polygons: Vec<Polygon<f64>> = vec![];
+    for atom in owned_atoms(&geom) {
+        match atom {
+            Wkt::Point(point) => points.push(point),
+            Wkt::LineString(line) => lines.push(line),
+            Wkt::Polygon(polygon) => polygons.push(polygon),
+            _ => {}
         }
-        // Empty parts stay in their group.
-        let mut points: Vec<Point<f64>> = vec![];
-        let mut lines: Vec<LineString<f64>> = vec![];
-        let mut polygons: Vec<Polygon<f64>> = vec![];
-        for atom in owned_atoms(geom) {
-            match atom {
-                Wkt::Point(point) => points.push(point),
-                Wkt::LineString(line) => lines.push(line),
-                Wkt::Polygon(polygon) => polygons.push(polygon),
-                _ => {}
-            }
-        }
-        let mut groups = Vec::new();
-        if !points.is_empty() {
-            groups.push(match <[_; 1]>::try_from(points) {
-                Ok([point]) => Wkt::Point(point),
-                Err(points) => Wkt::MultiPoint(MultiPoint::new(points, dim)),
-            });
-        }
-        if !lines.is_empty() {
-            groups.push(match <[_; 1]>::try_from(lines) {
-                Ok([line]) => Wkt::LineString(line),
-                Err(lines) => Wkt::MultiLineString(MultiLineString::new(lines, dim)),
-            });
-        }
-        if !polygons.is_empty() {
-            groups.push(match <[_; 1]>::try_from(polygons) {
-                Ok([polygon]) => Wkt::Polygon(polygon),
-                Err(polygons) => Wkt::MultiPolygon(MultiPolygon::new(polygons, dim)),
-            });
-        }
-        Ok(Some(match <[_; 1]>::try_from(groups) {
-            Ok([group]) => group,
-            Err(groups) => Wkt::GeometryCollection(GeometryCollection::new(groups, dim)),
-        }))
+    }
+    let mut groups = Vec::new();
+    if !points.is_empty() {
+        groups.push(match <[_; 1]>::try_from(points) {
+            Ok([point]) => Wkt::Point(point),
+            Err(points) => Wkt::MultiPoint(MultiPoint::new(points, dim)),
+        });
+    }
+    if !lines.is_empty() {
+        groups.push(match <[_; 1]>::try_from(lines) {
+            Ok([line]) => Wkt::LineString(line),
+            Err(lines) => Wkt::MultiLineString(MultiLineString::new(lines, dim)),
+        });
+    }
+    if !polygons.is_empty() {
+        groups.push(match <[_; 1]>::try_from(polygons) {
+            Ok([polygon]) => Wkt::Polygon(polygon),
+            Err(polygons) => Wkt::MultiPolygon(MultiPolygon::new(polygons, dim)),
+        });
+    }
+    match <[_; 1]>::try_from(groups) {
+        Ok([group]) => group,
+        Err(groups) => Wkt::GeometryCollection(GeometryCollection::new(groups, dim)),
     }
 }

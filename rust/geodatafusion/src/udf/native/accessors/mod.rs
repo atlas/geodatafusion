@@ -1,3 +1,4 @@
+mod boundary;
 mod bounding_diagonal;
 mod coord_dim;
 pub(crate) mod dimension;
@@ -21,6 +22,7 @@ mod point_n;
 mod points;
 mod zmflag;
 
+pub use boundary::Boundary;
 pub use bounding_diagonal::BoundingDiagonal;
 pub use coord_dim::{CoordDim, NDims};
 pub use dimension::Dimension;
@@ -77,4 +79,5 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(BoundingDiagonal.into());
     session_context.register_udf(IsPolygonCW.into());
     session_context.register_udf(IsPolygonCCW.into());
+    session_context.register_udf(Boundary.into());
 }

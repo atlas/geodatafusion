@@ -64,7 +64,7 @@ geodatafusion::register(&ctx);
 | Name                | Implemented | Description                                                                                             |
 | ------------------- | ----------- | ------------------------------------------------------------------------------------------------------- |
 | GeometryType        | ✅          | Returns the type of a geometry as text.                                                                 |
-| ST_Boundary         |             | Returns the boundary of a geometry.                                                                     |
+| ST_Boundary         | ✅          | Returns the boundary of a geometry.                                                                     |
 | ST_BoundingDiagonal | ✅          | Returns the diagonal of a geometry's bounding box.                                                      |
 | ST_CoordDim         | ✅          | Return the coordinate dimension of a geometry.                                                          |
 | ST_Dimension        | ✅          | Returns the topological dimension of a geometry.                                                        |
