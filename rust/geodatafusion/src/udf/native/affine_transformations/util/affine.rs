@@ -5,7 +5,7 @@ use wkt::types::Coord;
 /// The transformation `x' = a*x + b*y + c*z + xoff`, `y' = d*x + e*y + f*z + yoff`,
 /// `z' = g*x + h*y + i*z + zoff`, with PostGIS's parameter names.
 ///
-/// PostGIS defines ST_Translate, ST_Scale, ST_Rotate and friends as ST_Affine with particular
+/// PostGIS defines ST_Translate, ST_Rotate and friends as ST_Affine with particular
 /// parameters, so they go through this too and give the same floating-point results. A 2D
 /// coordinate is transformed with Z 0 and stays 2D; M is never changed.
 #[derive(Debug, Clone, Copy)]

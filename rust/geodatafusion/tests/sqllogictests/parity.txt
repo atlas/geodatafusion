@@ -111,6 +111,7 @@ geodatafusion/st_polygonize 15/15
 geodatafusion/st_reduceprecision 14/14
 geodatafusion/st_relate 21/21
 geodatafusion/st_relatematch 7/7
+geodatafusion/st_scale 26/26
 geodatafusion/st_setsrid 11/11
 geodatafusion/st_sharedpaths 9/9
 geodatafusion/st_simplify 42/42
@@ -370,7 +371,7 @@ postgis_docs/st_rotate 0/3
 postgis_docs/st_rotatex 0/1
 postgis_docs/st_rotatey 0/1
 postgis_docs/st_rotatez 0/2
-postgis_docs/st_scale 0/4
+postgis_docs/st_scale 4/4
 postgis_docs/st_scroll 0/1
 postgis_docs/st_segmentize 0/3
 postgis_docs/st_seteffectivearea 0/1
