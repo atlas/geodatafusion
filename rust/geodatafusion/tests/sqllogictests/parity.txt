@@ -40,6 +40,7 @@ geodatafusion/st_dwithin 18/18
 geodatafusion/st_endpoint 16/16
 geodatafusion/st_envelope 19/19
 geodatafusion/st_equals 20/20
+geodatafusion/st_expand 35/35
 geodatafusion/st_extent 8/8
 geodatafusion/st_exteriorring 16/16
 geodatafusion/st_geohash 23/23
