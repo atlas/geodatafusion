@@ -1,9 +1,9 @@
 use geodatafusion::udf::native::io::{
     AsBinary, AsEWKB, AsEWKT, AsGeoJSON, AsHEXEWKB, AsText, Box2DFromGeoHash, GeoHash,
-    GeomCollFromText, GeomCollFromWKB, GeomFromEWKB, GeomFromEWKT, GeomFromGeoHash, GeomFromText,
-    GeomFromWKB, LineFromText, LineFromWKB, MLineFromText, MLineFromWKB, MPointFromText,
-    MPointFromWKB, MPolyFromText, MPolyFromWKB, PointFromGeoHash, PointFromText, PointFromWKB,
-    PolyFromWKB, PolygonFromText,
+    GeomCollFromText, GeomCollFromWKB, GeomFromEWKB, GeomFromEWKT, GeomFromGeoHash,
+    GeomFromGeoJSON, GeomFromText, GeomFromWKB, LineFromText, LineFromWKB, MLineFromText,
+    MLineFromWKB, MPointFromText, MPointFromWKB, MPolyFromText, MPolyFromWKB, PointFromGeoHash,
+    PointFromText, PointFromWKB, PolyFromWKB, PolygonFromText,
 };
 
 use crate::impl_udf;
@@ -37,3 +37,4 @@ impl_udf!(MLineFromWKB, PyMLineFromWKB, "MLineFromWKB");
 impl_udf!(MPolyFromWKB, PyMPolyFromWKB, "MPolyFromWKB");
 impl_udf!(GeomCollFromWKB, PyGeomCollFromWKB, "GeomCollFromWKB");
 impl_udf!(AsGeoJSON, PyAsGeoJSON, "AsGeoJSON");
+impl_udf!(GeomFromGeoJSON, PyGeomFromGeoJSON, "GeomFromGeoJSON");

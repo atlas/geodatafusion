@@ -62,6 +62,7 @@ geodatafusion/st_geometrytype 18/18
 geodatafusion/st_geomfromewkb 12/12
 geodatafusion/st_geomfromewkt 13/13
 geodatafusion/st_geomfromgeohash 12/12
+geodatafusion/st_geomfromgeojson 65/65
 geodatafusion/st_geomfromtext 59/59
 geodatafusion/st_geomfromwkb 16/16
 geodatafusion/st_hasm 12/12
@@ -291,7 +292,7 @@ postgis_docs/st_geometrytype 1/4
 postgis_docs/st_geomfromewkb 0/1
 postgis_docs/st_geomfromewkt 5/7
 postgis_docs/st_geomfromgeohash 3/3
-postgis_docs/st_geomfromgeojson 0/2
+postgis_docs/st_geomfromgeojson 2/2
 postgis_docs/st_geomfromgml 0/3
 postgis_docs/st_geomfromkml 0/1
 postgis_docs/st_geomfrommarc21 0/3

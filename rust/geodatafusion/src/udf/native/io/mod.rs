@@ -5,6 +5,7 @@ mod as_geojson;
 mod as_text;
 mod geo_hash;
 mod geom_from_geo_hash;
+mod geom_from_geojson;
 mod geom_from_text;
 mod geom_from_wkb;
 pub(crate) mod util;
@@ -14,6 +15,7 @@ pub use as_geojson::AsGeoJSON;
 pub use as_text::{AsEWKT, AsText};
 pub use geo_hash::GeoHash;
 pub use geom_from_geo_hash::{Box2DFromGeoHash, GeomFromGeoHash, PointFromGeoHash};
+pub use geom_from_geojson::GeomFromGeoJSON;
 pub use geom_from_text::{
     GeomCollFromText, GeomFromEWKT, GeomFromText, LineFromText, MLineFromText, MPointFromText,
     MPolyFromText, PointFromText, PolygonFromText,
@@ -52,4 +54,5 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(MPolyFromText::default().into());
     session_context.register_udf(GeomCollFromText.into());
     session_context.register_udf(AsGeoJSON.into());
+    session_context.register_udf(GeomFromGeoJSON.into());
 }

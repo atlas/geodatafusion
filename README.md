@@ -203,7 +203,7 @@ geodatafusion::register(&ctx);
 | ST_Box2dFromGeoHash        | ✅          | Return a BOX2D from a GeoHash string.                                                                  |
 | ST_GeomFromGeoHash         | ✅          | Return a geometry from a GeoHash string.                                                               |
 | ST_GeomFromGML             |             | Takes as input GML representation of geometry and outputs a PostGIS geometry object                    |
-| ST_GeomFromGeoJSON         |             | Takes as input a geojson representation of a geometry and outputs a PostGIS geometry object            |
+| ST_GeomFromGeoJSON         | ✅          | Takes as input a geojson representation of a geometry and outputs a PostGIS geometry object            |
 | ST_GeomFromKML             |             | Takes as input KML representation of geometry and outputs a PostGIS geometry object                    |
 | ST_GeomFromTWKB            |             | Creates a geometry instance from a TWKB ("Tiny Well-Known Binary") geometry representation.            |
 | ST_GMLToSQL                |             | Return a specified ST_Geometry value from GML representation. This is an alias name for ST_GeomFromGML |
