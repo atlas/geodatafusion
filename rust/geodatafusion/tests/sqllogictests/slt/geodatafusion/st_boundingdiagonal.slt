@@ -1,0 +1,120 @@
+# Edge cases for ST_BoundingDiagonal, not covered by the PostGIS docs examples.
+
+# Every geometry type
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('LINESTRING(0 0,5 5)'::geometry))
+----
+LINESTRING(0 0,5 5)
+
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('POLYGON((0 0,4 0,4 4,0 0),(1 1,2 1,2 2,1 1))'::geometry))
+----
+LINESTRING(0 0,4 4)
+
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('POINT(1 2)'::geometry))
+----
+LINESTRING(1 2,1 2)
+
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('GEOMETRYCOLLECTION(POINT(9 9),LINESTRING(0 0,1 1))'::geometry))
+----
+LINESTRING(0 0,9 9)
+
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('MULTIPOINT(EMPTY,(1 1),(3 2))'::geometry))
+----
+LINESTRING(1 1,3 2)
+
+# By default the single-precision box, rounded outward; exact with fits
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('LINESTRING(0.1 0.1,1.3 1.7)'::geometry))
+----
+LINESTRING(0.099999994039536 0.099999994039536,1.300000071525574 1.700000047683716)
+
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('LINESTRING(0.1 0.1,1.3 1.7)'::geometry, true))
+----
+LINESTRING(0.1 0.1,1.3 1.7)
+
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('LINESTRING(0.1 0.1,1.3 1.7)'::geometry, false))
+----
+LINESTRING(0.099999994039536 0.099999994039536,1.300000071525574 1.700000047683716)
+
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('POINT(0.1 0.3)'::geometry))
+----
+LINESTRING(0.099999994039536 0.299999982118607,0.100000001490116 0.300000011920929)
+
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('POINT ZM (0.1 0.3 0.7 0.9)'::geometry))
+----
+LINESTRING ZM (0.099999994039536 0.299999982118607 0.699999988079071 0.899999976158142,0.100000001490116 0.300000011920929 0.700000047683716 0.900000035762787)
+
+# Z and M are kept, and so is the SRID
+query T
+SELECT ST_AsEWKT(ST_BoundingDiagonal('SRID=4326;LINESTRING Z (0 0 0,1 1 5)'::geometry))
+----
+SRID=4326;LINESTRING(0 0 0,1 1 5)
+
+query T
+SELECT ST_AsEWKT(ST_BoundingDiagonal('LINESTRING M (0 0 0,1 1 5)'::geometry, true))
+----
+LINESTRINGM(0 0 0,1 1 5)
+
+query T
+SELECT ST_AsEWKT(ST_BoundingDiagonal('SRID=3857;MULTIPOINT ZM ((1 2 3 4),(-1 5 0 9))'::geometry, true))
+----
+SRID=3857;LINESTRING(-1 2 0 4,1 5 3 9)
+
+# EMPTY
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('POINT EMPTY'::geometry))
+----
+LINESTRING EMPTY
+
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('GEOMETRYCOLLECTION EMPTY'::geometry))
+----
+LINESTRING EMPTY
+
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('POINT EMPTY'::geometry, true))
+----
+LINESTRING(0 0,0 0)
+
+query T
+SELECT ST_AsEWKT(ST_BoundingDiagonal('SRID=4326;POINT M EMPTY'::geometry, true))
+----
+SRID=4326;LINESTRINGM(0 0 0,0 0 0)
+
+query T
+SELECT ST_AsEWKT(ST_BoundingDiagonal('POINT ZM EMPTY'::geometry, true))
+----
+LINESTRING(0 0 0 0,0 0 0 0)
+
+query I
+SELECT ST_Zmflag(ST_BoundingDiagonal('POINT Z EMPTY'::geometry))
+----
+2
+
+# NULL
+query T
+SELECT ST_BoundingDiagonal(NULL::geometry)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_BoundingDiagonal('POINT(1 1)'::geometry, NULL))
+----
+NULL
+
+# Columns for both arguments
+query TT rowsort
+SELECT fits, ST_AsText(ST_BoundingDiagonal(g, fits)) FROM (VALUES ('LINESTRING(0.1 0.1,1.3 1.7)'::geometry, true), ('LINESTRING(0.1 0.1,1.3 1.7)'::geometry, false), (NULL::geometry, true), ('POINT(1 1)'::geometry, NULL)) AS t(g, fits)
+----
+NULL NULL
+false LINESTRING(0.099999994039536 0.099999994039536,1.300000071525574 1.700000047683716)
+true LINESTRING(0.1 0.1,1.3 1.7)
+true NULL

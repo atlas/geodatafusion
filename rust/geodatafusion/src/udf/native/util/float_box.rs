@@ -3,7 +3,8 @@
 use crate::udf::native::bounding_box::util::bounds::BoundingRect;
 
 /// A bounding box as PostGIS stores it in a geometry: each range rounded outward to single
-/// precision. Z and M are there when the geometry has them. The operators compare these boxes.
+/// precision. Z and M are there when the geometry has them. The operators compare these boxes,
+/// and ST_BoundingDiagonal returns one by default.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct FloatBox {
     pub(crate) x: (f64, f64),

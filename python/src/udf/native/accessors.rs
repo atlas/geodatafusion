@@ -1,7 +1,8 @@
 use geodatafusion::udf::native::accessors::{
-    CoordDim, Dimension, Dump, EndPoint, ExteriorRing, GeometryN, GeometryType, HasM, HasZ,
-    InteriorRingN, IsClosed, IsCollection, IsEmpty, M, NDims, NPoints, NRings, NumGeometries,
-    NumInteriorRings, NumPoints, PointN, Points, ST_GeometryType, StartPoint, X, Y, Z, Zmflag,
+    BoundingDiagonal, CoordDim, Dimension, Dump, EndPoint, Envelope, ExteriorRing, GeometryN,
+    GeometryType, HasM, HasZ, InteriorRingN, IsClosed, IsCollection, IsEmpty, M, NDims, NPoints,
+    NRings, NumGeometries, NumInteriorRings, NumPoints, PointN, Points, ST_GeometryType,
+    StartPoint, X, Y, Z, Zmflag,
 };
 
 use crate::impl_udf;
@@ -34,3 +35,5 @@ impl_udf!(ExteriorRing, PyExteriorRing, "ExteriorRing");
 impl_udf!(InteriorRingN, PyInteriorRingN, "InteriorRingN");
 impl_udf!(PointN, PyPointN, "PointN");
 impl_udf!(Points, PyPoints, "Points");
+impl_udf!(Envelope, PyEnvelope, "Envelope");
+impl_udf!(BoundingDiagonal, PyBoundingDiagonal, "BoundingDiagonal");

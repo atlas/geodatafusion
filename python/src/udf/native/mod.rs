@@ -42,6 +42,8 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<accessors::PyInteriorRingN>()?;
     m.add_class::<accessors::PyPointN>()?;
     m.add_class::<accessors::PyPoints>()?;
+    m.add_class::<accessors::PyEnvelope>()?;
+    m.add_class::<accessors::PyBoundingDiagonal>()?;
 
     // bounding_box
     m.add_class::<bounding_box::PyBox2D>()?;
