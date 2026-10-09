@@ -14,6 +14,7 @@ geodatafusion/st_area 21/21
 geodatafusion/st_asbinary 17/17
 geodatafusion/st_asewkb 17/17
 geodatafusion/st_asewkt 35/35
+geodatafusion/st_asgeojson 64/64
 geodatafusion/st_ashexewkb 17/17
 geodatafusion/st_astext 28/28
 geodatafusion/st_boundingdiagonal 22/22
@@ -200,7 +201,7 @@ postgis_docs/st_asbinary 2/2
 postgis_docs/st_asencodedpolyline 0/2
 postgis_docs/st_asewkb 2/2
 postgis_docs/st_asgeobuf 0/1
-postgis_docs/st_asgeojson 0/4
+postgis_docs/st_asgeojson 1/4
 postgis_docs/st_asgml 0/5
 postgis_docs/st_ashexewkb 2/2
 postgis_docs/st_askml 0/2

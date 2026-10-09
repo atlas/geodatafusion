@@ -236,7 +236,7 @@ geodatafusion::register(&ctx);
 | ST_AsEncodedPolyline |             | Returns an Encoded Polyline from a LineString geometry.                 |
 | ST_AsFlatGeobuf      |             | Return a FlatGeobuf representation of a set of rows.                    |
 | ST_AsGeobuf          |             | Return a Geobuf representation of a set of rows.                        |
-| ST_AsGeoJSON         |             | Return a geometry or feature in GeoJSON format.                         |
+| ST_AsGeoJSON         | ✅          | Return a geometry or feature in GeoJSON format.                         |
 | ST_AsGML             |             | Return the geometry as a GML version 2 or 3 element.                    |
 | ST_AsKML             |             | Return the geometry as a KML element.                                   |
 | ST_AsLatLonText      |             | Return the Degrees, Minutes, Seconds representation of the given point. |

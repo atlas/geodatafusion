@@ -1,0 +1,329 @@
+# Edge cases for ST_AsGeoJSON, not covered by the PostGIS docs examples.
+
+# Every geometry type
+query T
+SELECT ST_AsGeoJSON('POINT(1 2)'::geometry)
+----
+{"type":"Point","coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('LINESTRING(0 0,1.123456789012 2)'::geometry)
+----
+{"type":"LineString","coordinates":[[0,0],[1.123456789,2]]}
+
+query T
+SELECT ST_AsGeoJSON('POLYGON((0 0,4 0,4 4,0 0),(1 1,2 1,2 2,1 1))'::geometry)
+----
+{"type":"Polygon","coordinates":[[[0,0],[4,0],[4,4],[0,0]],[[1,1],[2,1],[2,2],[1,1]]]}
+
+query T
+SELECT ST_AsGeoJSON('MULTIPOINT((1 2),(3 4))'::geometry)
+----
+{"type":"MultiPoint","coordinates":[[1,2],[3,4]]}
+
+query T
+SELECT ST_AsGeoJSON('MULTILINESTRING((0 0,1 1),(2 2,3 3))'::geometry)
+----
+{"type":"MultiLineString","coordinates":[[[0,0],[1,1]],[[2,2],[3,3]]]}
+
+query T
+SELECT ST_AsGeoJSON('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5)))'::geometry)
+----
+{"type":"MultiPolygon","coordinates":[[[[0,0],[1,0],[1,1],[0,0]]],[[[5,5],[6,5],[6,6],[5,5]]]]}
+
+query T
+SELECT ST_AsGeoJSON('GEOMETRYCOLLECTION(POINT(1 2),LINESTRING(0 0,1 1))'::geometry)
+----
+{"type":"GeometryCollection","geometries":[{"type":"Point","coordinates":[1,2]},{"type":"LineString","coordinates":[[0,0],[1,1]]}]}
+
+# Z is kept and M dropped
+query T
+SELECT ST_AsGeoJSON('POINT Z (1 2 3)'::geometry)
+----
+{"type":"Point","coordinates":[1,2,3]}
+
+query T
+SELECT ST_AsGeoJSON('POINT M (1 2 3)'::geometry)
+----
+{"type":"Point","coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('POINT ZM (1 2 3 4)'::geometry)
+----
+{"type":"Point","coordinates":[1,2,3]}
+
+query T
+SELECT ST_AsGeoJSON('LINESTRING M (0 0 1,1 1 2)'::geometry)
+----
+{"type":"LineString","coordinates":[[0,0],[1,1]]}
+
+query T
+SELECT ST_AsGeoJSON('GEOMETRYCOLLECTION Z (POINT Z (1 2 3),LINESTRING Z (0 0 0,1 1 1))'::geometry)
+----
+{"type":"GeometryCollection","geometries":[{"type":"Point","coordinates":[1,2,3]},{"type":"LineString","coordinates":[[0,0,0],[1,1,1]]}]}
+
+# EMPTY
+query T
+SELECT ST_AsGeoJSON('POINT EMPTY'::geometry)
+----
+{"type":"Point","coordinates":[]}
+
+query T
+SELECT ST_AsGeoJSON('LINESTRING EMPTY'::geometry)
+----
+{"type":"LineString","coordinates":[]}
+
+query T
+SELECT ST_AsGeoJSON('POLYGON EMPTY'::geometry)
+----
+{"type":"Polygon","coordinates":[]}
+
+query T
+SELECT ST_AsGeoJSON('MULTIPOINT EMPTY'::geometry)
+----
+{"type":"MultiPoint","coordinates":[]}
+
+query T
+SELECT ST_AsGeoJSON('MULTIPOINT(EMPTY,(1 1))'::geometry)
+----
+{"type":"MultiPoint","coordinates":[[],[1,1]]}
+
+query T
+SELECT ST_AsGeoJSON('MULTIPOLYGON EMPTY'::geometry)
+----
+{"type":"MultiPolygon","coordinates":[]}
+
+query T
+SELECT ST_AsGeoJSON('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+{"type":"GeometryCollection","geometries":[]}
+
+query T
+SELECT ST_AsGeoJSON('GEOMETRYCOLLECTION(POINT EMPTY,LINESTRING(0 0,1 1))'::geometry)
+----
+{"type":"GeometryCollection","geometries":[{"type":"Point","coordinates":[]},{"type":"LineString","coordinates":[[0,0],[1,1]]}]}
+
+# Numbers and maxdecimaldigits
+query T
+SELECT ST_AsGeoJSON('POINT(1e20 -1e-12)'::geometry)
+----
+{"type":"Point","coordinates":[1e+20,-1e-12]}
+
+query T
+SELECT ST_AsGeoJSON('POINT(0.1234567891234 -0)'::geometry)
+----
+{"type":"Point","coordinates":[0.123456789,0]}
+
+query T
+SELECT ST_AsGeoJSON('POINT(1.123456 2.5)'::geometry, 0)
+----
+{"type":"Point","coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('POINT(1.123456 2)'::geometry, -1)
+----
+{"type":"Point","coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('POINT(1.123456 2)'::geometry, 3)
+----
+{"type":"Point","coordinates":[1.123,2]}
+
+query T
+SELECT ST_AsGeoJSON('POINT(1.123456 2)'::geometry, 20)
+----
+{"type":"Point","coordinates":[1.123456,2]}
+
+# The CRS: short unless 4326 by default, short or long on request, never without an SRID
+query T
+SELECT ST_AsGeoJSON('SRID=4326;POINT(1 2)'::geometry, 9, 0)
+----
+{"type":"Point","coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=3857;POINT(1 2)'::geometry, 9, 0)
+----
+{"type":"Point","coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=4326;POINT(1 2)'::geometry, 9, 2)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"EPSG:4326"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=3857;POINT(1 2)'::geometry, 9, 2)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"EPSG:3857"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=4326;POINT(1 2)'::geometry, 9, 4)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:EPSG::4326"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=3857;POINT(1 2)'::geometry, 9, 4)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:EPSG::3857"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=4326;POINT(1 2)'::geometry, 9, 6)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:EPSG::4326"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=3857;POINT(1 2)'::geometry, 9, 6)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:EPSG::3857"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=4326;POINT(1 2)'::geometry, 9, 8)
+----
+{"type":"Point","coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=3857;POINT(1 2)'::geometry, 9, 8)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"EPSG:3857"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=4326;POINT(1 2)'::geometry, 9, 10)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"EPSG:4326"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=3857;POINT(1 2)'::geometry, 9, 10)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"EPSG:3857"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=4326;POINT(1 2)'::geometry, 9, 12)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:EPSG::4326"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=3857;POINT(1 2)'::geometry, 9, 12)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:EPSG::3857"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=4326;POINT(1 2)'::geometry, 9, 16)
+----
+{"type":"Point","coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=3857;POINT(1 2)'::geometry, 9, 16)
+----
+{"type":"Point","coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('POINT(1 2)'::geometry, 9, 2)
+----
+{"type":"Point","coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=102003;POINT(1 2)'::geometry, 9, 2)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"ESRI:102003"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=102003;POINT(1 2)'::geometry, 9, 4)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:ESRI::102003"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=3857;POINT(1 2)'::geometry)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"EPSG:3857"}},"coordinates":[1,2]}
+
+# The bbox, with fixed decimals
+query T
+SELECT ST_AsGeoJSON('SRID=4326;LINESTRING(0.123456789123 1,2 3)'::geometry, 9, 1)
+----
+{"type":"LineString","bbox":[0.123456789,1.000000000,2.000000000,3.000000000],"coordinates":[[0.123456789,1],[2,3]]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=3857;LINESTRING Z (0.1 1 5,2 3 7)'::geometry, 2, 3)
+----
+{"type":"LineString","crs":{"type":"name","properties":{"name":"EPSG:3857"}},"bbox":[0.10,1.00,5.00,2.00,3.00,7.00],"coordinates":[[0.1,1,5],[2,3,7]]}
+
+query T
+SELECT ST_AsGeoJSON('LINESTRING M (0.1 1 5,2 3 7)'::geometry, 2, 1)
+----
+{"type":"LineString","bbox":[0.10,1.00,2.00,3.00],"coordinates":[[0.1,1],[2,3]]}
+
+query T
+SELECT ST_AsGeoJSON('POINT(2.5 0.125)'::geometry, 0, 1)
+----
+{"type":"Point","bbox":[2,0,2,0],"coordinates":[2,0]}
+
+query T
+SELECT ST_AsGeoJSON('POINT(2.5 0.125)'::geometry, -3, 1)
+----
+{"type":"Point","bbox":[2.500000,0.125000,2.500000,0.125000],"coordinates":[2,0]}
+
+query T
+SELECT ST_AsGeoJSON('POINT(0.125 1)'::geometry, 2, 1)
+----
+{"type":"Point","bbox":[0.12,1.00,0.12,1.00],"coordinates":[0.12,1]}
+
+query T
+SELECT ST_AsGeoJSON('POINT(-0.004 2)'::geometry, 2, 1)
+----
+{"type":"Point","bbox":[-0.00,2.00,-0.00,2.00],"coordinates":[0,2]}
+
+query T
+SELECT ST_AsGeoJSON('POINT(1e20 2)'::geometry, 2, 1)
+----
+{"type":"Point","bbox":[100000000000000000000.00,2.00,100000000000000000000.00,2.00],"coordinates":[1e+20,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=4326;GEOMETRYCOLLECTION(POINT(1 2),LINESTRING(0 0,1 1))'::geometry, 9, 3)
+----
+{"type":"GeometryCollection","crs":{"type":"name","properties":{"name":"EPSG:4326"}},"bbox":[0.000000000,0.000000000,1.000000000,2.000000000],"geometries":[{"type":"Point","coordinates":[1,2]},{"type":"LineString","coordinates":[[0,0],[1,1]]}]}
+
+query T
+SELECT ST_AsGeoJSON('POINT EMPTY'::geometry, 9, 1)
+----
+{"type":"Point","bbox":[0.000000000,0.000000000,0.000000000,0.000000000],"coordinates":[]}
+
+query T
+SELECT ST_AsGeoJSON('POINT Z EMPTY'::geometry, 9, 1)
+----
+{"type":"Point","bbox":[0.000000000,0.000000000,0.000000000,0.000000000,0.000000000,0.000000000],"coordinates":[]}
+
+query T
+SELECT ST_AsGeoJSON('POLYGON Z EMPTY'::geometry, 2, 1)
+----
+{"type":"Polygon","bbox":[0.00,0.00,0.00,0.00,0.00,0.00],"coordinates":[]}
+
+# NULL
+query T
+SELECT ST_AsGeoJSON(NULL::geometry)
+----
+NULL
+
+query T
+SELECT ST_AsGeoJSON('POINT(1 2)'::geometry, NULL)
+----
+NULL
+
+query T
+SELECT ST_AsGeoJSON('POINT(1 2)'::geometry, 9, NULL)
+----
+NULL
+
+# Nested collections are an error
+query error
+SELECT ST_AsGeoJSON('GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POINT(1 2)))'::geometry)
+
+# Unknown SRIDs are an error when the CRS is written
+query error
+SELECT ST_AsGeoJSON('SRID=999999;POINT(1 2)'::geometry)
+
+# A column, including NULL
+query T rowsort
+SELECT ST_AsGeoJSON(g) FROM (VALUES ('POINT(1 2)'::geometry), (NULL::geometry), ('LINESTRING(0 0,1 1)'::geometry)) AS t(g)
+----
+NULL
+{"type":"LineString","coordinates":[[0,0],[1,1]]}
+{"type":"Point","coordinates":[1,2]}
