@@ -4,6 +4,7 @@ mod line_interpolate_point;
 mod line_interpolate_points;
 mod line_locate_point;
 mod line_substring;
+mod locate_along;
 pub(crate) mod util;
 
 pub use add_measure::AddMeasure;
@@ -12,6 +13,7 @@ pub use line_interpolate_point::{LineInterpolatePoint, LineInterpolatePoint3D};
 pub use line_interpolate_points::LineInterpolatePoints;
 pub use line_locate_point::LineLocatePoint;
 pub use line_substring::LineSubstring;
+pub use locate_along::LocateAlong;
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(LineInterpolatePoint.into());
@@ -21,4 +23,5 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(AddMeasure.into());
     session_context.register_udf(InterpolatePoint.into());
     session_context.register_udf(LineLocatePoint.into());
+    session_context.register_udf(LocateAlong.into());
 }

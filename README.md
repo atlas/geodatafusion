@@ -444,7 +444,7 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 | ST_LineInterpolatePoints   | ✅          | Returns points interpolated along a line at a fractional interval.         |
 | ST_LineLocatePoint         | ✅          | Returns the fractional location of the closest point on a line to a point. |
 | ST_LineSubstring           | ✅          | Returns the part of a line between two fractional locations.               |
-| ST_LocateAlong             |             | Returns the point(s) on a geometry that match a measure value.             |
+| ST_LocateAlong             | ✅          | Returns the point(s) on a geometry that match a measure value.             |
 | ST_LocateBetween           |             | Returns the portions of a geometry that match a measure range.             |
 | ST_LocateBetweenElevations |             | Returns the portions of a geometry that lie in an elevation (Z) range.     |
 | ST_InterpolatePoint        | ✅          | Returns the interpolated measure of a geometry closest to a point.         |
