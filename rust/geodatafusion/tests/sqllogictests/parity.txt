@@ -135,6 +135,7 @@ geodatafusion/st_reduceprecision 14/14
 geodatafusion/st_relate 21/21
 geodatafusion/st_relatematch 7/7
 geodatafusion/st_removepoint 11/11
+geodatafusion/st_removerepeatedpoints 36/36
 geodatafusion/st_reverse 14/14
 geodatafusion/st_rotate 17/17
 geodatafusion/st_rotatex 10/10
@@ -400,7 +401,7 @@ postgis_docs/st_reduceprecision 5/5
 postgis_docs/st_relate 2/3
 postgis_docs/st_relatematch 2/2
 postgis_docs/st_removeirrelevantpointsforview 0/5
-postgis_docs/st_removerepeatedpoints 0/4
+postgis_docs/st_removerepeatedpoints 4/4
 postgis_docs/st_removesmallparts 0/2
 postgis_docs/st_reverse 1/1
 postgis_docs/st_rotate 3/3
