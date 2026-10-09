@@ -107,6 +107,9 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<editors::PyCollectionExtract>()?;
     m.add_class::<editors::PyCollectionHomogenize>()?;
     m.add_class::<editors::PyProject>()?;
+    m.add_class::<editors::PyAddPoint>()?;
+    m.add_class::<editors::PySetPoint>()?;
+    m.add_class::<editors::PyRemovePoint>()?;
 
     // io
     m.add_class::<io::PyAsBinary>()?;
