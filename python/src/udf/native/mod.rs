@@ -60,6 +60,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<bounding_box::PyYMin>()?;
     m.add_class::<bounding_box::PyZMax>()?;
     m.add_class::<bounding_box::PyZMin>()?;
+    m.add_class::<bounding_box::PyExpand>()?;
 
     // constructors
     m.add_class::<constructors::PyCollect>()?;

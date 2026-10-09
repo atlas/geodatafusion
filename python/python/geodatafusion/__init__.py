@@ -68,6 +68,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.ZMax()))
     ctx.register_udf(udf(native.MakeBox2D()))
     ctx.register_udf(udf(native.MakeBox3D()))
+    ctx.register_udf(udf(native.Expand()))
     # https://github.com/apache/datafusion-python/issues/1237
     ctx.register_udaf(udaf(native.Extent()))  # type: ignore
     ctx.register_udaf(udaf(native.Extent3D()))  # type: ignore
