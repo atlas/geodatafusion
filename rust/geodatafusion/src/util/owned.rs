@@ -100,6 +100,11 @@ pub(crate) fn polygon_to_owned(polygon: &impl PolygonTrait<T = f64>, dim: Dimens
     Wkt::Polygon(owned_polygon(polygon, dimension(dim)))
 }
 
+/// An empty linestring with dimension `dim`.
+pub(crate) fn empty_line_string(dim: Dimensions) -> Wkt<f64> {
+    Wkt::LineString(LineString::new(vec![], dimension(dim)))
+}
+
 fn dimension(dim: Dimensions) -> Dimension {
     match dim {
         Dimensions::Xyz => Dimension::XYZ,

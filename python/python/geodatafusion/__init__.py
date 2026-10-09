@@ -47,6 +47,9 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.IsCollection()))
     ctx.register_udf(udf(native.NumGeometries()))
     ctx.register_udf(udf(native.GeometryN()))
+    ctx.register_udf(udf(native.NRings()))
+    ctx.register_udf(udf(native.ExteriorRing()))
+    ctx.register_udf(udf(native.InteriorRingN()))
 
     # bounding box
     ctx.register_udf(udf(native.Box2D()))
