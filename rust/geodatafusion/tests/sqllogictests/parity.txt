@@ -42,6 +42,7 @@ geodatafusion/st_extent 8/8
 geodatafusion/st_geohash 23/23
 geodatafusion/st_geomcollfromtext 10/10
 geodatafusion/st_geomcollfromwkb 8/8
+geodatafusion/st_geometryn 22/22
 geodatafusion/st_geometrytype 18/18
 geodatafusion/st_geomfromewkb 12/12
 geodatafusion/st_geomfromewkt 13/13
@@ -80,6 +81,7 @@ geodatafusion/st_ndims 11/11
 geodatafusion/st_node 18/18
 geodatafusion/st_normalize 12/12
 geodatafusion/st_npoints 15/15
+geodatafusion/st_numgeometries 17/17
 geodatafusion/st_numinteriorring 2/2
 geodatafusion/st_numinteriorrings 11/11
 geodatafusion/st_numpoints 15/15
@@ -320,7 +322,7 @@ postgis_docs/st_node 2/2
 postgis_docs/st_normalize 1/1
 postgis_docs/st_nrings 0/1
 postgis_docs/st_numcurves 0/2
-postgis_docs/st_numgeometries 0/2
+postgis_docs/st_numgeometries 2/2
 postgis_docs/st_numpatches 0/1
 postgis_docs/st_numpoints 1/1
 postgis_docs/st_offsetcurve 2/6

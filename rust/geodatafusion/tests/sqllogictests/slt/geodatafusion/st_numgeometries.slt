@@ -1,0 +1,93 @@
+# Edge cases for ST_NumGeometries, not covered by the PostGIS docs examples.
+
+# Single geometries count as one
+query I
+SELECT ST_NumGeometries('POINT(1 2)'::geometry)
+----
+1
+
+query I
+SELECT ST_NumGeometries('LINESTRING(0 0,1 1)'::geometry)
+----
+1
+
+query I
+SELECT ST_NumGeometries('POLYGON((0 0,1 0,1 1,0 0))'::geometry)
+----
+1
+
+# Collections
+query I
+SELECT ST_NumGeometries('MULTIPOINT((1 2),(3 4),(5 6))'::geometry)
+----
+3
+
+query I
+SELECT ST_NumGeometries('MULTILINESTRING((0 0,1 1),(2 2,3 3))'::geometry)
+----
+2
+
+query I
+SELECT ST_NumGeometries('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5)))'::geometry)
+----
+2
+
+query I
+SELECT ST_NumGeometries('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(0 0,1 1),POLYGON((0 0,1 0,1 1,0 0)))'::geometry)
+----
+3
+
+query I
+SELECT ST_NumGeometries('GEOMETRYCOLLECTION Z (POINT Z (1 1 1),MULTIPOINT Z ((1 1 1),(2 2 2)))'::geometry)
+----
+2
+
+# EMPTY: zero when the whole geometry is empty, otherwise empty members count
+query I
+SELECT ST_NumGeometries('POINT EMPTY'::geometry)
+----
+0
+
+query I
+SELECT ST_NumGeometries('MULTIPOINT EMPTY'::geometry)
+----
+0
+
+query I
+SELECT ST_NumGeometries('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+0
+
+query I
+SELECT ST_NumGeometries('GEOMETRYCOLLECTION(POINT EMPTY, LINESTRING EMPTY)'::geometry)
+----
+0
+
+query I
+SELECT ST_NumGeometries('MULTIPOINT(EMPTY,(1 1))'::geometry)
+----
+2
+
+query I
+SELECT ST_NumGeometries('MULTIPOLYGON(EMPTY,((0 0,1 0,1 1,0 0)))'::geometry)
+----
+2
+
+query I
+SELECT ST_NumGeometries('GEOMETRYCOLLECTION(POINT EMPTY, POINT(1 1))'::geometry)
+----
+2
+
+# NULL
+query I
+SELECT ST_NumGeometries(NULL::geometry)
+----
+NULL
+
+# A column, including NULL
+query I rowsort
+SELECT ST_NumGeometries(g) FROM (VALUES ('POINT(1 1)'::geometry), (NULL::geometry), ('MULTIPOINT((1 1),(2 2))'::geometry)) AS t(g)
+----
+1
+2
+NULL

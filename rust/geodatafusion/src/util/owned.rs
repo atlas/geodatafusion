@@ -82,6 +82,24 @@ pub(crate) fn to_owned_geometry(geom: &impl GeometryTrait<T = f64>) -> Wkt<f64> 
     }
 }
 
+/// An owned copy of a point that is part of a geometry with dimension `dim`.
+pub(crate) fn point_to_owned(point: &impl PointTrait<T = f64>, dim: Dimensions) -> Wkt<f64> {
+    Wkt::Point(owned_point(point, dimension(dim)))
+}
+
+/// An owned copy of a linestring (or ring) that is part of a geometry with dimension `dim`.
+pub(crate) fn line_string_to_owned(
+    line: &impl LineStringTrait<T = f64>,
+    dim: Dimensions,
+) -> Wkt<f64> {
+    Wkt::LineString(owned_line_string(line, dimension(dim)))
+}
+
+/// An owned copy of a polygon that is part of a geometry with dimension `dim`.
+pub(crate) fn polygon_to_owned(polygon: &impl PolygonTrait<T = f64>, dim: Dimensions) -> Wkt<f64> {
+    Wkt::Polygon(owned_polygon(polygon, dimension(dim)))
+}
+
 fn dimension(dim: Dimensions) -> Dimension {
     match dim {
         Dimensions::Xyz => Dimension::XYZ,

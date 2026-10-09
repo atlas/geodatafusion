@@ -1,12 +1,14 @@
 mod coord_dim;
 mod dimension;
 mod dump;
+mod geometry_n;
 mod geometry_type;
 mod is_closed;
 mod is_collection;
 pub(crate) mod is_empty;
 mod line_string;
 mod npoints;
+mod num_geometries;
 mod num_interior_rings;
 mod point;
 mod zmflag;
@@ -14,12 +16,14 @@ mod zmflag;
 pub use coord_dim::{CoordDim, NDims};
 pub use dimension::Dimension;
 pub use dump::Dump;
+pub use geometry_n::GeometryN;
 pub use geometry_type::{GeometryType, ST_GeometryType};
 pub use is_closed::IsClosed;
 pub use is_collection::IsCollection;
 pub use is_empty::IsEmpty;
 pub use line_string::{EndPoint, StartPoint};
 pub use npoints::{NPoints, NumPoints};
+pub use num_geometries::NumGeometries;
 pub use num_interior_rings::NumInteriorRings;
 pub use point::{M, X, Y, Z};
 pub use zmflag::{HasM, HasZ, Zmflag};
@@ -46,4 +50,6 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(HasZ.into());
     session_context.register_udf(HasM.into());
     session_context.register_udf(IsCollection.into());
+    session_context.register_udf(NumGeometries.into());
+    session_context.register_udf(GeometryN.into());
 }
