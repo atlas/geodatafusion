@@ -136,7 +136,7 @@ geodatafusion::register(&ctx);
 | ST_Reverse                       |             | Return the geometry with vertex order reversed.                                                     |
 | ST_Segmentize                    |             | Returns a modified geometry/geography having no segment longer than a given distance.               |
 | ST_SetPoint                      |             | Replace point of a linestring with a given point.                                                   |
-| ST_ShiftLongitude                |             | Shifts the longitude coordinates of a geometry between -180..180 and 0..360.                        |
+| ST_ShiftLongitude                | ✅          | Shifts the longitude coordinates of a geometry between -180..180 and 0..360.                        |
 | ST_WrapX                         |             | Wrap a geometry around an X value.                                                                  |
 | ST_SnapToGrid                    |             | Snap all points of the input geometry to a regular grid.                                            |
 | ST_Snap                          | ✅          | Snap segments and vertices of input geometry to vertices of a reference geometry.                   |

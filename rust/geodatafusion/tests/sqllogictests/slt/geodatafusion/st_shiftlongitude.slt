@@ -1,0 +1,60 @@
+# Edge cases for ST_ShiftLongitude, not covered by the PostGIS docs examples.
+
+# One shift by 360 degrees
+query T
+SELECT ST_AsText(ST_ShiftLongitude('MULTIPOINT((-180 1),(-1 0),(0 0),(180 0),(181 0),(360 0),(540 0),(-360 0))'::geometry))
+----
+MULTIPOINT((180 1),(359 0),(0 0),(180 0),(-179 0),(0 0),(180 0),(0 0))
+
+query T
+SELECT ST_AsText(ST_ShiftLongitude('POINT(-900 0)'::geometry))
+----
+POINT(-540 0)
+
+query T
+SELECT ST_AsText(ST_ShiftLongitude('POINT(900 0)'::geometry))
+----
+POINT(540 0)
+
+query T
+SELECT ST_AsText(ST_ShiftLongitude('POINT(-0.5 -91)'::geometry))
+----
+POINT(359.5 -91)
+
+# Every geometry type
+query T
+SELECT ST_AsText(ST_ShiftLongitude('LINESTRING(-10 0,10 0)'::geometry))
+----
+LINESTRING(350 0,10 0)
+
+query T
+SELECT ST_AsText(ST_ShiftLongitude('POLYGON((170 0,190 0,190 10,170 0))'::geometry))
+----
+POLYGON((170 0,-170 0,-170 10,170 0))
+
+query T
+SELECT ST_AsText(ST_ShiftLongitude('GEOMETRYCOLLECTION(POINT(-1 1),LINESTRING(359 0,361 0))'::geometry))
+----
+GEOMETRYCOLLECTION(POINT(359 1),LINESTRING(-1 0,1 0))
+
+# Z, M and the SRID are kept
+query T
+SELECT ST_AsEWKT(ST_ShiftLongitude('SRID=4326;POINT ZM (-1 2 3 4)'::geometry))
+----
+SRID=4326;POINT(359 2 3 4)
+
+query T
+SELECT ST_AsEWKT(ST_ShiftLongitude('LINESTRING M (-1 2 3,200 5 6)'::geometry))
+----
+LINESTRINGM(359 2 3,-160 5 6)
+
+# EMPTY and NULL
+query T
+SELECT ST_AsText(ST_ShiftLongitude('POINT EMPTY'::geometry))
+----
+POINT EMPTY
+
+query T
+SELECT ST_ShiftLongitude(NULL::geometry)
+----
+NULL

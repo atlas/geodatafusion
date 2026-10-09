@@ -94,6 +94,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<editors::PyForce3DZ>()?;
     m.add_class::<editors::PyForce3DM>()?;
     m.add_class::<editors::PyForce4D>()?;
+    m.add_class::<editors::PyShiftLongitude>()?;
 
     // io
     m.add_class::<io::PyAsBinary>()?;
