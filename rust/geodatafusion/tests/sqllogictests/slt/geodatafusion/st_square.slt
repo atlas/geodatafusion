@@ -1,0 +1,105 @@
+# Edge cases for ST_Square, not covered by the PostGIS docs examples.
+
+# Cells
+query T
+SELECT ST_AsText(ST_Square(10, 0, 0))
+----
+POLYGON((0 0,0 10,10 10,10 0,0 0))
+
+query T
+SELECT ST_AsText(ST_Square(10, 1, 1))
+----
+POLYGON((10 10,10 20,20 20,20 10,10 10))
+
+query T
+SELECT ST_AsText(ST_Square(10, 0, 1))
+----
+POLYGON((0 10,0 20,10 20,10 10,0 10))
+
+query T
+SELECT ST_AsText(ST_Square(10, 1, 0))
+----
+POLYGON((10 0,10 10,20 10,20 0,10 0))
+
+query T
+SELECT ST_AsText(ST_Square(10, -1, 2))
+----
+POLYGON((-10 20,-10 30,0 30,0 20,-10 20))
+
+query T
+SELECT ST_AsText(ST_Square(10, -2, -3))
+----
+POLYGON((-20 -30,-20 -20,-10 -20,-10 -30,-20 -30))
+
+query T
+SELECT ST_AsText(ST_Square(3.7, 2, -3))
+----
+POLYGON((7.4 -11.100000000000001,7.4 -7.4,11.100000000000001 -7.4,11.100000000000001 -11.100000000000001,7.4 -11.100000000000001))
+
+query T
+SELECT ST_AsText(ST_Square(0.1, 5, 7))
+----
+POLYGON((0.5 0.7,0.5 0.8,0.6 0.8,0.6 0.7,0.5 0.7))
+
+query T
+SELECT ST_AsText(ST_Square(1, 0, 0))
+----
+POLYGON((0 0,0 1,1 1,1 0,0 0))
+
+# An origin, which gives the SRID
+query T
+SELECT ST_AsEWKT(ST_Square(10, -1, 2, 'SRID=3857;POINT(5 5)'::geometry))
+----
+SRID=3857;POLYGON((-5 25,-5 35,5 35,5 25,-5 25))
+
+query T
+SELECT ST_AsText(ST_Square(0.1, 5, 7, 'POINT(0.3 0.7)'::geometry))
+----
+POLYGON((0.8 1.4,0.8 1.5,0.9 1.5,0.9 1.4,0.8 1.4))
+
+query T
+SELECT ST_AsEWKT(ST_Square(1, 0, 0, 'POINT Z (5 5 5)'::geometry))
+----
+POLYGON((5 5,5 6,6 6,6 5,5 5))
+
+# Degenerate sizes
+query T
+SELECT ST_AsText(ST_Square(0, 0, 0))
+----
+POLYGON((0 0,0 0,0 0,0 0,0 0))
+
+query T
+SELECT ST_AsText(ST_Square(-1, 0, 0))
+----
+POLYGON((0 0,0 -1,-1 -1,-1 0,0 0))
+
+# NULL
+query T
+SELECT ST_Square(NULL, 0, 0)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_Square(1, NULL, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_Square(1, 0, 0, NULL::geometry))
+----
+NULL
+
+# The origin must be a point
+query error
+SELECT ST_Square(1, 0, 0, 'LINESTRING(0 0,1 1)'::geometry)
+
+query error
+SELECT ST_Square(1, 0, 0, 'POINT EMPTY'::geometry)
+
+# Columns
+query IIT rowsort
+SELECT i, j, ST_AsText(ST_Square(2, i, j)) FROM (VALUES (0, 0), (1, 2), (-1, -1)) AS t(i, j)
+----
+-1 -1 POLYGON((-2 -2,-2 0,0 0,0 -2,-2 -2))
+0 0 POLYGON((0 0,0 2,2 2,2 0,0 0))
+1 2 POLYGON((2 4,2 6,4 6,4 4,2 4))

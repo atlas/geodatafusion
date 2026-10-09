@@ -1,4 +1,6 @@
 mod collect;
+mod hexagon;
+mod line_from_multi_point;
 mod make_envelope;
 mod make_line;
 pub(crate) mod make_polygon;
@@ -7,6 +9,8 @@ mod polygon;
 mod tile_envelope;
 
 pub use collect::{Collect, CollectAgg};
+pub use hexagon::{Hexagon, Square};
+pub use line_from_multi_point::LineFromMultiPoint;
 pub use make_envelope::MakeEnvelope;
 pub use make_line::{MakeLine, MakeLineAgg};
 pub use make_polygon::MakePolygon;
@@ -29,4 +33,7 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(MakePolygon.into());
     session_context.register_udf(Polygon.into());
     session_context.register_udf(TileEnvelope.into());
+    session_context.register_udf(Hexagon.into());
+    session_context.register_udf(Square.into());
+    session_context.register_udf(LineFromMultiPoint.into());
 }

@@ -41,7 +41,7 @@ geodatafusion::register(&ctx);
 | Name                  | Implemented | Description                                                                                                                |
 | --------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------- |
 | ST_Collect            | ✅          | Creates a GeometryCollection or Multi\* geometry from a set of geometries. The aggregate form is ST_Collect_Agg.           |
-| ST_LineFromMultiPoint |             | Creates a LineString from a MultiPoint geometry.                                                                           |
+| ST_LineFromMultiPoint | ✅          | Creates a LineString from a MultiPoint geometry.                                                                           |
 | ST_MakeEnvelope       | ✅          | Creates a rectangular Polygon from minimum and maximum coordinates.                                                        |
 | ST_MakeLine           | ✅          | Creates a LineString from Point, MultiPoint, or LineString geometries. The aggregate form is ST_MakeLine_Agg.              |
 | ST_MakePoint          | ✅          | Creates a 2D, 3DZ or 4D Point.                                                                                             |
@@ -54,9 +54,9 @@ geodatafusion::register(&ctx);
 | ST_Polygon            | ✅          | Creates a Polygon from a LineString with a specified SRID.                                                                 |
 | ST_TileEnvelope       | ✅          | Creates a rectangular Polygon in Web Mercator (SRID:3857) using the XYZ tile system.                                       |
 | ST_HexagonGrid        |             | Returns a set of hexagons and cell indices that completely cover the bounds of the geometry argument.                      |
-| ST_Hexagon            |             | Returns a single hexagon, using the provided edge size and cell coordinate within the hexagon grid space.                  |
+| ST_Hexagon            | ✅          | Returns a single hexagon, using the provided edge size and cell coordinate within the hexagon grid space.                  |
 | ST_SquareGrid         |             | Returns a set of grid squares and cell indices that completely cover the bounds of the geometry argument.                  |
-| ST_Square             |             | Returns a single square, using the provided edge size and cell coordinate within the square grid space.                    |
+| ST_Square             | ✅          | Returns a single square, using the provided edge size and cell coordinate within the square grid space.                    |
 | ST_Letters            |             | Returns the input letters rendered as geometry with a default start position at the origin and default text height of 100. |
 
 ### Geometry Accessors

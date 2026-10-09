@@ -73,6 +73,7 @@ geodatafusion/st_geomfromtext 63/63
 geodatafusion/st_geomfromwkb 17/17
 geodatafusion/st_hasm 12/12
 geodatafusion/st_hasz 12/12
+geodatafusion/st_hexagon 20/20
 geodatafusion/st_interiorringn 16/16
 geodatafusion/st_intersection 20/20
 geodatafusion/st_intersects 25/25
@@ -84,6 +85,7 @@ geodatafusion/st_isvalid 22/22
 geodatafusion/st_isvalidreason 13/13
 geodatafusion/st_length 17/17
 geodatafusion/st_linefromencodedpolyline 18/18
+geodatafusion/st_linefrommultipoint 10/10
 geodatafusion/st_linefromtext 10/10
 geodatafusion/st_linefromwkb 8/8
 geodatafusion/st_linemerge 21/21
@@ -152,6 +154,7 @@ geodatafusion/st_simplifypreservetopology 15/15
 geodatafusion/st_simplifyvw 31/31
 geodatafusion/st_snap 12/12
 geodatafusion/st_snaptogrid 41/41
+geodatafusion/st_square 20/20
 geodatafusion/st_srid 5/5
 geodatafusion/st_startpoint 16/16
 geodatafusion/st_summary 31/31
@@ -320,7 +323,7 @@ postgis_docs/st_hasarc 0/1
 postgis_docs/st_hasm 2/2
 postgis_docs/st_hasz 2/2
 postgis_docs/st_hausdorffdistance 0/2
-postgis_docs/st_hexagon 0/1
+postgis_docs/st_hexagon 1/1
 postgis_docs/st_interiorringn 1/1
 postgis_docs/st_interpolatepoint 0/1
 postgis_docs/st_intersection 2/3
@@ -339,7 +342,7 @@ postgis_docs/st_letters 0/2
 postgis_docs/st_linecrossingdirection 0/3
 postgis_docs/st_lineextend 0/1
 postgis_docs/st_linefromencodedpolyline 2/2
-postgis_docs/st_linefrommultipoint 0/1
+postgis_docs/st_linefrommultipoint 1/1
 postgis_docs/st_linefromtext 1/1
 postgis_docs/st_linefromwkb 1/1
 postgis_docs/st_lineinterpolatepoint 0/3
@@ -424,7 +427,7 @@ postgis_docs/st_simplifypreservetopology 3/3
 postgis_docs/st_simplifyvw 3/3
 postgis_docs/st_snap 4/4
 postgis_docs/st_split 0/3
-postgis_docs/st_square 0/1
+postgis_docs/st_square 1/1
 postgis_docs/st_srid 1/1
 postgis_docs/st_startpoint 3/4
 postgis_docs/st_subdivide 0/2

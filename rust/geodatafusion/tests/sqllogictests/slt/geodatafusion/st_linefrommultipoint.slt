@@ -1,0 +1,48 @@
+# Edge cases for ST_LineFromMultiPoint, not covered by the PostGIS docs examples.
+
+# Points in order
+query T
+SELECT ST_AsEWKT(ST_LineFromMultiPoint('MULTIPOINT((1 2),(3 4),(5 6))'::geometry))
+----
+LINESTRING(1 2,3 4,5 6)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromMultiPoint('MULTIPOINT((1 2))'::geometry))
+----
+LINESTRING(1 2)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromMultiPoint('MULTIPOINT((1 2),(1 2))'::geometry))
+----
+LINESTRING(1 2,1 2)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromMultiPoint('MULTIPOINT EMPTY'::geometry))
+----
+LINESTRING EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_LineFromMultiPoint('SRID=4326;MULTIPOINT Z ((1 2 3),(4 5 6))'::geometry))
+----
+SRID=4326;LINESTRING(1 2 3,4 5 6)
+
+query T
+SELECT ST_AsEWKT(ST_LineFromMultiPoint('MULTIPOINT M ((1 2 3),(4 5 6))'::geometry))
+----
+LINESTRINGM(1 2 3,4 5 6)
+
+# NULL
+query T
+SELECT ST_LineFromMultiPoint(NULL::geometry)
+----
+NULL
+
+# Only multipoints, without empty points
+query error
+SELECT ST_LineFromMultiPoint('POINT(1 1)'::geometry)
+
+query error
+SELECT ST_LineFromMultiPoint('LINESTRING(0 0,1 1)'::geometry)
+
+query error
+SELECT ST_LineFromMultiPoint('MULTIPOINT(EMPTY,(1 1),(2 2))'::geometry)
