@@ -38,7 +38,7 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// Returns a geometry from Well-Known Text (WKT).
 #[user_doc(
     doc_section(label = "Geometry Input"),
-    description = "Constructs a geometry from the OGC Well-Known Text representation, accepting what PostGIS accepts: implicit dimensions (POINT(1 2 3) is POINT Z), an SRID=n; prefix, and EMPTY members. The srid argument overrides an embedded SRID. Unlike PostGIS, an embedded SRID must be the same in every row, because geodatafusion stores one CRS per column, and curves, triangles and nested collections are not supported.",
+    description = "Constructs a geometry from the OGC Well-Known Text representation, accepting what PostGIS accepts: implicit dimensions (POINT(1 2 3) is POINT Z), an SRID=n; prefix, and EMPTY members. The srid argument overrides an embedded SRID. Unlike PostGIS, an embedded SRID must be the same in every row, because geodatafusion stores one CRS per column, and curves and triangles are not supported.",
     syntax_example = "ST_GeomFromText(WKT, srid)",
     argument(name = "WKT", description = "text"),
     argument(name = "srid", description = "integer"),
@@ -116,7 +116,7 @@ static GEOMFROMEWKT_ALIASES: LazyLock<Vec<String>> =
 /// Returns a geometry from Extended Well-Known Text (EWKT).
 #[user_doc(
     doc_section(label = "Geometry Input"),
-    description = "Constructs a geometry from the Extended Well-Known Text representation: WKT with an optional SRID=n; prefix. GeomFromEWKT is an alias. Unlike PostGIS, the SRID must be the same in every row, because geodatafusion stores one CRS per column, and curves, triangles and nested collections are not supported.",
+    description = "Constructs a geometry from the Extended Well-Known Text representation: WKT with an optional SRID=n; prefix. GeomFromEWKT is an alias. Unlike PostGIS, the SRID must be the same in every row, because geodatafusion stores one CRS per column, and curves and triangles are not supported.",
     syntax_example = "ST_GeomFromEWKT(EWKT)",
     argument(name = "EWKT", description = "text"),
     related_udf(name = "st_asewkt"),

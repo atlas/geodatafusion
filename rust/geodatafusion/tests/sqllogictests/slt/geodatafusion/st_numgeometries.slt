@@ -91,3 +91,9 @@ SELECT ST_NumGeometries(g) FROM (VALUES ('POINT(1 1)'::geometry), (NULL::geometr
 1
 2
 NULL
+
+# Nested collections
+query I
+SELECT ST_NumGeometries('GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POINT(1 2)),POINT(3 4))'::geometry)
+----
+2
