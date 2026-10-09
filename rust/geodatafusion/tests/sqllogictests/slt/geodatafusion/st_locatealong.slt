@@ -1,0 +1,106 @@
+# Edge cases for ST_LocateAlong, not covered by the PostGIS docs examples.
+
+# Along lines, with offsets
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING M (0 0 0,10 0 10,10 10 20)'::geometry, 5))
+----
+MULTIPOINT M ((5 0 5))
+
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING M (0 0 0,10 0 10,10 10 20)'::geometry, 10))
+----
+MULTIPOINT M ((10 0 10))
+
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING M (0 0 0,10 0 10,10 10 20)'::geometry, 25))
+----
+MULTIPOINT M EMPTY
+
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING M (0 0 0,10 0 10,10 10 20)'::geometry, 5, 1))
+----
+MULTIPOINT M ((5 1 5))
+
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING M (0 0 0,10 0 10,10 10 20)'::geometry, 15, 2))
+----
+MULTIPOINT M ((8 5 15))
+
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING M (0 0 0,10 0 10,10 10 20)'::geometry, 10, 1))
+----
+MULTIPOINT M ((10 1 10),(9 6.123233995736766e-17 10))
+
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING M (0 0 0,10 0 10,10 10 20)'::geometry, 15, -2))
+----
+MULTIPOINT M ((12 5 15))
+
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING M (0 0 0,10 0 10,0 0 0)'::geometry, 5))
+----
+MULTIPOINT M ((5 0 5))
+
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING M (0 0 0,10 0 0,20 0 10)'::geometry, 0))
+----
+MULTIPOINT M ((5 0 0),(10 0 0))
+
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING M (0 0 10,10 0 0)'::geometry, 2.5))
+----
+MULTIPOINT M ((7.5 0 2.5))
+
+query T
+SELECT ST_AsText(ST_LocateAlong('MULTILINESTRING M ((0 0 0,10 0 10),(0 5 0,10 5 10))'::geometry, 5))
+----
+MULTIPOINT M ((5 0 5),(5 5 5))
+
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING ZM (0 0 0 0,10 0 10 10)'::geometry, 5))
+----
+MULTIPOINT ZM ((5 0 5 5))
+
+# Points
+query T
+SELECT ST_AsText(ST_LocateAlong('MULTIPOINT M ((0 0 5),(1 1 6),(2 2 5))'::geometry, 5))
+----
+MULTIPOINT M ((0 0 5),(2 2 5))
+
+query T
+SELECT ST_AsText(ST_LocateAlong('POINT M (0 0 5)'::geometry, 5))
+----
+MULTIPOINT M ((0 0 5))
+
+query T
+SELECT ST_AsText(ST_LocateAlong('POINT M (0 0 5)'::geometry, 6))
+----
+MULTIPOINT M EMPTY
+
+# The SRID, EMPTY and NULL
+query T
+SELECT ST_AsEWKT(ST_LocateAlong('SRID=4326;LINESTRING M (0 0 0,10 0 10)'::geometry, 5))
+----
+SRID=4326;MULTIPOINTM(5 0 5)
+
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING M EMPTY'::geometry, 5))
+----
+MULTIPOINT M EMPTY
+
+query T
+SELECT ST_LocateAlong(NULL::geometry, 5)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_LocateAlong('LINESTRING M (0 0 0,10 0 10,10 10 20)'::geometry, NULL))
+----
+NULL
+
+# Errors
+query error
+SELECT ST_LocateAlong('LINESTRING(0 0,1 1)'::geometry, 5)
+
+query error
+SELECT ST_LocateAlong('POLYGON M ((0 0 0,1 0 1,1 1 2,0 0 0))'::geometry, 1)
