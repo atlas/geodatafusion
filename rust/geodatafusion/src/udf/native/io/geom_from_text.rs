@@ -109,10 +109,14 @@ static EWKT_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
         .expect("parameter names are valid for a user-defined signature")
 });
 
+/// PostGIS keeps the name without `ST_`.
+static GEOMFROMEWKT_ALIASES: LazyLock<Vec<String>> =
+    LazyLock::new(|| vec!["geomfromewkt".to_string()]);
+
 /// Returns a geometry from Extended Well-Known Text (EWKT).
 #[user_doc(
     doc_section(label = "Geometry Input"),
-    description = "Constructs a geometry from the Extended Well-Known Text representation: WKT with an optional SRID=n; prefix. Unlike PostGIS, the SRID must be the same in every row, because geodatafusion stores one CRS per column, and curves, triangles and nested collections are not supported.",
+    description = "Constructs a geometry from the Extended Well-Known Text representation: WKT with an optional SRID=n; prefix. GeomFromEWKT is an alias. Unlike PostGIS, the SRID must be the same in every row, because geodatafusion stores one CRS per column, and curves, triangles and nested collections are not supported.",
     syntax_example = "ST_GeomFromEWKT(EWKT)",
     argument(name = "EWKT", description = "text"),
     related_udf(name = "st_asewkt"),
@@ -136,6 +140,10 @@ impl Default for GeomFromEWKT {
 impl ScalarUDFImpl for GeomFromEWKT {
     fn name(&self) -> &str {
         "st_geomfromewkt"
+    }
+
+    fn aliases(&self) -> &[String] {
+        &GEOMFROMEWKT_ALIASES
     }
 
     fn signature(&self) -> &Signature {

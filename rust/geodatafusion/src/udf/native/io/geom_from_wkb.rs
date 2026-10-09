@@ -101,10 +101,14 @@ impl ScalarUDFImpl for GeomFromWKB {
 /// PostGIS: ST_GeomFromEWKB(bytea EWKB).
 static EWKB_ARGUMENTS: &[&[Arg]] = &[&[Arg::Bytea]];
 
+/// PostGIS keeps the name without `ST_`.
+static GEOMFROMEWKB_ALIASES: LazyLock<Vec<String>> =
+    LazyLock::new(|| vec!["geomfromewkb".to_string()]);
+
 /// Returns a geometry from Extended Well-Known Binary (EWKB).
 #[user_doc(
     doc_section(label = "Geometry Input"),
-    description = "Constructs a geometry from the Extended Well-Known Binary representation, in either byte order, keeping its SRID. ISO WKB is accepted too. Unlike PostGIS, the SRID must be the same in every row, because geodatafusion stores one CRS per column, and curves, triangles and nested collections are not supported.",
+    description = "Constructs a geometry from the Extended Well-Known Binary representation, in either byte order, keeping its SRID. GeomFromEWKB is an alias. ISO WKB is accepted too. Unlike PostGIS, the SRID must be the same in every row, because geodatafusion stores one CRS per column, and curves, triangles and nested collections are not supported.",
     syntax_example = "ST_GeomFromEWKB(EWKB)",
     argument(name = "EWKB", description = "bytea"),
     related_udf(name = "st_asewkb"),
@@ -128,6 +132,10 @@ impl Default for GeomFromEWKB {
 impl ScalarUDFImpl for GeomFromEWKB {
     fn name(&self) -> &str {
         "st_geomfromewkb"
+    }
+
+    fn aliases(&self) -> &[String] {
+        &GEOMFROMEWKB_ALIASES
     }
 
     fn signature(&self) -> &Signature {

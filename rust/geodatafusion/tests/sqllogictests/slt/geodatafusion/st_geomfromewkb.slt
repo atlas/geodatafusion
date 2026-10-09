@@ -65,3 +65,9 @@ SELECT ST_GeomFromEWKB(decode(h, 'hex')) FROM (VALUES ('0101000000000000000000F0
 NULL
 POINT(1 2)
 POINT(1 2)
+
+# The name without ST_
+query T
+SELECT ST_AsEWKT(GeomFromEWKB(ST_AsEWKB('SRID=4326;POINT(1 2)'::geometry)))
+----
+SRID=4326;POINT(1 2)

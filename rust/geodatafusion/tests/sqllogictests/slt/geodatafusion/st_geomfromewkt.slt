@@ -69,3 +69,9 @@ SELECT ST_AsText(ST_GeomFromEWKT(t)) FROM (VALUES ('POINT(1 2)'), (NULL), ('LINE
 LINESTRING(0 0,1 1)
 NULL
 POINT(1 2)
+
+# The name without ST_
+query T
+SELECT ST_AsEWKT(GeomFromEWKT('SRID=4326;POINT(1 2)'))
+----
+SRID=4326;POINT(1 2)
