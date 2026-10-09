@@ -107,6 +107,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.Reverse()))
     ctx.register_udf(udf(native.ForcePolygonCW()))
     ctx.register_udf(udf(native.ForcePolygonCCW()))
+    ctx.register_udf(udf(native.SnapToGrid()))
 
     # io
     ctx.register_udf(udf(native.AsText()))

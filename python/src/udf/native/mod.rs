@@ -98,6 +98,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<editors::PyReverse>()?;
     m.add_class::<editors::PyForcePolygonCW>()?;
     m.add_class::<editors::PyForcePolygonCCW>()?;
+    m.add_class::<editors::PySnapToGrid>()?;
 
     // io
     m.add_class::<io::PyAsBinary>()?;
