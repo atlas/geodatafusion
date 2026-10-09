@@ -1,0 +1,215 @@
+# Edge cases for ST_SnapToGrid.
+
+# Halfway values round to even
+query T
+SELECT ST_AsText(ST_SnapToGrid('MULTIPOINT((0.5 1.5),(2.5 -0.5),(-1.5 3.5),(0.49 0.51))'::geometry, 1))
+----
+MULTIPOINT((0 2),(2 0),(-2 4),(0 1))
+
+# The four forms
+query T
+SELECT ST_AsText(ST_SnapToGrid('POINT(1.234 5.678)'::geometry, 0.1))
+----
+POINT(1.2 5.7)
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('POINT(1.234 5.678)'::geometry, 0.1, 0.5))
+----
+POINT(1.2 5.5)
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('POINT(1.234 5.678)'::geometry, 0.5, 0.25, 1, 1))
+----
+POINT(1.5 5.25)
+
+query T
+SELECT ST_AsEWKT(ST_SnapToGrid('POINT ZM (1.234 5.678 9.87 6.54)'::geometry, 'POINT ZM (0.5 0.5 0.5 0.5)'::geometry, 1, 1, 1, 1))
+----
+POINT(1.5 5.5 9.5 6.5)
+
+query T
+SELECT ST_AsEWKT(ST_SnapToGrid('POINT ZM (1.234 5.678 9.87 6.54)'::geometry, 'POINT(0.5 0.5)'::geometry, 1, 1, 1, 0))
+----
+POINT(1.5 5.5 10 6.54)
+
+# Only the last form snaps Z and M
+query T
+SELECT ST_AsEWKT(ST_SnapToGrid('SRID=4326;POINT ZM (1.234 5.678 9.87 6.54)'::geometry, 0.1))
+----
+SRID=4326;POINT(1.2 5.7 9.87 6.54)
+
+# Sizes of 0 or less, or NaN, leave an ordinate alone
+query T
+SELECT ST_AsText(ST_SnapToGrid('POINT(1.234 5.678)'::geometry, 0.1, 0))
+----
+POINT(1.2 5.678)
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('POINT(1.234 5.678)'::geometry, -1))
+----
+POINT(1.234 5.678)
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('POINT(1.5 2.5)'::geometry, 'NaN'::float8))
+----
+POINT(1.5 2.5)
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('LINESTRING(0 0,0 0)'::geometry, 0))
+----
+LINESTRING(0 0,0 0)
+
+# Repeated points are removed, comparing every ordinate
+query T
+SELECT ST_AsText(ST_SnapToGrid('LINESTRING(0 0,0.1 0.1,0.2 0.2,1 1,1.1 1.1)'::geometry, 1))
+----
+LINESTRING(0 0,1 1)
+
+query T
+SELECT ST_AsEWKT(ST_SnapToGrid('LINESTRING Z (0 0 0,0.1 0.1 5,1 1 1)'::geometry, 1))
+----
+LINESTRING(0 0 0,0 0 5,1 1 1)
+
+query T
+SELECT ST_AsEWKT(ST_SnapToGrid('LINESTRING M (0 0 0,0.1 0.1 5,1 1 1)'::geometry, 1))
+----
+LINESTRINGM(0 0 0,0 0 5,1 1 1)
+
+query T
+SELECT ST_AsEWKT(ST_SnapToGrid('LINESTRING Z (0 0 0,0.1 0.1 0.2,1 1 1)'::geometry, 'POINT(0 0)'::geometry, 1, 1, 1, 0))
+----
+LINESTRING(0 0 0,1 1 1)
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('LINESTRING(0 0,1 0,0.1 0.1)'::geometry, 1))
+----
+LINESTRING(0 0,1 0,0 0)
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('MULTIPOINT((0 0),(0.1 0.1),(1 1))'::geometry, 1))
+----
+MULTIPOINT((0 0),(0 0),(1 1))
+
+# Collapsed lines and rings are dropped
+query T
+SELECT ST_AsText(ST_SnapToGrid('LINESTRING(0 0,0.1 0.1)'::geometry, 1))
+----
+LINESTRING EMPTY
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('LINESTRING(0 0,0 0)'::geometry, 1))
+----
+LINESTRING EMPTY
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('MULTILINESTRING((0 0,0.1 0.1),(0 0,5 5))'::geometry, 1))
+----
+MULTILINESTRING((0 0,5 5))
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('MULTILINESTRING((0 0,0.1 0.1),(0.2 0.2,0.3 0.3))'::geometry, 1))
+----
+MULTILINESTRING EMPTY
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('POLYGON((0 0,0.1 0,0.1 0.1,0 0))'::geometry, 1))
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('POLYGON((0 0,1 0,1 0.1,0 0))'::geometry, 1))
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('POLYGON((0 0,2 0,2 0.1,1 0.6,0 0))'::geometry, 1))
+----
+POLYGON((0 0,2 0,1 1,0 0))
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('POLYGON((0 0,10 0,10 10,0 0),(1 1,1.1 1,1.1 1.1,1 1))'::geometry, 1))
+----
+POLYGON((0 0,10 0,10 10,0 0))
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('POLYGON((0 0,0.1 0,0.1 0.1,0 0),(0 0,10 0,10 10,0 0))'::geometry, 1))
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('MULTIPOLYGON(((0 0,0.1 0,0.1 0.1,0 0)),((0 0,10 0,10 10,0 0)))'::geometry, 1))
+----
+MULTIPOLYGON(((0 0,10 0,10 10,0 0)))
+
+# Empty and collapsed members of collections are dropped
+query T
+SELECT ST_AsText(ST_SnapToGrid('GEOMETRYCOLLECTION(LINESTRING(0 0,0.1 0.1),POINT(0.4 0.4))'::geometry, 1))
+----
+GEOMETRYCOLLECTION(POINT(0 0))
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('GEOMETRYCOLLECTION(LINESTRING(0 0,0.1 0.1))'::geometry, 1))
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('GEOMETRYCOLLECTION(POINT EMPTY,POINT(1.2 1))'::geometry, 1))
+----
+GEOMETRYCOLLECTION(POINT(1 1))
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('GEOMETRYCOLLECTION(MULTIPOINT EMPTY,POINT(1.2 1))'::geometry, 1))
+----
+GEOMETRYCOLLECTION(POINT(1 1))
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('MULTIPOINT(EMPTY,(0.3 0.3))'::geometry, 1))
+----
+MULTIPOINT((0 0))
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('MULTIPOLYGON(EMPTY,((0 0,10 0,10 10,0 0)))'::geometry, 1))
+----
+MULTIPOLYGON(((0 0,10 0,10 10,0 0)))
+
+# EMPTY, the SRID and NULL
+query T
+SELECT ST_AsText(ST_SnapToGrid('POINT EMPTY'::geometry, 1))
+----
+POINT EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_SnapToGrid('SRID=4326;POINT(1.5 2.5)'::geometry, 'SRID=3857;POINT(0 0)'::geometry, 1, 1, 1, 1))
+----
+SRID=4326;POINT(2 2)
+
+query T
+SELECT ST_SnapToGrid(NULL::geometry, 1)
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('POINT(1.5 2.5)'::geometry, 1, NULL))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_SnapToGrid('POINT(1.5 2.5)'::geometry, NULL::geometry, 1, 1, 1, 1))
+----
+NULL
+
+# The origin must be a point
+query error
+SELECT ST_SnapToGrid('POINT(1.5 2.5)'::geometry, 'LINESTRING(0 0,1 1)'::geometry, 1, 1, 1, 1)
+
+query error
+SELECT ST_SnapToGrid('POINT(1.5 2.5)'::geometry, 'POINT EMPTY'::geometry, 1, 1, 1, 1)
+
+# Columns
+query RT rowsort
+SELECT s, ST_AsText(ST_SnapToGrid(g, s)) FROM (VALUES ('POINT(1.3 1.7)'::geometry, 1), ('LINESTRING(0.3 0.3,1.7 1.1)'::geometry, 0.5), (NULL::geometry, 1), ('POINT(1 1)'::geometry, NULL)) AS t(g, s)
+----
+0.5 LINESTRING(0.5 0.5,1.5 1)
+1 NULL
+1 POINT(1 2)
+NULL NULL

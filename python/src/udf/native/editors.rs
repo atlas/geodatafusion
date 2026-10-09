@@ -1,6 +1,6 @@
 use geodatafusion::udf::native::editors::{
     FlipCoordinates, Force2D, Force3DM, Force3DZ, Force4D, ForcePolygonCCW, ForcePolygonCW,
-    Reverse, ShiftLongitude, SwapOrdinates,
+    Reverse, ShiftLongitude, SnapToGrid, SwapOrdinates,
 };
 
 use crate::impl_udf;
@@ -15,3 +15,4 @@ impl_udf!(ShiftLongitude, PyShiftLongitude, "ShiftLongitude");
 impl_udf!(Reverse, PyReverse, "Reverse");
 impl_udf!(ForcePolygonCW, PyForcePolygonCW, "ForcePolygonCW");
 impl_udf!(ForcePolygonCCW, PyForcePolygonCCW, "ForcePolygonCCW");
+impl_udf!(SnapToGrid, PySnapToGrid, "SnapToGrid");

@@ -138,7 +138,7 @@ geodatafusion::register(&ctx);
 | ST_SetPoint                      |             | Replace point of a linestring with a given point.                                                   |
 | ST_ShiftLongitude                | ✅          | Shifts the longitude coordinates of a geometry between -180..180 and 0..360.                        |
 | ST_WrapX                         |             | Wrap a geometry around an X value.                                                                  |
-| ST_SnapToGrid                    |             | Snap all points of the input geometry to a regular grid.                                            |
+| ST_SnapToGrid                    | ✅          | Snap all points of the input geometry to a regular grid.                                            |
 | ST_Snap                          | ✅          | Snap segments and vertices of input geometry to vertices of a reference geometry.                   |
 | ST_SwapOrdinates                 | ✅          | Returns a version of the given geometry with given ordinate values swapped.                         |
 
