@@ -1,0 +1,135 @@
+# Edge cases for ST_AsSVG, not covered by the PostGIS docs examples.
+
+# Points, absolute and relative
+query T
+SELECT ST_AsSVG('POINT(1.5 -2.25)'::geometry)
+----
+cx="1.5" cy="2.25"
+
+query T
+SELECT ST_AsSVG('POINT(1.5 -2.25)'::geometry, 1)
+----
+x="1.5" y="2.25"
+
+query T
+SELECT ST_AsSVG('MULTIPOINT((1 2),(3 4))'::geometry)
+----
+cx="1" cy="-2",cx="3" cy="-4"
+
+query T
+SELECT ST_AsSVG('MULTIPOINT((1 2),(3 4))'::geometry, 1)
+----
+x="1" y="-2",x="3" y="-4"
+
+# Lines
+query T
+SELECT ST_AsSVG('LINESTRING(1 2,3 4,6 1)'::geometry)
+----
+M 1 -2 L 3 -4 6 -1
+
+query T
+SELECT ST_AsSVG('LINESTRING(1 2,3 4,6 1)'::geometry, 1)
+----
+M 1 -2 l 2 -2 3 3
+
+query T
+SELECT ST_AsSVG('MULTILINESTRING((1 2,3 4),(5 6,7 8))'::geometry, 1)
+----
+M 1 -2 l 2 -2 M 5 -6 l 2 -2
+
+# Relative moves are between rounded coordinates, so they add up to the rounded end point
+query T
+SELECT ST_AsSVG('LINESTRING(0.14 0,0.26 0,0.38 0,0.44 0)'::geometry, 1, 1)
+----
+M 0.1 0 l 0.2 0 0.1 0 0 0
+
+query T
+SELECT ST_AsSVG('LINESTRING(0.14 0,0.26 0,0.38 0,0.44 0)'::geometry, 0, 1)
+----
+M 0.1 0 L 0.3 0 0.4 0 0.4 0
+
+# Halves round away from zero
+query T
+SELECT ST_AsSVG('LINESTRING(0.25 -0.25,1.25 -1.25)'::geometry, 1, 1)
+----
+M 0.3 0.3 l 1 1
+
+# Polygons leave out the ring's closing point
+query T
+SELECT ST_AsSVG('POLYGON((0 0,10 0,10 10,0 10,0 0),(2 2,2 4,4 4,2 2))'::geometry)
+----
+M 0 0 L 10 0 10 -10 0 -10 Z M 2 -2 L 2 -4 4 -4 Z
+
+query T
+SELECT ST_AsSVG('POLYGON((0 0,10 0,10 10,0 10,0 0),(2 2,2 4,4 4,2 2))'::geometry, 1)
+----
+M 0 0 l 10 0 0 -10 -10 0 z M 2 -2 l 0 -2 2 0 z
+
+query T
+SELECT ST_AsSVG('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5)))'::geometry)
+----
+M 0 0 L 1 0 1 -1 Z M 5 -5 L 6 -5 6 -6 Z
+
+# Collections separate their members by semicolons and skip empty ones
+query T
+SELECT ST_AsSVG('GEOMETRYCOLLECTION(POINT(1 2),POINT EMPTY,LINESTRING(1 2,3 4))'::geometry)
+----
+cx="1" cy="-2";M 1 -2 L 3 -4
+
+query error
+SELECT ST_AsSVG('GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POINT(1 2)))'::geometry)
+
+# Decimals
+query T
+SELECT ST_AsSVG('POINT(1.123456789 2.987654321)'::geometry, 0, 3)
+----
+cx="1.123" cy="-2.988"
+
+query T
+SELECT ST_AsSVG('POINT(1.123456789 2.987654321)'::geometry, 0, 0)
+----
+cx="1" cy="-3"
+
+# Z and M are ignored
+query T
+SELECT ST_AsSVG('LINESTRING ZM(1 2 3 4,5 6 7 8)'::geometry)
+----
+M 1 -2 L 5 -6
+
+# Empty geometries give the empty string
+query T
+SELECT ST_AsSVG('POINT EMPTY'::geometry) = ''
+----
+true
+
+query T
+SELECT ST_AsSVG('GEOMETRYCOLLECTION(POINT EMPTY)'::geometry) = ''
+----
+true
+
+query T
+SELECT ST_AsSVG('POLYGON EMPTY'::geometry) = ''
+----
+true
+
+# NULLs
+query T
+SELECT ST_AsSVG(NULL::geometry)
+----
+NULL
+
+query T
+SELECT ST_AsSVG('POINT(1 2)'::geometry, NULL)
+----
+NULL
+
+query T
+SELECT ST_AsSVG('POINT(1 2)'::geometry, 0, NULL)
+----
+NULL
+
+# Named arguments
+query T
+SELECT ST_AsSVG(geom => 'LINESTRING(1 2,3 4)'::geometry, maxdecimaldigits => 0, rel => 1)
+----
+M 1 -2 l 2 -2

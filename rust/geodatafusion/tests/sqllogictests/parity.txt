@@ -24,6 +24,7 @@ geodatafusion/st_asgeojson 64/64
 geodatafusion/st_ashexewkb 17/17
 geodatafusion/st_aslatlontext 53/53
 geodatafusion/st_asmvtgeom 122/122
+geodatafusion/st_assvg 25/25
 geodatafusion/st_astext 28/28
 geodatafusion/st_boundary 32/32
 geodatafusion/st_boundingdiagonal 22/22
@@ -266,7 +267,7 @@ postgis_docs/st_askml 0/2
 postgis_docs/st_aslatlontext 6/6
 postgis_docs/st_asmarc21 0/3
 postgis_docs/st_asmvtgeom 1/1
-postgis_docs/st_assvg 0/4
+postgis_docs/st_assvg 1/4
 postgis_docs/st_astwkb 0/1
 postgis_docs/st_asx3d 0/3
 postgis_docs/st_azimuth 0/1
