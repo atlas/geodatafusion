@@ -237,6 +237,10 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    ST_CPAWithin (G1 batch 4). Parity 4033/4260 -> 4312/4526. Then ST_LocateBetween and
    ST_LocateBetweenElevations, which complete G1 batch 4 (line crossings can differ from
    PostGIS's in the last digit). Parity 4389/4600.
+   G4 batch 4 done: ST_AsLatLonText, ST_AsSVG, ST_AsTWKB and ST_GeomFromTWKB, each fitted to
+   random calls that all match (TWKB scales by a single precision factor, as PostGIS's output
+   shows). Parity 4389/4600 -> 4533/4735. One ST_GeomFromTWKB doc record passes a text literal
+   as `bytea`, which DataFusion casts byte for byte rather than reading `\x` hex.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
