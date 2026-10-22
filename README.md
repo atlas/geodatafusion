@@ -88,8 +88,8 @@ geodatafusion::register(&ctx);
 | ST_IsEmpty          | ✅          | Tests if a geometry is empty.                                                                           |
 | ST_IsPolygonCCW     | ✅          | Tests if Polygons have exterior rings oriented counter-clockwise and interior rings oriented clockwise. |
 | ST_IsPolygonCW      | ✅          | Tests if Polygons have exterior rings oriented clockwise and interior rings oriented counter-clockwise. |
-| ST_IsRing           |             | Tests if a LineString is closed and simple.                                                             |
-| ST_IsSimple         |             | Tests if a geometry has no points of self-intersection or self-tangency.                                |
+| ST_IsRing           | ✅          | Tests if a LineString is closed and simple.                                                             |
+| ST_IsSimple         | ✅          | Tests if a geometry has no points of self-intersection or self-tangency.                                |
 | ST_M                | ✅          | Returns the M coordinate of a Point.                                                                    |
 | ST_MemSize          |             | Returns the amount of memory space a geometry takes.                                                    |
 | ST_NDims            | ✅          | Returns the coordinate dimension of a geometry.                                                         |

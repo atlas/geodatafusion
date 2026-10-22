@@ -17,6 +17,9 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     crate::udf::geo::validation::register(session_context);
 
     #[cfg(feature = "geos-3_11")]
+    crate::udf::geos::accessors::register(session_context);
+
+    #[cfg(feature = "geos-3_11")]
     crate::udf::geos::coverage::register(session_context);
 
     #[cfg(feature = "geos-3_11")]

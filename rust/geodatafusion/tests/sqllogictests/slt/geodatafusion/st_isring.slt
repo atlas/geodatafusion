@@ -1,0 +1,75 @@
+# Edge cases for ST_IsRing, not covered by the PostGIS docs examples.
+
+# Closed and simple lines are rings
+query T
+SELECT ST_IsRing('LINESTRING(0 0, 1 0, 1 1, 0 0)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsRing('LINESTRING(0 0, 1 0, 1 1)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsRing('LINESTRING(0 0, 2 2, 0 2, 2 0, 0 0)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsRing('LINESTRING(0 0, 1 1, 0 0)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsRing('LINESTRING(0 0, 1 0, 0 0, 1 0, 0 0)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsRing('LINESTRING(0 0, 0 0, 0 0, 0 0)'::geometry)
+----
+true
+
+# Closed in 2D: Z and M don't count
+query T
+SELECT ST_IsRing('LINESTRING Z (0 0 1, 1 0 1, 1 1 1, 0 0 2)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsRing('LINESTRING M (0 0 1, 1 0 1, 1 1 1, 0 0 2)'::geometry)
+----
+true
+
+# Empty geometries of any type aren't rings
+query T
+SELECT ST_IsRing('LINESTRING EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_IsRing('POINT EMPTY'::geometry)
+----
+false
+
+query T
+SELECT ST_IsRing('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+false
+
+# Anything else but a linestring is an error
+query error
+SELECT ST_IsRing('POINT(1 1)'::geometry)
+
+query error
+SELECT ST_IsRing('POLYGON((0 0, 1 0, 1 1, 0 0))'::geometry)
+
+query error
+SELECT ST_IsRing('MULTILINESTRING((0 0, 1 0, 1 1, 0 0))'::geometry)
+
+# NULL
+query T
+SELECT ST_IsRing(NULL::geometry)
+----
+NULL

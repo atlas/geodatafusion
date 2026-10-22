@@ -95,6 +95,8 @@ geodatafusion/st_isclosed 26/26
 geodatafusion/st_iscollection 14/14
 geodatafusion/st_ispolygonccw 22/22
 geodatafusion/st_ispolygoncw 22/22
+geodatafusion/st_isring 15/15
+geodatafusion/st_issimple 31/31
 geodatafusion/st_isvalid 22/22
 geodatafusion/st_isvalidreason 13/13
 geodatafusion/st_isvalidtrajectory 11/11
@@ -360,8 +362,8 @@ postgis_docs/st_intersects 0/1
 postgis_docs/st_inversetransformpipeline 2/2
 postgis_docs/st_isclosed 0/2
 postgis_docs/st_isempty 4/5
-postgis_docs/st_isring 0/2
-postgis_docs/st_issimple 0/2
+postgis_docs/st_isring 2/2
+postgis_docs/st_issimple 2/2
 postgis_docs/st_isvaliddetail 0/2
 postgis_docs/st_isvalidreason 2/3
 postgis_docs/st_isvalidtrajectory 2/2

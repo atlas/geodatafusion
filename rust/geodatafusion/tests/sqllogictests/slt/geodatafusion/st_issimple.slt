@@ -1,0 +1,163 @@
+# Edge cases for ST_IsSimple, not covered by the PostGIS docs examples.
+
+# Points and multipoints: repeated points aren't simple
+query T
+SELECT ST_IsSimple('POINT(1 1)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('MULTIPOINT(1 1, 2 2)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('MULTIPOINT(1 1, 1 1)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsSimple('MULTIPOINT(1 1, EMPTY)'::geometry)
+----
+true
+
+# Lines may touch themselves only at their ends
+query T
+SELECT ST_IsSimple('LINESTRING(0 0, 1 1)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('LINESTRING(0 0, 2 2, 0 2, 2 0)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsSimple('LINESTRING(0 0, 1 0, 1 1, 0 0)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('LINESTRING(0 0, 0 0, 1 1)'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('LINESTRING(0 0, 1 1, 0 0)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsSimple('LINESTRING Z (0 0 1, 1 1 2, 0 0 3)'::geometry)
+----
+false
+
+query T
+SELECT ST_IsSimple('LINESTRING M (0 0 1, 1 1 2)'::geometry)
+----
+true
+
+# Multilines may meet at the lines' ends only
+query T
+SELECT ST_IsSimple('MULTILINESTRING((0 0, 1 1), (0 1, 1 0))'::geometry)
+----
+false
+
+query T
+SELECT ST_IsSimple('MULTILINESTRING((0 0, 1 1), (1 1, 2 0))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('MULTILINESTRING((0 0, 1 1), (0 0, 1 1))'::geometry)
+----
+false
+
+query T
+SELECT ST_IsSimple('MULTILINESTRING((0 0, 1 1), (1 1, 0 1), (1 1, 2 1))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('MULTILINESTRING((0 0, 1 0, 1 1, 0 0), (5 5, 6 6))'::geometry)
+----
+true
+
+# Polygons are simple if their rings are
+query T
+SELECT ST_IsSimple('POLYGON((0 0, 1 0, 1 1, 0 0))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('POLYGON((0 0, 2 2, 2 0, 0 2, 0 0))'::geometry)
+----
+false
+
+query T
+SELECT ST_IsSimple('POLYGON((0 0, 1 0, 1 1, 1 0, 0 0))'::geometry)
+----
+false
+
+query T
+SELECT ST_IsSimple('POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (5 5, 15 5, 15 6, 5 5))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('POLYGON((0 0, 2 0, 2 2, 0 2, 0 0), (0 0, 1 0, 1 1, 0 0))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('MULTIPOLYGON(((0 0, 1 0, 1 1, 0 0)), ((0 0, 1 0, 1 1, 0 0)))'::geometry)
+----
+true
+
+# Collections are simple if their members are
+query T
+SELECT ST_IsSimple('GEOMETRYCOLLECTION(POINT(1 1), POINT(1 1))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('GEOMETRYCOLLECTION(LINESTRING(0 0, 1 1), LINESTRING(0 1, 1 0))'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('GEOMETRYCOLLECTION(POINT(1 1), LINESTRING(0 0, 2 2, 0 2, 2 0))'::geometry)
+----
+false
+
+# Empty geometries are simple
+query T
+SELECT ST_IsSimple('POINT EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('LINESTRING EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('POLYGON EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('MULTIPOINT EMPTY'::geometry)
+----
+true
+
+query T
+SELECT ST_IsSimple('GEOMETRYCOLLECTION EMPTY'::geometry)
+----
+true
+
+# NULL
+query T
+SELECT ST_IsSimple(NULL::geometry)
+----
+NULL

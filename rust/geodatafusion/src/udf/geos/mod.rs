@@ -1,5 +1,6 @@
 //! UDFs implemented via GEOS bindings.
 
+pub mod accessors;
 pub mod coverage;
 pub mod editors;
 #[cfg(feature = "wagyu")]
