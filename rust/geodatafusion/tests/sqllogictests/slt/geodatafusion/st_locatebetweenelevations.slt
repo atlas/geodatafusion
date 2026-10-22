@@ -1,0 +1,93 @@
+# Edge cases for ST_LocateBetweenElevations, not covered by the PostGIS docs examples.
+
+# Lines, either way round, M interpolated
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('LINESTRING Z (1 2 3, 4 5 6)'::geometry, 2, 4))
+----
+MULTILINESTRING((1 2 3,2 3 4))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('LINESTRING Z (1 2 3, 4 5 6)'::geometry, 4, 2))
+----
+MULTILINESTRING((1 2 3,2 3 4))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('LINESTRING ZM (1 2 3 7, 4 5 6 10)'::geometry, 2, 4))
+----
+MULTILINESTRING((1 2 3 7,2 3 4 8))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('LINESTRING Z (0 0 0, 10 0 10, 20 0 0)'::geometry, 2, 5))
+----
+MULTILINESTRING((2 0 2,5 0 5),(15 0 5,18 0 2))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('SRID=3857;LINESTRING Z (0 0 0, 10 0 10)'::geometry, 2, 5))
+----
+SRID=3857;MULTILINESTRING((2 0 2,5 0 5))
+
+# Touching at a vertex gives a point; equal elevations give crossings
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('LINESTRING Z (0 0 0, 10 0 10, 20 0 0)'::geometry, 10, 15))
+----
+GEOMETRYCOLLECTION(POINT(10 0 10))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('LINESTRING Z (0 0 0, 10 0 10, 20 0 0)'::geometry, 5, 5))
+----
+MULTILINESTRING((5 0 5,5 0 5),(15 0 5,15 0 5))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('LINESTRING Z (0 0 5, 10 0 5)'::geometry, 5, 5))
+----
+MULTILINESTRING((0 0 5,10 0 5))
+
+# Points, polygons and collections
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('POINT Z (1 2 3)'::geometry, 2, 4))
+----
+MULTIPOINT(1 2 3)
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('MULTIPOINT Z (1 2 3, 1 2 7)'::geometry, 2, 4))
+----
+MULTIPOINT(1 2 3)
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('POLYGON Z ((0 0 0, 10 0 10, 10 10 10, 0 10 0, 0 0 0))'::geometry, 2, 5))
+----
+MULTIPOLYGON(((2 0 2,5 0 5,5 10 5,2 10 2,2 0 2)))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('POLYGON Z ((0 0 0, 10 0 10, 10 10 10, 0 10 0, 0 0 0))'::geometry, 5, 5))
+----
+MULTIPOLYGON EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('GEOMETRYCOLLECTION Z (POINT Z (1 1 3), LINESTRING Z (0 0 0, 10 0 10))'::geometry, 2, 5))
+----
+GEOMETRYCOLLECTION(POINT(1 1 3),LINESTRING(2 0 2,5 0 5))
+
+# Empty results
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('LINESTRING Z (0 0 0, 10 0 10)'::geometry, 20, 30))
+----
+MULTILINESTRING EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('LINESTRING Z EMPTY'::geometry, 2, 5))
+----
+MULTILINESTRING EMPTY
+
+# Geometries without Z are errors
+query error
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('LINESTRING (1 2, 4 5)'::geometry, 2, 4))
+
+query error
+SELECT ST_AsEWKT(ST_LocateBetweenElevations('LINESTRING M (1 2 3, 4 5 6)'::geometry, 2, 4))
+
+# NULL
+query T
+SELECT ST_AsEWKT(ST_LocateBetweenElevations(NULL::geometry, 2, 5))
+----
+NULL

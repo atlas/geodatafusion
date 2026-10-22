@@ -176,6 +176,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.InterpolatePoint()))
     ctx.register_udf(udf(native.LineLocatePoint()))
     ctx.register_udf(udf(native.LocateAlong()))
+    ctx.register_udf(udf(native.LocateBetweenElevations()))
 
     # measurement
     ctx.register_udf(udf(native.Area()))

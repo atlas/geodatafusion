@@ -29,6 +29,9 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     crate::udf::geos::io::register(session_context);
 
     #[cfg(feature = "geos-3_11")]
+    crate::udf::geos::linear_referencing::register(session_context);
+
+    #[cfg(feature = "geos-3_11")]
     crate::udf::geos::measurement::register(session_context);
 
     #[cfg(feature = "geos-3_11")]

@@ -11,9 +11,9 @@ use datafusion::logical_expr::{
 use datafusion_macros::user_doc;
 use geo_traits::{Dimensions, GeometryTrait};
 use wkt::Wkt;
-use wkt::types::{Coord, Dimension, MultiPoint, Point};
 
 use crate::error::GeoDataFusionResult;
+use crate::udf::native::linear_referencing::util::locate::locate_along;
 use crate::util::args::optional_float_arg;
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
@@ -125,81 +125,11 @@ impl GeometryKernel for LocateAlongKernel {
             .into());
         }
         let (measure, offset) = (self.measure.value(row), self.offset.value(row));
-        let geom = to_owned_geometry(geom);
-        let dim = match geom.dim() {
-            Dimensions::Xyzm => Dimension::XYZM,
-            _ => Dimension::XYM,
-        };
-        let coords = match geom {
-            Wkt::Point(point) => point
-                .coord()
-                .filter(|c| c.m == Some(measure))
-                .copied()
-                .into_iter()
-                .collect(),
-            Wkt::MultiPoint(points) => points
-                .points()
-                .iter()
-                .filter_map(|point| point.coord().filter(|c| c.m == Some(measure)).copied())
-                .collect(),
-            Wkt::LineString(line) => along(line.coords(), measure, offset),
-            Wkt::MultiLineString(lines) => lines
-                .line_strings()
-                .iter()
-                .flat_map(|line| along(line.coords(), measure, offset))
-                .collect(),
-            Wkt::Polygon(_) | Wkt::MultiPolygon(_) | Wkt::GeometryCollection(_) => {
-                let type_name = match geom {
-                    Wkt::Polygon(_) => "Polygon",
-                    Wkt::MultiPolygon(_) => "MultiPolygon",
-                    _ => "GeometryCollection",
-                };
-                return Err(exec_datafusion_err!(
-                    "st_locatealong: Only linear geometries are supported, {type_name} provided."
-                )
-                .into());
-            }
-        };
-        let points = coords
-            .into_iter()
-            .map(|coord| Point::new(Some(coord), dim))
-            .collect();
-        Ok(Some(Wkt::MultiPoint(MultiPoint::new(points, dim))))
+        Ok(Some(locate_along(
+            "st_locatealong",
+            to_owned_geometry(geom),
+            measure,
+            offset,
+        )?))
     }
-}
-
-/// The points of a line at `measure`, each segment's in turn, without consecutive repeats.
-fn along(coords: &[Coord<f64>], measure: f64, offset: f64) -> Vec<Coord<f64>> {
-    let mut out: Vec<Coord<f64>> = vec![];
-    for pair in coords.windows(2) {
-        let (a, b) = (&pair[0], &pair[1]);
-        let (Some(ma), Some(mb)) = (a.m, b.m) else {
-            continue;
-        };
-        if measure < ma.min(mb) || measure > ma.max(mb) {
-            continue;
-        }
-        // A segment at the measure all along gives its midpoint.
-        let t = if ma == mb {
-            0.5
-        } else {
-            (measure - ma) / (mb - ma)
-        };
-        let mix = |a: f64, b: f64| a + (b - a) * t;
-        let mut point = Coord {
-            x: mix(a.x, b.x),
-            y: mix(a.y, b.y),
-            z: a.z.zip(b.z).map(|(a, b)| mix(a, b)),
-            m: Some(measure),
-        };
-        if offset != 0.0 {
-            let theta = (b.y - a.y).atan2(b.x - a.x);
-            point.x -= offset * theta.sin();
-            point.y += offset * theta.cos();
-        }
-        if out.last() != Some(&point) {
-            out.push(point);
-        }
-    }
-    out
 }

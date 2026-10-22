@@ -1,0 +1,285 @@
+# Edge cases for ST_LocateBetween, not covered by the PostGIS docs examples.
+
+# Lines: the pieces within the range, either way round
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10)'::geometry, 2, 5))
+----
+MULTILINESTRINGM((2 0 2,5 0 5))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10)'::geometry, 5, 2))
+----
+MULTILINESTRINGM((2 0 2,5 0 5))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10)'::geometry, -5, 30))
+----
+MULTILINESTRINGM((0 0 0,10 0 10))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10, 20 0 0)'::geometry, 2, 5))
+----
+MULTILINESTRINGM((2 0 2,5 0 5),(15 0 5,18 0 2))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 1, 10 0 6, 20 0 1)'::geometry, 2, 5))
+----
+MULTILINESTRINGM((2 0 2,8 0 5),(12 0 5,18 0 2))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 6, 10 0 1)'::geometry, 2, 5))
+----
+MULTILINESTRINGM((2 0 5,8 0 2))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 2, 10 0 4, 20 0 3)'::geometry, 2, 5))
+----
+MULTILINESTRINGM((0 0 2,10 0 4,20 0 3))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 5, 10 0 5)'::geometry, 5, 6))
+----
+MULTILINESTRINGM((0 0 5,10 0 5))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 5, 20 0 5, 30 0 10)'::geometry, 2, 5))
+----
+MULTILINESTRINGM((4 0 2,10 0 5,20 0 5))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 5, 20 0 5, 30 0 0)'::geometry, 5, 8))
+----
+MULTILINESTRINGM((10 0 5,20 0 5))
+
+# Lines touching the range at a vertex give points, in a collection
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10)'::geometry, 10, 30))
+----
+GEOMETRYCOLLECTIONM(POINTM(10 0 10))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10, 20 0 0)'::geometry, 10, 15))
+----
+GEOMETRYCOLLECTIONM(POINTM(10 0 10))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 5, 10 0 0, 20 0 5)'::geometry, 5, 8))
+----
+GEOMETRYCOLLECTIONM(POINTM(0 0 5),POINTM(20 0 5))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (6 -3 9, -2 3 8, -8 9 10, 5 8 5)'::geometry, 8, 1))
+----
+GEOMETRYCOLLECTIONM(POINTM(-2 3 8),LINESTRINGM(-2.8 8.6 8,5 8 5))
+
+# Ranges outside the line
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10)'::geometry, 20, 30))
+----
+MULTILINESTRINGM EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('MULTILINESTRING M ((0 0 0, 10 0 10), (0 5 20, 10 5 30))'::geometry, 50, 60))
+----
+MULTILINESTRINGM EMPTY
+
+# Equal measures give ST_LocateAlong's result
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10, 20 0 0)'::geometry, 5, 5))
+----
+MULTIPOINTM(5 0 5,15 0 5)
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 5, 10 0 5)'::geometry, 5, 5))
+----
+MULTIPOINTM(5 0 5)
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 5, 20 0 5, 30 0 10)'::geometry, 5, 5))
+----
+MULTIPOINTM(10 0 5,15 0 5,20 0 5)
+
+query error
+SELECT ST_AsEWKT(ST_LocateBetween('POLYGON M ((0 0 5, 10 0 5, 10 10 5, 0 0 5))'::geometry, 5, 5))
+
+# Z is interpolated, and kept
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING ZM (0 0 1 0, 10 0 3 10)'::geometry, 2, 5))
+----
+MULTILINESTRING((2 0 1.4 2,5 0 2 5))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('SRID=4326;LINESTRING M (0 0 0, 10 0 10)'::geometry, 2, 5))
+----
+SRID=4326;MULTILINESTRINGM((2 0 2,5 0 5))
+
+# Points and multipoints
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('POINT M (1 1 3)'::geometry, 2, 5))
+----
+MULTIPOINTM(1 1 3)
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('POINT M (1 1 3)'::geometry, 4, 5))
+----
+MULTIPOINTM EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('MULTIPOINT M (1 1 3, 2 2 7, 3 3 4)'::geometry, 2, 5))
+----
+MULTIPOINTM(1 1 3,3 3 4)
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('MULTIPOINT M EMPTY'::geometry, 2, 5))
+----
+MULTIPOINTM EMPTY
+
+# Multilines
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('MULTILINESTRING M ((0 0 0, 10 0 10), (0 5 20, 10 5 30))'::geometry, 2, 5))
+----
+MULTILINESTRINGM((2 0 2,5 0 5))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('MULTILINESTRING M ((0 0 0, 10 0 10, 20 0 0), (2 2 4, 4 4 4))'::geometry, 3, 4))
+----
+MULTILINESTRINGM((3 0 3,4 0 4),(16 0 4,17 0 3),(2 2 4,4 4 4))
+
+# Polygons are clipped ring by ring
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('POLYGON M ((0 0 0, 10 0 10, 10 10 10, 0 10 0, 0 0 0))'::geometry, 2, 5))
+----
+MULTIPOLYGONM(((2 0 2,5 0 5,5 10 5,2 10 2,2 0 2)))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('POLYGON M ((10 0 10, 10 10 10, 0 10 0, 0 0 0, 10 0 10))'::geometry, 2, 5))
+----
+MULTIPOLYGONM(((5 10 5,2 10 2,2 0 2,5 0 5,5 10 5)))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('POLYGON M ((0 0 0, 10 0 10, 10 10 20, 0 0 0))'::geometry, 2, 5))
+----
+MULTIPOLYGONM(((2 0 2,5 0 5,2.5 2.5 5,1 1 2,2 0 2)))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('POLYGON M ((0 0 0, 10 0 10, 10 10 10, 0 10 0, 0 0 0), (2 2 2, 2 4 2, 4 4 4, 4 2 4, 2 2 2))'::geometry, 3, 5))
+----
+MULTIPOLYGONM(((3 0 3,5 0 5,5 10 5,3 10 3,3 0 3),(3 4 3,4 4 4,4 2 4,3 2 3,3 4 3)))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('POLYGON M ((0 0 0, 10 0 10, 10 10 10, 0 10 0, 0 0 0), (6 2 6, 6 4 6, 8 4 8, 8 2 8, 6 2 6))'::geometry, 3, 5))
+----
+MULTIPOLYGONM(((3 0 3,5 0 5,5 10 5,3 10 3,3 0 3)))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('POLYGON M ((0 0 5, 10 0 5, 10 10 5, 0 0 5))'::geometry, 2, 8))
+----
+MULTIPOLYGONM(((0 0 5,10 0 5,10 10 5,0 0 5)))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('SRID=4326;POLYGON M ((0 0 0, 10 0 10, 10 10 10, 0 10 0, 0 0 0))'::geometry, 20, 30))
+----
+SRID=4326;MULTIPOLYGONM EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('MULTIPOLYGON M (((0 0 0, 10 0 10, 10 10 10, 0 10 0, 0 0 0)))'::geometry, 2, 5))
+----
+MULTIPOLYGONM(((2 0 2,5 0 5,5 10 5,2 10 2,2 0 2)))
+
+# Collections keep their members' parts
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('GEOMETRYCOLLECTION M (POINT M (1 1 3), LINESTRING M (0 0 0, 10 0 10))'::geometry, 2, 5))
+----
+GEOMETRYCOLLECTIONM(POINTM(1 1 3),LINESTRINGM(2 0 2,5 0 5))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('GEOMETRYCOLLECTION M (LINESTRING M (0 0 0, 10 0 10, 20 0 0))'::geometry, 10, 15))
+----
+GEOMETRYCOLLECTIONM(POINTM(10 0 10))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('GEOMETRYCOLLECTION M (POLYGON M ((0 0 0, 10 0 10, 10 10 10, 0 10 0, 0 0 0)), POINT M (1 1 9))'::geometry, 2, 5))
+----
+GEOMETRYCOLLECTIONM(POLYGONM((2 0 2,5 0 5,5 10 5,2 10 2,2 0 2)))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('GEOMETRYCOLLECTION M EMPTY'::geometry, 2, 5))
+----
+GEOMETRYCOLLECTIONM EMPTY
+
+# Geometries without M are errors
+query error
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING (0 0, 10 0)'::geometry, 2, 5))
+
+query error
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING Z (0 0 0, 10 0 10)'::geometry, 2, 5))
+
+# Offsets replace the line pieces with their offset curves; points are left out
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10)'::geometry, 2, 5, 1))
+----
+MULTILINESTRING((2 1,5 1))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10)'::geometry, 2, 5, -1))
+----
+MULTILINESTRING((2 -1,5 -1))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10, 20 0 0)'::geometry, 2, 5, 1))
+----
+MULTILINESTRING((2 1,5 1),(15 1,18 1))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10, 10 10 20)'::geometry, 2, 15, 1))
+----
+MULTILINESTRING((2 1,9 1,9 5))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING ZM (0 0 1 0, 10 0 3 10)'::geometry, 2, 5, 1))
+----
+MULTILINESTRING((2 1,5 1))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10)'::geometry, 5, 5, 1))
+----
+MULTIPOINTM(5 1 5)
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10)'::geometry, 20, 30, 1))
+----
+MULTILINESTRINGM EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10, 20 0 0)'::geometry, 10, 15, 1))
+----
+MULTILINESTRING EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('MULTIPOINT M (1 1 3)'::geometry, 2, 5, 1))
+----
+MULTILINESTRING EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('GEOMETRYCOLLECTION M (POINT M (1 1 3), LINESTRING M (0 0 0, 10 0 10))'::geometry, 2, 5, 1))
+----
+MULTILINESTRING((2 1,5 1))
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (6 -3 9, -2 3 8, -8 9 10, 5 8 5)'::geometry, 8, 1, 1))
+----
+MULTILINESTRING((-2.723303501115263 9.597054485501582,5.076696498884737 8.997054485501582))
+
+query error
+SELECT ST_AsEWKT(ST_LocateBetween('POLYGON M ((0 0 0, 10 0 10, 10 10 10, 0 10 0, 0 0 0))'::geometry, 2, 5, 1))
+
+# NULL
+query T
+SELECT ST_AsEWKT(ST_LocateBetween(NULL::geometry, 2, 5))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_LocateBetween('LINESTRING M (0 0 0, 10 0 10)'::geometry, NULL, 5))
+----
+NULL

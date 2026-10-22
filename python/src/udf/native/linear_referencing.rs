@@ -1,6 +1,6 @@
 use geodatafusion::udf::native::linear_referencing::{
     AddMeasure, InterpolatePoint, LineInterpolatePoint, LineInterpolatePoint3D,
-    LineInterpolatePoints, LineLocatePoint, LineSubstring, LocateAlong,
+    LineInterpolatePoints, LineLocatePoint, LineSubstring, LocateAlong, LocateBetweenElevations,
 };
 
 use crate::impl_udf;
@@ -25,3 +25,8 @@ impl_udf!(AddMeasure, PyAddMeasure, "AddMeasure");
 impl_udf!(InterpolatePoint, PyInterpolatePoint, "InterpolatePoint");
 impl_udf!(LineLocatePoint, PyLineLocatePoint, "LineLocatePoint");
 impl_udf!(LocateAlong, PyLocateAlong, "LocateAlong");
+impl_udf!(
+    LocateBetweenElevations,
+    PyLocateBetweenElevations,
+    "LocateBetweenElevations"
+);

@@ -115,6 +115,8 @@ geodatafusion/st_linelocatepoint 20/20
 geodatafusion/st_linemerge 21/21
 geodatafusion/st_linesubstring 25/25
 geodatafusion/st_locatealong 21/21
+geodatafusion/st_locatebetween 56/56
+geodatafusion/st_locatebetweenelevations 18/18
 geodatafusion/st_longestline 18/18
 geodatafusion/st_m 10/10
 geodatafusion/st_makebox2d 7/7
@@ -386,8 +388,8 @@ postgis_docs/st_linestringfromwkb 1/1
 postgis_docs/st_linesubstring 2/4
 postgis_docs/st_linetocurve 0/2
 postgis_docs/st_locatealong 1/1
-postgis_docs/st_locatebetween 0/2
-postgis_docs/st_locatebetweenelevations 0/2
+postgis_docs/st_locatebetween 1/2
+postgis_docs/st_locatebetweenelevations 2/2
 postgis_docs/st_longestline 2/3
 postgis_docs/st_m 1/1
 postgis_docs/st_makeenvelope 1/1

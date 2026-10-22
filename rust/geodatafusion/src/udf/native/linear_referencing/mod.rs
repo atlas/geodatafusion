@@ -5,6 +5,7 @@ mod line_interpolate_points;
 mod line_locate_point;
 mod line_substring;
 mod locate_along;
+mod locate_between_elevations;
 pub(crate) mod util;
 
 pub use add_measure::AddMeasure;
@@ -14,6 +15,7 @@ pub use line_interpolate_points::LineInterpolatePoints;
 pub use line_locate_point::LineLocatePoint;
 pub use line_substring::LineSubstring;
 pub use locate_along::LocateAlong;
+pub use locate_between_elevations::LocateBetweenElevations;
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(LineInterpolatePoint.into());
@@ -24,4 +26,5 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(InterpolatePoint.into());
     session_context.register_udf(LineLocatePoint.into());
     session_context.register_udf(LocateAlong.into());
+    session_context.register_udf(LocateBetweenElevations.into());
 }
