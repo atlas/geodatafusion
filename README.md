@@ -210,7 +210,7 @@ geodatafusion::register(&ctx);
 | ST_GeomFromGML             |             | Takes as input GML representation of geometry and outputs a PostGIS geometry object                    |
 | ST_GeomFromGeoJSON         | ✅          | Takes as input a geojson representation of a geometry and outputs a PostGIS geometry object            |
 | ST_GeomFromKML             |             | Takes as input KML representation of geometry and outputs a PostGIS geometry object                    |
-| ST_GeomFromTWKB            |             | Creates a geometry instance from a TWKB ("Tiny Well-Known Binary") geometry representation.            |
+| ST_GeomFromTWKB            | ✅          | Creates a geometry instance from a TWKB ("Tiny Well-Known Binary") geometry representation.            |
 | ST_GMLToSQL                |             | Return a specified ST_Geometry value from GML representation. This is an alias name for ST_GeomFromGML |
 | ST_LineFromEncodedPolyline | ✅          | Creates a LineString from an Encoded Polyline.                                                         |
 | ST_PointFromGeoHash        | ✅          | Return a point from a GeoHash string.                                                                  |
@@ -248,7 +248,7 @@ geodatafusion::register(&ctx);
 | ST_AsMVTGeom         | ✅          | Transforms a geometry into the coordinate space of a MVT tile.          |
 | ST_AsMVT             |             | Aggregate function returning a MVT representation of a set of rows.     |
 | ST_AsSVG             | ✅          | Returns SVG path data for a geometry.                                   |
-| ST_AsTWKB            |             | Returns the geometry as TWKB, aka "Tiny Well-Known Binary"              |
+| ST_AsTWKB            | ✅          | Returns the geometry as TWKB, aka "Tiny Well-Known Binary"              |
 | ST_GeoHash           | ✅          | Return a GeoHash representation of the geometry.                        |
 
 ### Operators

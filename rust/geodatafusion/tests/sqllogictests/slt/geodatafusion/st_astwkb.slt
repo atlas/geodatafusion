@@ -1,0 +1,177 @@
+# Edge cases for ST_AsTWKB, not covered by the PostGIS docs examples.
+
+# Each type
+query T
+SELECT ST_AsTWKB('POINT(1 2)'::geometry)
+----
+\x01000204
+
+query T
+SELECT ST_AsTWKB('MULTIPOINT((1 2),(3 4))'::geometry)
+----
+\x04000202040404
+
+query T
+SELECT ST_AsTWKB('POLYGON((0 0,10 0,10 10,0 10,0 0),(1 1,1 2,2 2,1 1))'::geometry)
+----
+\x0300020500001400001413000013040202000202000101
+
+query T
+SELECT ST_AsTWKB('MULTILINESTRING((1 2,3 4),(5 6,7 8))'::geometry)
+----
+\x05000202020404040204040404
+
+query T
+SELECT ST_AsTWKB('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5)))'::geometry)
+----
+\x0600020104000002000002010101040a0a020000020101
+
+# Collection members start over, header and all
+query T
+SELECT ST_AsTWKB('GEOMETRYCOLLECTION(POINT(1 2),LINESTRING(3 4,5 6))'::geometry)
+----
+\x0700020100020402000206080404
+
+# Precision, halves rounding away from zero
+query T
+SELECT ST_AsTWKB('POINT(1.25 -1.25)'::geometry, 1)
+----
+\x21001a19
+
+query T
+SELECT ST_AsTWKB('POINT(0.5 -0.5)'::geometry)
+----
+\x01000201
+
+query T
+SELECT ST_AsTWKB('POINT(1 2)'::geometry, 7)
+----
+\xe10080dac40980b48913
+
+# A negative precision scales by a single precision factor: 0.01 is a little less, 0.1 a little
+# more
+query T
+SELECT ST_AsTWKB('POINT(150 -250)'::geometry, -2)
+----
+\x31000203
+
+query T
+SELECT ST_AsTWKB('POINT(15 -25)'::geometry, -1)
+----
+\x11000405
+
+query error
+SELECT ST_AsTWKB('POINT(1 2)'::geometry, 8)
+
+query error
+SELECT ST_AsTWKB('POINT(1 2)'::geometry, -8)
+
+# Z and M, with their own precisions
+query T
+SELECT ST_AsTWKB('POINT Z(1 2 3)'::geometry, 1, 2)
+----
+\x2108091428d804
+
+query T
+SELECT ST_AsTWKB('POINT M(1 2 3)'::geometry, 1, 2, 3)
+----
+\x21086a1428f02e
+
+query T
+SELECT ST_AsTWKB('LINESTRING ZM(1 2 3 4,5 6 7 8)'::geometry, 0, 1, 2)
+----
+\x0208470202043ca006080850a006
+
+# Z and M precisions are only checked for ordinates the geometry has
+query T
+SELECT ST_AsTWKB('POINT(1 2)'::geometry, 0, 8, -1)
+----
+\x01000204
+
+query error
+SELECT ST_AsTWKB('POINT Z(1 2 3)'::geometry, 0, 8)
+
+query error
+SELECT ST_AsTWKB('POINT M(1 2 3)'::geometry, 0, 0, -1)
+
+# Points that round onto the previous one are left out, keeping two in a line and four in a ring
+query T
+SELECT ST_AsTWKB('LINESTRING(0 0,0.1 0,1 0,1.1 0)'::geometry)
+----
+\x02000200000200
+
+query T
+SELECT ST_AsTWKB('LINESTRING(0 0,0.1 0,0.2 0)'::geometry)
+----
+\x02000200000000
+
+query T
+SELECT ST_AsTWKB('POLYGON((0 0,0.1 0,0.1 0.1,0 0.1,0 0))'::geometry)
+----
+\x030001040000000000000000
+
+# but not in a multipoint, which leaves out its empty points instead
+query T
+SELECT ST_AsTWKB('MULTIPOINT((0 0),(0.1 0),EMPTY)'::geometry)
+----
+\x04000200000000
+
+# Sizes and bounding boxes, also for collection members
+query T
+SELECT ST_AsTWKB('LINESTRING(1.4 2.6,5.5 -7.5)'::geometry, 0, 0, 0, true, true)
+----
+\x020309020a0f160202060a15
+
+query T
+SELECT ST_AsTWKB('GEOMETRYCOLLECTION(POINT(1 2),LINESTRING(3 4,5 6))'::geometry, 0, 0, 0, true, true)
+----
+\x07031a0208040802010306020004000204020309060408040206080404
+
+# Empty geometries
+query T
+SELECT ST_AsTWKB('POINT EMPTY'::geometry)
+----
+\x0110
+
+query T
+SELECT ST_AsTWKB('LINESTRING Z EMPTY'::geometry)
+----
+\x021801
+
+query T
+SELECT ST_AsTWKB('POINT EMPTY'::geometry, 0, 0, 0, true, true)
+----
+\x011200
+
+query T
+SELECT ST_AsTWKB('MULTILINESTRING((1 2,3 4),EMPTY)'::geometry)
+----
+\x050002020204040400
+
+query T
+SELECT ST_AsTWKB('GEOMETRYCOLLECTION(POINT(1 2),POINT EMPTY)'::geometry)
+----
+\x070002010002040110
+
+# Values that don't fit 64 bits
+query T
+SELECT ST_AsTWKB('POINT(1e300 0)'::geometry)
+----
+\x0100ffffffffffffffffff0100
+
+# NULL options mean the defaults
+query T
+SELECT ST_AsTWKB(NULL::geometry)
+----
+NULL
+
+query T
+SELECT ST_AsTWKB('POINT(1 2)'::geometry, NULL, NULL, NULL, NULL, NULL)
+----
+\x01000204
+
+# Named arguments
+query T
+SELECT ST_AsTWKB(prec => 1, geom => 'POINT(1 2)'::geometry)
+----
+\x21001428

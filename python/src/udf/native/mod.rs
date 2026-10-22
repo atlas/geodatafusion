@@ -158,6 +158,8 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<io::PyAsGeoJSON>()?;
     m.add_class::<io::PyAsLatLonText>()?;
     m.add_class::<io::PyAsSVG>()?;
+    m.add_class::<io::PyAsTWKB>()?;
+    m.add_class::<io::PyGeomFromTWKB>()?;
     m.add_class::<io::PyGeomFromGeoJSON>()?;
     m.add_class::<io::PyAsEncodedPolyline>()?;
     m.add_class::<io::PyLineFromEncodedPolyline>()?;

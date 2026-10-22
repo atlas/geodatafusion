@@ -6,10 +6,12 @@ mod as_geojson;
 mod as_lat_lon_text;
 mod as_svg;
 mod as_text;
+mod as_twkb;
 mod geo_hash;
 mod geom_from_geo_hash;
 mod geom_from_geojson;
 mod geom_from_text;
+mod geom_from_twkb;
 mod geom_from_wkb;
 mod line_from_encoded_polyline;
 pub(crate) mod util;
@@ -20,6 +22,7 @@ pub use as_geojson::AsGeoJSON;
 pub use as_lat_lon_text::AsLatLonText;
 pub use as_svg::AsSVG;
 pub use as_text::{AsEWKT, AsText};
+pub use as_twkb::AsTWKB;
 pub use geo_hash::GeoHash;
 pub use geom_from_geo_hash::{Box2DFromGeoHash, GeomFromGeoHash, PointFromGeoHash};
 pub use geom_from_geojson::GeomFromGeoJSON;
@@ -27,6 +30,7 @@ pub use geom_from_text::{
     GeomCollFromText, GeomFromEWKT, GeomFromText, LineFromText, MLineFromText, MPointFromText,
     MPolyFromText, PointFromText, PolygonFromText,
 };
+pub use geom_from_twkb::GeomFromTWKB;
 pub use geom_from_wkb::{
     GeomCollFromWKB, GeomFromEWKB, GeomFromWKB, LineFromWKB, MLineFromWKB, MPointFromWKB,
     MPolyFromWKB, PointFromWKB, PolyFromWKB,
@@ -64,6 +68,8 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(AsGeoJSON.into());
     session_context.register_udf(AsLatLonText.into());
     session_context.register_udf(AsSVG.into());
+    session_context.register_udf(AsTWKB.into());
+    session_context.register_udf(GeomFromTWKB.into());
     session_context.register_udf(GeomFromGeoJSON.into());
     session_context.register_udf(AsEncodedPolyline.into());
     session_context.register_udf(LineFromEncodedPolyline.into());

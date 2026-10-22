@@ -1,0 +1,111 @@
+# Edge cases for ST_GeomFromTWKB, not covered by the PostGIS docs examples.
+
+# Round trips
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(ST_AsTWKB('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5),(5.2 5.1,5.8 5.1,5.8 5.7,5.2 5.1)))'::geometry, 1)))
+----
+MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5),(5.2 5.1,5.8 5.1,5.8 5.7,5.2 5.1)))
+
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(ST_AsTWKB('GEOMETRYCOLLECTION(POINT(1 2),GEOMETRYCOLLECTION(LINESTRING(3 4,5 6)),POINT EMPTY)'::geometry, 0, 0, 0, true, true)))
+----
+GEOMETRYCOLLECTION(POINT(1 2),GEOMETRYCOLLECTION(LINESTRING(3 4,5 6)),POINT EMPTY)
+
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(ST_AsTWKB('LINESTRING ZM(1.25 2 3.125 4,5 6 7 8.5)'::geometry, 2, 3, 1)))
+----
+LINESTRING ZM (1.25 2 3.125 4,5 6 7 8.5)
+
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(ST_AsTWKB('POINT(150 -250)'::geometry, -2)))
+----
+POINT(100 -200)
+
+# Precision -8 reads, though it can't be written
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(decode('f1000204', 'hex')))
+----
+POINT(100000000 200000000)
+
+# The ID list, unused metadata bits and bytes after the geometry are skipped
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(decode('040402020402040204', 'hex')))
+----
+MULTIPOINT((1 2),(2 4))
+
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(decode('01e00204ff', 'hex')))
+----
+POINT(1 2)
+
+# The size isn't checked
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(decode('0102000204', 'hex')))
+----
+POINT(1 2)
+
+# An unclosed ring is closed, in X and Y
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(decode('03000103000002000200', 'hex')))
+----
+POLYGON((0 0,1 0,2 0,0 0))
+
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(decode('0308020104000000020000020000020300', 'hex')))
+----
+POLYGON M ((0 0 0,1 0 0,2 0 0,3 -2 0,0 0 0))
+
+# Empty geometries
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(decode('0610', 'hex')))
+----
+MULTIPOLYGON EMPTY
+
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(decode('020000', 'hex')))
+----
+LINESTRING EMPTY
+
+query T
+SELECT ST_AsText(ST_GeomFromTWKB(decode('021801', 'hex')))
+----
+LINESTRING Z EMPTY
+
+# A line needs two points, a ring four once closed
+query error
+SELECT ST_GeomFromTWKB(decode('020001020000', 'hex'))
+
+query error
+SELECT ST_GeomFromTWKB(decode('0300010200000200', 'hex'))
+
+# An empty ring
+query error
+SELECT ST_GeomFromTWKB(decode('0300020400000200020003000000', 'hex'))
+
+# Unknown types
+query error
+SELECT ST_GeomFromTWKB(decode('08000204', 'hex'))
+
+query error
+SELECT ST_GeomFromTWKB(decode('00000204', 'hex'))
+
+# Too short, also for a flagged bounding box of an empty geometry
+query error
+SELECT ST_GeomFromTWKB(decode('', 'hex'))
+
+query error
+SELECT ST_GeomFromTWKB(decode('010002', 'hex'))
+
+query error
+SELECT ST_GeomFromTWKB(decode('011103', 'hex'))
+
+# The result has no SRID
+query I
+SELECT ST_SRID(ST_GeomFromTWKB(decode('01000204', 'hex')))
+----
+0
+
+query T
+SELECT ST_GeomFromTWKB(NULL::bytea)
+----
+NULL

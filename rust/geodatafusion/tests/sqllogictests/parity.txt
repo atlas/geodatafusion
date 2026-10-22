@@ -26,6 +26,7 @@ geodatafusion/st_aslatlontext 53/53
 geodatafusion/st_asmvtgeom 122/122
 geodatafusion/st_assvg 25/25
 geodatafusion/st_astext 28/28
+geodatafusion/st_astwkb 34/34
 geodatafusion/st_boundary 32/32
 geodatafusion/st_boundingdiagonal 22/22
 geodatafusion/st_box2dfromgeohash 12/12
@@ -87,6 +88,7 @@ geodatafusion/st_geomfromewkt 14/14
 geodatafusion/st_geomfromgeohash 12/12
 geodatafusion/st_geomfromgeojson 65/65
 geodatafusion/st_geomfromtext 63/63
+geodatafusion/st_geomfromtwkb 23/23
 geodatafusion/st_geomfromwkb 17/17
 geodatafusion/st_hasm 12/12
 geodatafusion/st_hasz 12/12
@@ -268,7 +270,7 @@ postgis_docs/st_aslatlontext 6/6
 postgis_docs/st_asmarc21 0/3
 postgis_docs/st_asmvtgeom 1/1
 postgis_docs/st_assvg 1/4
-postgis_docs/st_astwkb 0/1
+postgis_docs/st_astwkb 1/1
 postgis_docs/st_asx3d 0/3
 postgis_docs/st_azimuth 0/1
 postgis_docs/st_boundary 6/6
@@ -355,7 +357,7 @@ postgis_docs/st_geomfromgml 0/3
 postgis_docs/st_geomfromkml 0/1
 postgis_docs/st_geomfrommarc21 0/3
 postgis_docs/st_geomfromtext 6/7
-postgis_docs/st_geomfromtwkb 0/2
+postgis_docs/st_geomfromtwkb 1/2
 postgis_docs/st_geomfromwkb 1/2
 postgis_docs/st_hasarc 0/1
 postgis_docs/st_hasm 2/2

@@ -1,10 +1,10 @@
 use geodatafusion::udf::native::io::{
-    AsBinary, AsEWKB, AsEWKT, AsEncodedPolyline, AsGeoJSON, AsHEXEWKB, AsLatLonText, AsSVG, AsText,
-    Box2DFromGeoHash, GeoHash, GeomCollFromText, GeomCollFromWKB, GeomFromEWKB, GeomFromEWKT,
-    GeomFromGeoHash, GeomFromGeoJSON, GeomFromText, GeomFromWKB, LineFromEncodedPolyline,
-    LineFromText, LineFromWKB, MLineFromText, MLineFromWKB, MPointFromText, MPointFromWKB,
-    MPolyFromText, MPolyFromWKB, PointFromGeoHash, PointFromText, PointFromWKB, PolyFromWKB,
-    PolygonFromText,
+    AsBinary, AsEWKB, AsEWKT, AsEncodedPolyline, AsGeoJSON, AsHEXEWKB, AsLatLonText, AsSVG, AsTWKB,
+    AsText, Box2DFromGeoHash, GeoHash, GeomCollFromText, GeomCollFromWKB, GeomFromEWKB,
+    GeomFromEWKT, GeomFromGeoHash, GeomFromGeoJSON, GeomFromTWKB, GeomFromText, GeomFromWKB,
+    LineFromEncodedPolyline, LineFromText, LineFromWKB, MLineFromText, MLineFromWKB,
+    MPointFromText, MPointFromWKB, MPolyFromText, MPolyFromWKB, PointFromGeoHash, PointFromText,
+    PointFromWKB, PolyFromWKB, PolygonFromText,
 };
 
 use crate::impl_udf;
@@ -40,6 +40,8 @@ impl_udf!(GeomCollFromWKB, PyGeomCollFromWKB, "GeomCollFromWKB");
 impl_udf!(AsGeoJSON, PyAsGeoJSON, "AsGeoJSON");
 impl_udf!(AsLatLonText, PyAsLatLonText, "AsLatLonText");
 impl_udf!(AsSVG, PyAsSVG, "AsSVG");
+impl_udf!(AsTWKB, PyAsTWKB, "AsTWKB");
+impl_udf!(GeomFromTWKB, PyGeomFromTWKB, "GeomFromTWKB");
 impl_udf!(GeomFromGeoJSON, PyGeomFromGeoJSON, "GeomFromGeoJSON");
 impl_udf!(AsEncodedPolyline, PyAsEncodedPolyline, "AsEncodedPolyline");
 impl_udf!(
