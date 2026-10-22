@@ -15,6 +15,7 @@ pub(crate) mod ordinates;
     )
 )]
 pub(crate) mod owned;
+pub(crate) mod set_returning;
 pub(crate) mod signature;
 pub(crate) mod srid;
 mod srid_authorities;

@@ -26,6 +26,9 @@ def register_all_native(ctx: SessionContext):
     # accessors
     ctx.register_udf(udf(native.CoordDim()))
     ctx.register_udf(udf(native.Dump()))
+    ctx.register_udf(udf(native.DumpPoints()))
+    ctx.register_udf(udf(native.DumpRings()))
+    ctx.register_udf(udf(native.DumpSegments()))
     ctx.register_udf(udf(native.EndPoint()))
     ctx.register_udf(udf(native.IsClosed()))
     ctx.register_udf(udf(native.IsEmpty()))

@@ -50,6 +50,10 @@ geodatafusion/st_difference 20/20
 geodatafusion/st_dimension 19/19
 geodatafusion/st_disjoint 20/20
 geodatafusion/st_distance 31/31
+geodatafusion/st_dump 18/18
+geodatafusion/st_dumppoints 15/15
+geodatafusion/st_dumprings 10/10
+geodatafusion/st_dumpsegments 14/14
 geodatafusion/st_dwithin 18/18
 geodatafusion/st_endpoint 16/16
 geodatafusion/st_envelope 19/19

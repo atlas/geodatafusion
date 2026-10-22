@@ -1,0 +1,93 @@
+# Edge cases for ST_DumpSegments, not covered by the PostGIS docs examples. The table function form takes
+# a constant, and DataFusion only finds it by its lowercase name.
+
+# Lines and polygon rings
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments('LINESTRING(0 0, 1 1, 2 2)'::geometry)
+----
+{1} LINESTRING(0 0,1 1)
+{2} LINESTRING(1 1,2 2)
+
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments('LINESTRING(0 0, 1 1)'::geometry)
+----
+{1} LINESTRING(0 0,1 1)
+
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments('POLYGON((0 0, 1 0, 1 1, 0 0), (0.2 0.1, 0.3 0.1, 0.3 0.2, 0.2 0.1))'::geometry)
+----
+{1,1} LINESTRING(0 0,1 0)
+{1,2} LINESTRING(1 0,1 1)
+{1,3} LINESTRING(1 1,0 0)
+{2,1} LINESTRING(0.2 0.1,0.3 0.1)
+{2,2} LINESTRING(0.3 0.1,0.3 0.2)
+{2,3} LINESTRING(0.3 0.2,0.2 0.1)
+
+# MULTI geometries and collections
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments('MULTILINESTRING((0 0, 1 1, 2 2), (5 5, 6 6))'::geometry)
+----
+{1,1} LINESTRING(0 0,1 1)
+{1,2} LINESTRING(1 1,2 2)
+{2,1} LINESTRING(5 5,6 6)
+
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments('MULTIPOLYGON(((0 0, 1 0, 1 1, 0 0)), ((5 5, 6 5, 6 6, 5 5)))'::geometry)
+----
+{1,1,1} LINESTRING(0 0,1 0)
+{1,1,2} LINESTRING(1 0,1 1)
+{1,1,3} LINESTRING(1 1,0 0)
+{2,1,1} LINESTRING(5 5,6 5)
+{2,1,2} LINESTRING(6 5,6 6)
+{2,1,3} LINESTRING(6 6,5 5)
+
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments('GEOMETRYCOLLECTION(LINESTRING(1 1, 3 3, 4 4), POLYGON((5 5, 6 6, 7 7, 5 5)), POINT(1 1))'::geometry)
+----
+{1,1} LINESTRING(1 1,3 3)
+{1,2} LINESTRING(3 3,4 4)
+{2,1,1} LINESTRING(5 5,6 6)
+{2,1,2} LINESTRING(6 6,7 7)
+{2,1,3} LINESTRING(7 7,5 5)
+
+# Points, and empty geometries, have no segments; degenerate segments are kept
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments('POINT(1 1)'::geometry)
+----
+
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments('MULTIPOINT(1 1, 2 2)'::geometry)
+----
+
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments('LINESTRING EMPTY'::geometry)
+----
+
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments('GEOMETRYCOLLECTION(LINESTRING EMPTY, LINESTRING(0 0, 1 1))'::geometry)
+----
+{2,1} LINESTRING(0 0,1 1)
+
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments('LINESTRING(0 0, 0 0, 1 1)'::geometry)
+----
+{1} LINESTRING(0 0,0 0)
+{2} LINESTRING(0 0,1 1)
+
+# Z, M and the SRID are kept
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments('SRID=4326;LINESTRING ZM (0 0 1 2, 1 1 3 4, 2 2 5 6)'::geometry)
+----
+{1} SRID=4326;LINESTRING(0 0 1 2,1 1 3 4)
+{2} SRID=4326;LINESTRING(1 1 3 4,2 2 5 6)
+
+# NULL gives no rows
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumpsegments(NULL::geometry)
+----
+
+# The result's columns can be used like any table's
+query I
+SELECT count(*) FROM st_dumpsegments('MULTIPOLYGON(((0 0, 1 0, 1 1, 0 0)), ((5 5, 6 5, 6 6, 5 5), (5.2 5.1, 5.8 5.1, 5.8 5.7, 5.2 5.1)))'::geometry) AS d WHERE d.path[1] = 2
+----
+6

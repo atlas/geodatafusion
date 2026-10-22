@@ -23,6 +23,9 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<accessors::PyIsClosed>()?;
     m.add_class::<accessors::PyIsEmpty>()?;
     m.add_class::<accessors::PyDump>()?;
+    m.add_class::<accessors::PyDumpPoints>()?;
+    m.add_class::<accessors::PyDumpRings>()?;
+    m.add_class::<accessors::PyDumpSegments>()?;
     m.add_class::<accessors::PyM>()?;
     m.add_class::<accessors::PyGeometryType>()?;
     m.add_class::<accessors::PyNDims>()?;

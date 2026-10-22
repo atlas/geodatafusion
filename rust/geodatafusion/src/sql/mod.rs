@@ -8,6 +8,7 @@ mod values;
 
 use std::sync::Arc;
 
+pub(crate) use casts::unfold_text_cast;
 use datafusion::execution::FunctionRegistry;
 use datafusion::prelude::SessionContext;
 pub use types::GeoTypePlanner;

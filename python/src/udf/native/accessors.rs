@@ -1,8 +1,9 @@
 use geodatafusion::udf::native::accessors::{
-    Boundary, BoundingDiagonal, CoordDim, Dimension, Dump, EndPoint, Envelope, ExteriorRing,
-    GeometryN, GeometryType, HasM, HasZ, InteriorRingN, IsClosed, IsCollection, IsEmpty,
-    IsPolygonCCW, IsPolygonCW, M, NDims, NPoints, NRings, NumGeometries, NumInteriorRings,
-    NumPoints, PointN, Points, ST_GeometryType, StartPoint, Summary, X, Y, Z, Zmflag,
+    Boundary, BoundingDiagonal, CoordDim, Dimension, Dump, DumpPoints, DumpRings, DumpSegments,
+    EndPoint, Envelope, ExteriorRing, GeometryN, GeometryType, HasM, HasZ, InteriorRingN, IsClosed,
+    IsCollection, IsEmpty, IsPolygonCCW, IsPolygonCW, M, NDims, NPoints, NRings, NumGeometries,
+    NumInteriorRings, NumPoints, PointN, Points, ST_GeometryType, StartPoint, Summary, X, Y, Z,
+    Zmflag,
 };
 
 use crate::impl_udf;
@@ -16,6 +17,9 @@ impl_udf!(M, PyM, "M");
 impl_udf!(IsClosed, PyIsClosed, "IsClosed");
 impl_udf!(IsEmpty, PyIsEmpty, "IsEmpty");
 impl_udf!(Dump, PyDump, "Dump");
+impl_udf!(DumpPoints, PyDumpPoints, "DumpPoints");
+impl_udf!(DumpRings, PyDumpRings, "DumpRings");
+impl_udf!(DumpSegments, PyDumpSegments, "DumpSegments");
 impl_udf!(EndPoint, PyEndPoint, "EndPoint");
 impl_udf!(StartPoint, PyStartPoint, "StartPoint");
 impl_udf!(NPoints, PyNPoints, "NPoints");

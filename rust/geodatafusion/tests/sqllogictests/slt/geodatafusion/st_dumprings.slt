@@ -1,0 +1,50 @@
+# Edge cases for ST_DumpRings, not covered by the PostGIS docs examples. The table function form takes
+# a constant, and DataFusion only finds it by its lowercase name.
+
+# The shell is ring 0, the holes 1 and up
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumprings('POLYGON((0 0, 1 0, 1 1, 0 0))'::geometry)
+----
+{0} POLYGON((0 0,1 0,1 1,0 0))
+
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumprings('POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (1 1, 2 1, 2 2, 1 1), (5 5, 6 5, 6 6, 5 5))'::geometry)
+----
+{0} POLYGON((0 0,10 0,10 10,0 10,0 0))
+{1} POLYGON((1 1,2 1,2 2,1 1))
+{2} POLYGON((5 5,6 5,6 6,5 5))
+
+# An empty polygon has no rings
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumprings('POLYGON EMPTY'::geometry)
+----
+
+# Z, M and the SRID are kept
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumprings('SRID=4326;POLYGON Z ((0 0 1, 1 0 1, 1 1 1, 0 0 1))'::geometry)
+----
+{0} SRID=4326;POLYGON((0 0 1,1 0 1,1 1 1,0 0 1))
+
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumprings('SRID=3857;POLYGON ZM ((0 0 1 2, 1 0 1 2, 1 1 1 2, 0 0 1 2), (0.2 0.1 1 1, 0.3 0.1 1 1, 0.3 0.2 1 1, 0.2 0.1 1 1))'::geometry)
+----
+{0} SRID=3857;POLYGON((0 0 1 2,1 0 1 2,1 1 1 2,0 0 1 2))
+{1} SRID=3857;POLYGON((0.2 0.1 1 1,0.3 0.1 1 1,0.3 0.2 1 1,0.2 0.1 1 1))
+
+# Anything but a polygon is an error
+query error
+SELECT path, ST_AsEWKT(geom) FROM st_dumprings('MULTIPOLYGON(((0 0, 1 0, 1 1, 0 0)))'::geometry)
+
+query error
+SELECT path, ST_AsEWKT(geom) FROM st_dumprings('LINESTRING(0 0, 1 1)'::geometry)
+
+query error
+SELECT path, ST_AsEWKT(geom) FROM st_dumprings('POINT(1 1)'::geometry)
+
+query error
+SELECT path, ST_AsEWKT(geom) FROM st_dumprings('GEOMETRYCOLLECTION(POLYGON((0 0, 1 0, 1 1, 0 0)))'::geometry)
+
+# NULL gives no rows
+query TT rowsort
+SELECT path, ST_AsEWKT(geom) FROM st_dumprings(NULL::geometry)
+----

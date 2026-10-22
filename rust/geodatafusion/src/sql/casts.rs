@@ -3,7 +3,7 @@ use std::sync::Arc;
 use arrow_schema::{DataType, Field};
 use datafusion::common::config::ConfigOptions;
 use datafusion::common::tree_node::Transformed;
-use datafusion::common::{DFSchema, plan_err};
+use datafusion::common::{DFSchema, ScalarValue, plan_err};
 use datafusion::error::Result;
 use datafusion::logical_expr::expr::{Cast, ScalarFunction};
 use datafusion::logical_expr::expr_rewriter::FunctionRewrite;
@@ -97,6 +97,29 @@ fn cast_from(source: &Field, target: &Field, input: Expr) -> Result<Expr> {
         Box::new(output),
         target.data_type().clone(),
     )))
+}
+
+/// What a folded cast of text to a spatial type should have been: the call [`GeoCastRewrite`]
+/// would have made of the cast.
+///
+/// DataFusion simplifies table function arguments before analysis, so `'POINT(1 1)'::geometry`
+/// reaches a table function as the text's bytes typed as WKB. WKB starts with its byte order, 0
+/// or 1, and WKT, EWKT and HEXEWKB with a printable character, so the two can't be confused.
+pub(crate) fn unfold_text_cast(expr: Expr) -> Expr {
+    let Expr::Literal(ScalarValue::Binary(Some(bytes)), Some(metadata)) = &expr else {
+        return expr;
+    };
+    if matches!(bytes.first(), None | Some(0 | 1)) {
+        return expr;
+    }
+    let field = metadata.add_to_field(Field::new("", DataType::Binary, true));
+    let (Some(udf), Ok(text)) = (cast_to(&field), std::str::from_utf8(bytes)) else {
+        return expr;
+    };
+    call(
+        udf,
+        Expr::Literal(ScalarValue::Utf8(Some(text.to_string())), None),
+    )
 }
 
 fn is_spatial(field: &Field) -> bool {
