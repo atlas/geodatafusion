@@ -220,6 +220,9 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.SRID()))
 
     # trajectory
+    ctx.register_udf(udf(native.CPAWithin()))
+    ctx.register_udf(udf(native.ClosestPointOfApproach()))
+    ctx.register_udf(udf(native.DistanceCPA()))
     ctx.register_udf(udf(native.IsValidTrajectory()))
 
     # types

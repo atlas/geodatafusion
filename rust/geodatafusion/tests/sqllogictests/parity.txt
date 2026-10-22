@@ -32,6 +32,7 @@ geodatafusion/st_buildarea 12/12
 geodatafusion/st_centroid 18/18
 geodatafusion/st_chaikinsmoothing 24/24
 geodatafusion/st_closestpoint 38/38
+geodatafusion/st_closestpointofapproach 16/16
 geodatafusion/st_collect 21/21
 geodatafusion/st_collect_agg 16/16
 geodatafusion/st_collectionextract 27/27
@@ -44,12 +45,14 @@ geodatafusion/st_coorddim 11/11
 geodatafusion/st_coverageunion 15/15
 geodatafusion/st_coveredby 25/25
 geodatafusion/st_covers 25/25
+geodatafusion/st_cpawithin 19/19
 geodatafusion/st_crosses 20/20
 geodatafusion/st_delaunaytriangles 14/14
 geodatafusion/st_difference 20/20
 geodatafusion/st_dimension 19/19
 geodatafusion/st_disjoint 20/20
 geodatafusion/st_distance 31/31
+geodatafusion/st_distancecpa 16/16
 geodatafusion/st_dump 18/18
 geodatafusion/st_dumppoints 15/15
 geodatafusion/st_dumprings 10/10

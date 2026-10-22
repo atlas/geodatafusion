@@ -460,6 +460,6 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 | Name                      | Implemented | Description                                                                            |
 | ------------------------- | ----------- | -------------------------------------------------------------------------------------- |
 | ST_IsValidTrajectory      | ✅          | Tests if the geometry is a valid trajectory.                                           |
-| ST_ClosestPointOfApproach |             | Returns a measure at the closest point of approach of two trajectories.                |
-| ST_DistanceCPA            |             | Returns the distance between the closest point of approach of two trajectories.        |
-| ST_CPAWithin              |             | Tests if the closest point of approach of two trajectories is within the specified distance. |
+| ST_ClosestPointOfApproach | ✅          | Returns a measure at the closest point of approach of two trajectories.                |
+| ST_DistanceCPA            | ✅          | Returns the distance between the closest point of approach of two trajectories.        |
+| ST_CPAWithin              | ✅          | Tests if the closest point of approach of two trajectories is within the specified distance. |

@@ -213,6 +213,9 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<srs::PySRID>()?;
 
     // trajectory
+    m.add_class::<trajectory::PyCPAWithin>()?;
+    m.add_class::<trajectory::PyClosestPointOfApproach>()?;
+    m.add_class::<trajectory::PyDistanceCPA>()?;
     m.add_class::<trajectory::PyIsValidTrajectory>()?;
 
     // types
