@@ -230,6 +230,12 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    PostGIS does, lines and points through GEOS, with PostGIS's steps fitted to 9,700 random
    calls (9,696 match; the rest have self-intersecting polygons). Parity 3910/4138 ->
    4033/4260. ST_AsMVT, the aggregate, stays deferred (G5, whole-row argument).
+   Then ST_ClosestPoint, ST_ShortestLine, ST_LongestLine and ST_MaxDistance (G1, on ST_Distance's
+   kernel, now `native/util/distance`), the G5 dump functions with their table function forms
+   (`util/set_returning`, R2 and R3 of the G5 plan; `FROM st_dump(<constant>)` works, lowercase
+   only), ST_IsSimple and ST_IsRing (G3), and ST_ClosestPointOfApproach, ST_DistanceCPA and
+   ST_CPAWithin (G1 batch 4). Parity 4033/4260 -> 4312/4526. Left in G1 batch 4:
+   ST_LocateBetween and ST_LocateBetweenElevations.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
