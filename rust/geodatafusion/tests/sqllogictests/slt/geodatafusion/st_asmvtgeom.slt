@@ -1,0 +1,619 @@
+# Edge cases for ST_AsMVTGeom, not covered by the PostGIS docs examples.
+
+# Arguments: defaults, and NULL extent, buffer or clip_geom take the default
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(1 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10))))
+----
+POINT(410 3686)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(1 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), NULL))
+----
+POINT(410 3686)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(5 266)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, NULL))
+----
+POINT(5 -256)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(5 267)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, NULL))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(5 20)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0, NULL))
+----
+NULL
+
+# NULL geometry, EMPTY geometries
+query T
+SELECT ST_AsText(ST_AsMVTGeom(NULL::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10))))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom(NULL::geometry, NULL))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT EMPTY'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10))))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON EMPTY'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10))))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('GEOMETRYCOLLECTION EMPTY'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10))))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOINT(1 1, EMPTY, 2 2)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOINT((1 9),(2 8))
+
+# Invalid arguments are errors, checked before the geometry
+query error
+SELECT ST_AsText(ST_AsMVTGeom('POINT(1 1)'::geometry, NULL))
+
+query error
+SELECT ST_AsText(ST_AsMVTGeom('POINT EMPTY'::geometry, NULL))
+
+query error
+SELECT ST_AsText(ST_AsMVTGeom('POINT(1 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(0, 10))))
+
+query error
+SELECT ST_AsText(ST_AsMVTGeom('POINT EMPTY'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 0))
+
+query error
+SELECT ST_AsText(ST_AsMVTGeom('POINT(1 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), -10))
+
+query error
+SELECT ST_AsText(ST_AsMVTGeom('POINT(1 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 0)), 0))
+
+# A geometry as bounds, and the SRID of the input
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(1 1)'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0))'::geometry, 10))
+----
+POINT(1 9)
+
+query T
+SELECT ST_AsEWKT(ST_AsMVTGeom('SRID=3857;POINT(1 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10))
+----
+SRID=3857;POINT(1 9)
+
+query T
+SELECT ST_AsEWKT(ST_AsMVTGeom('SRID=4326;LINESTRING(-5 5, 15 5)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+SRID=4326;LINESTRING(0 5,10 5)
+
+query T
+SELECT ST_AsEWKT(ST_AsMVTGeom('SRID=3857;POLYGON((1 1, 3 1, 3 3, 1 3, 1 1))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+SRID=3857;POLYGON((1 9,1 7,3 7,3 9,1 9))
+
+# Transform: y points down, the scale may differ per axis, and halfway values round to even
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(1 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(20, 10)), 10))
+----
+POINT(0 9)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(1 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(3, 3)), 4096))
+----
+POINT(1365 2731)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOINT(0.5 5, 1.5 5, 2.5 5)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOINT((0 5),(2 5))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(-1.5 5)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 2))
+----
+POINT(-2 5)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(5 0.5)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POINT(5 10)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(5 11.5)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 2))
+----
+POINT(5 -2)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(-81.463 -30)'::geometry, ST_MakeBox2D(ST_Point(-81.228, -34.236), ST_Point(-71.228, -24.236)), 1000, -1))
+----
+POINT(-24 576)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(-57.335 -48.329)'::geometry, ST_MakeBox2D(ST_Point(-68.02, -73.526), ST_Point(-58.02, -41.672)), 1000, 64))
+----
+NULL
+
+# Points: clipped after rounding, edges included
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(10.4 10)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POINT(10 0)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(10.6 10)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(11.4 10)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 1))
+----
+POINT(11 0)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(-0.6 5)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(20 10)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0, false))
+----
+POINT(20 0)
+
+# Multipoints are sorted, lose repeats in 2D, and become points
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOINT(1 1, 1 1, 2 2, 20 20, 1.2 1.1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOINT((1 9),(2 8))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOINT(1 3, 1 1, 3 1, 2 9)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOINT((1 7),(1 9),(2 1),(3 9))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOINT(1 1, 20 20)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POINT(1 9)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOINT(20 20, 30 30)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOINT Z (1 1 1, 1 1 2, 3 3 3)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOINT Z ((1 9 1),(3 7 3))
+
+# Z and M of points: kept, but clipping (by GEOS) drops M and points on the edges
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT Z (1 1 5)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10))
+----
+POINT Z (1 9 5)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT M (1 1 5)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10))
+----
+POINT M (1 9 5)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOINT M (1 1 1, 3 3 3)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOINT M ((1 9 1),(3 7 3))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOINT ZM (1 1 1 1, 3 3 3 3, 20 20 5 5)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOINT Z ((1 9 1),(3 7 3))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOINT(1 1, 9 9, 10 10)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOINT((1 9),(9 1),(10 0))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOINT(1 1, 10 10, 11 11)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POINT(1 9)
+
+# A negative buffer is read as unsigned, so it doesn't clip
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POINT(5 50)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, -1))
+----
+POINT(5 -40)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(5 -50, 5 50)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, -1))
+----
+LINESTRING(5 60,5 -40)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(-1e12 26.864, 1e12 61.915)'::geometry, ST_MakeBox2D(ST_Point(-5.643, 26.864), ST_Point(29.407, 61.915)), 10, -1))
+----
+LINESTRING(-4294967295 5,4294967305 5)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((-50 -50, 50 -50, 50 50, -50 50, -50 -50))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, -1))
+----
+POLYGON((-50 60,-50 -40,50 -40,50 60,-50 60))
+
+# Geometries smaller than half a tile unit both ways are dropped before rounding
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(1.25 1, 1.75 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(1 9,2 9)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(1.26 1, 1.75 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(1.45 1, 1.55 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0, false))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(1 1, 1 1.9)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 20)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(1 1, 1 2)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 20)), 10, 0))
+----
+LINESTRING(1 10,1 9)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('GEOMETRYCOLLECTION(LINESTRING(1.45 1, 1.55 1), POINT(5 5))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(1 9,2 9)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1.45 1.45, 1.55 1.45, 1.55 1.55, 1.45 1.55, 1.45 1.45), (1.46 1.46, 5 1.46, 5 5, 1.46 1.46))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+# Lines: repeats and collinear points go, collapsed lines go
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(1 1, 2 2, 3 3)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(1 9,3 7)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(1 1, 1.2 1.2, 3 3)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(1 9,3 7)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(0 0, 5 0, 3 0, 10 0)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(0 10,5 10,3 10,10 10)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(1 1, 3 3, 1 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(1 9,3 7,1 9)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(1 1, 1.6 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(1 9,2 9)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(1 1, 0.6 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(1 1, 2 1.4, 3 1)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(1 9,3 9)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING Z (1 1 1, 2 2 7, 3 3 3)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING Z (1 9 1,3 7 3)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING Z (-1.117 -90.868 4.401, 8.883 -80.868 -1.972, 8.883 -80.868 2)'::geometry, ST_MakeBox2D(ST_Point(-1.117, -90.868), ST_Point(8.883, -80.868)), 100, -1))
+----
+LINESTRING Z (0 100 4.401,100 0 2)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTILINESTRING((1 1, 1.1 1.1), (3 3, 4 4))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(3 7,4 6)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTILINESTRING((3 3, 4 4), (1 1, 2 2), (1 1, 2 2))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTILINESTRING((3 7,4 6),(1 9,2 8),(1 9,2 8))
+
+# Lines are clipped by GEOS after rounding, then rounded again
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(-5 0.3, 15 3.3)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(0 9,10 8)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(-5 5, 5 5, 5 15, 7 15, 7 5, 15 5)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTILINESTRING((0 5,5 5,5 0),(7 0,7 5,10 5))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(0 -5, 0 15)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(0 0, 10 0, 10 10)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(0 10,10 10,10 0)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(20 20, 30 30)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(1 1, 9 1, 9 9, 20 9)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0, false))
+----
+LINESTRING(1 9,9 9,9 1,20 1)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING(-1e10 5, 1e10 5)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 4096, 0, false))
+----
+LINESTRING(-4096000000000 2048,4096000000000 2048)
+
+# Z and M of lines: clipping interpolates Z and drops M
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING Z (-5 5 1, 15 5 3)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING Z (0 5 1.5,10 5 2.5)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING M (-5 5 1, 15 5 3)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(0 5,10 5)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING M (1 1 1, 3 3 3)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING M (1 9 1,3 7 3)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('LINESTRING ZM (1 1 1 1, 3 3 3 3)'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING ZM (1 9 1 1,3 7 3 3)
+
+# Polygons: made valid by Wagyu, in its orientation, whatever the input's
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1 1, 3 1, 3 3, 1 3, 1 1))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POLYGON((1 9,1 7,3 7,3 9,1 9))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1 1, 1 3, 3 3, 3 1, 1 1))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POLYGON((3 7,3 9,1 9,1 7,3 7))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1 1, 9 1, 9 9, 1 9, 1 1), (3 3, 3 5, 5 5, 5 3, 3 3))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POLYGON((1 9,1 1,9 1,9 9,1 9),(5 5,3 5,3 7,5 7,5 5))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1 1, 9 1, 9 9, 1 9, 1 1), (3 3, 5 3, 5 5, 3 5, 3 3), (6 6, 7 6, 7 7, 6 7, 6 6))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POLYGON((1 9,1 1,9 1,9 9,1 9),(3 7,5 7,5 5,3 5,3 7),(6 4,7 4,7 3,6 3,6 4))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((0 0, 10 0, 10 5, 0 -5, 0 0))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0, false))
+----
+MULTIPOLYGON(((5 10,10 5,10 10,5 10)),((5 10,0 15,0 10,5 10)))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((0 0, 4 4, 4 0, 0 4, 0 0))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOLYGON(((4 6,4 10,2 8,4 6)),((0 6,2 8,0 10,0 6)))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON Z ((1 1 1, 3 1 1, 3 3 1, 1 3 1, 1 1 1))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POLYGON((1 9,1 7,3 7,3 9,1 9))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON M ((1 1 1, 3 1 1, 3 3 1, 1 3 1, 1 1 1))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POLYGON((1 9,1 7,3 7,3 9,1 9))
+
+# Polygons: the rings of all parts are unioned under the even-odd rule
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOLYGON(((1 1, 3 1, 3 3, 1 3, 1 1)), ((2 2, 4 2, 4 4, 2 4, 2 2)))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOLYGON(((3 8,3 7,2 7,2 6,4 6,4 8,3 8)),((3 8,3 9,1 9,1 7,2 7,2 8,3 8)))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOLYGON(((1 1, 3 1, 3 3, 1 3, 1 1)), ((1 1, 3 1, 3 3, 1 3, 1 1)))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOLYGON(((5 5, 7 5, 7 7, 5 7, 5 5)), ((1 1, 3 1, 3 3, 1 3, 1 1)))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOLYGON(((1 9,1 7,3 7,3 9,1 9)),((5 5,5 3,7 3,7 5,5 5)))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1 1, 3 1, 3 3, 1 3, 1 1), (5 5, 7 5, 7 7, 5 7, 5 5))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOLYGON(((1 9,1 7,3 7,3 9,1 9)),((5 5,5 3,7 3,7 5,5 5)))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1 1, 9 1, 9 9, 1 9, 1 1), (1 1, 5 1, 5 5, 1 5, 1 1))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POLYGON((1 5,1 1,9 1,9 9,5 9,5 5,1 5))
+
+# Polygons: small, collapsed and degenerate rings
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1 1, 2 1, 1 2, 1 1))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1 1, 3 1, 1 2, 1 1))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POLYGON((1 8,3 9,1 9,1 8))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1.6 1.6, 2.4 1.6, 2.4 2.4, 1.6 2.4, 1.6 1.6))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1 1, 2 1, 3 1, 1 1), (5 5, 6 5, 6 6, 5 5))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1 1, 3 1, 3 3, 1 3, 1 1), (1.1 1.1, 1.2 1.1, 1.2 1.2, 1.1 1.1))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POLYGON((1 9,1 7,3 7,3 9,1 9))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON ZM ((67.936 96.054 -2.021 4.276, 67.878 95.843 1 1.195, 67.206 95.509 2.629 -0.882, 66.761 95.303 4.032 -1.468, 67.211 96.569 4 -0.595, 67.475 96.392 -2.162 1.937, 67.936 96.054 4.339 0.724), (79.333 89.63 -4.269 3.632, 75.194 92.43 -1.439 3.389, 71.626 89.735 -1.585 2.862, 76.189 83.874 0.607 1.033, 76.879 84.813 2.639 -2.519, 79.333 89.63 4.755 4.609))'::geometry, ST_MakeBox2D(ST_Point(53.814, 82.264), ST_Point(82.445, 102.183)), 10, 256))
+----
+POLYGON((7 5,9 6,8 9,6 6,7 5))
+
+# Polygons are clipped in double precision and truncated
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((-5 -5, 15 -5, 15 15, -5 15, -5 -5))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POLYGON((0 10,0 0,10 0,10 10,0 10))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((-5 -5, 15 -5, 15 15, -5 15, -5 -5))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 2))
+----
+POLYGON((-2 12,-2 -2,12 -2,12 12,-2 12))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((-3 0, 17 0, 17 5, -3 0))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 4096, 0))
+----
+POLYGON((4096 2764,4096 4096,0 4096,0 3788,4096 2764))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((-1e9 -5e8, 1e9 5e8, 1e9 500000008, -1e9 -499999992, -1e9 -5e8))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 4096, 0))
+----
+POLYGON((0 819,1638 0,4096 0,4096 2048,0 4096,0 819))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((-1e10 -1e10, 1e10 -1e10, 1e10 1e10, -1e10 1e10, -1e10 -1e10))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 4096, 0))
+----
+POLYGON((0 4096,0 0,4096 0,4096 4096,0 4096))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((-5 -5, 15 15, 15 -5, -5 15, -5 -5))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOLYGON(((10 0,10 10,5 5,10 0)),((0 0,5 5,0 10,0 0)))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((-5 1, 15 1, 15 3, 5 3, 5 -3, 7 -3, 7 5, -5 5, -5 1))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOLYGON(((7 7,5 7,5 9,0 9,0 5,7 5,7 7)),((7 9,7 10,5 10,5 9,7 9)),((7 7,10 7,10 9,7 9,7 7)))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((97.639 -60.42, 99.281 -84.644, 84.414 -79.756, 93.345 -82.488, 97.639 -60.42))'::geometry, ST_MakeBox2D(ST_Point(87.862, -79.638), ST_Point(97.862, -63.226)), 256, 16))
+----
+MULTIPOLYGON(((148 272,241 -16,253 -16,272 154,272 272,148 272)),((-16 271,-11 272,-16 272,-16 271)))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((10 0, 20 0, 20 10, 10 10, 10 0))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((10 0, 20 0, 20 10, 10 10, 10 0))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 1))
+----
+POLYGON((10 10,10 0,11 0,11 10,10 10))
+
+# Polygons whose shell is clipped away go, holes and all
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((-50 -50, -30 -50, -30 -30, -50 -30, -50 -50), (5 5, 7 5, 7 7, 5 7, 5 5))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOLYGON(((-50 -50, -30 -50, -30 -30, -50 -30, -50 -50), (5 5, 7 5, 7 7, 5 7, 5 5)), ((8 8, 9 8, 9 9, 8 9, 8 8)))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+POLYGON((8 2,8 1,9 1,9 2,8 2))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1 1, 9 1, 9 9, 1 9, 1 1), (2 2, 20 2, 20 3, 2 3, 2 2))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOLYGON(((9 7,2 7,2 8,9 8,9 9,1 9,1 1,9 1,9 7)),((9 7,10 7,10 8,9 8,9 7)))
+
+# Without clipping, rings are clipped to the shells' bounding box
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (1 1, 1000 1, 2 2, 1 2, 1 1))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(4096, 4096)), 4096, 0, false))
+----
+POLYGON((10 4095,10 4096,0 4096,0 4086,10 4086,10 4094,1 4094,1 4095,10 4095))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((1 1, 9 1, 9 9, 1 9, 1 1), (2 2, 20 2, 20 3, 2 3, 2 2))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0, false))
+----
+POLYGON((9 8,9 9,1 9,1 1,9 1,9 7,2 7,2 8,9 8))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((-50 -50, -30 -50, -30 -30, -50 -30, -50 -50), (5 5, 7 5, 7 7, 5 7, 5 5))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0, false))
+----
+POLYGON((-50 60,-50 40,-30 40,-30 60,-50 60))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((0 0, 2147483647 0, 2147483647 -100, 0 -100, 0 0))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(4096, 4096)), 4096, 0, false))
+----
+POLYGON((2147483647 4096,0 4096,0 4196,2147483647 4196,2147483647 4096))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('POLYGON((0 0, 2147483648 0, 2147483648 -100, 0 -100, 0 0))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(4096, 4096)), 4096, 0, false))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('MULTIPOLYGON(((0 0, 2147483648 0, 2147483648 -100, 0 -100, 0 0)), ((0 0, 10 0, 10 10, 0 10, 0 0)))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(4096, 4096)), 4096, 0, false))
+----
+POLYGON((0 4096,0 4086,10 4086,10 4096,0 4096))
+
+# Collections keep their parts of the highest dimension
+query T
+SELECT ST_AsText(ST_AsMVTGeom('GEOMETRYCOLLECTION(POINT(1 1), LINESTRING(1 1, 3 3))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(1 9,3 7)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('GEOMETRYCOLLECTION(POINT(1 1), POINT(2 2))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOINT((1 9),(2 8))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('GEOMETRYCOLLECTION(POLYGON((1 1, 3 1, 3 3, 1 3, 1 1)), LINESTRING(5 5, 7 5), POLYGON((5 5, 7 5, 7 7, 5 5)))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+MULTIPOLYGON(((1 9,1 7,3 7,3 9,1 9)),((7 3,7 5,5 5,7 3)))
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('GEOMETRYCOLLECTION(POLYGON((1 1, 1.2 1, 1.2 1.2, 1 1)), LINESTRING(5 5, 7 5))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('GEOMETRYCOLLECTION(GEOMETRYCOLLECTION(POINT(1 1)), LINESTRING(1 1, 3 3))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+LINESTRING(1 9,3 7)
+
+query T
+SELECT ST_AsText(ST_AsMVTGeom('GEOMETRYCOLLECTION(POLYGON((-50 -50, -30 -50, -30 -30, -50 -30, -50 -50)), POINT(5 5))'::geometry, ST_MakeBox2D(ST_Point(0, 0), ST_Point(10, 10)), 10, 0))
+----
+NULL

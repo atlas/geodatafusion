@@ -2073,6 +2073,7 @@ dependencies = [
  "geo-traits",
  "geoarrow-array",
  "geoarrow-schema",
+ "geodatafusion-wagyu",
  "geos",
  "object_store",
  "proj-sys",
@@ -2149,6 +2150,13 @@ dependencies = [
  "object_store",
  "serde_json",
  "tokio",
+]
+
+[[package]]
+name = "geodatafusion-wagyu"
+version = "0.6.0"
+dependencies = [
+ "cc",
 ]
 
 [[package]]

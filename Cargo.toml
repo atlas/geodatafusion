@@ -3,6 +3,7 @@ members = [
     "rust/geodatafusion-flatgeobuf",
     "rust/geodatafusion-geojson",
     "rust/geodatafusion-geoparquet",
+    "rust/geodatafusion-wagyu",
     "rust/geodatafusion",
 ]
 exclude = ["python"]
@@ -24,6 +25,7 @@ arrow-array = "59"
 arrow-buffer = "59"
 arrow-schema = "59"
 async-trait = "0.1"
+cc = "1"
 datafusion = { version = "55", default-features = false }
 datafusion-datasource = { version = "55", default-features = false }
 datafusion-datasource-parquet = "55"
@@ -38,6 +40,7 @@ geoarrow-flatgeobuf = "0.9.0"
 geoarrow-geojson = "0.9.0"
 geoarrow-schema = "0.9.0"
 geodatafusion = { path = "rust/geodatafusion", version = "0.6.0" }
+geodatafusion-wagyu = { path = "rust/geodatafusion-wagyu", version = "0.6.0" }
 geojson = "0.24"
 geoparquet = "0.9.0"
 geos = { version = "11.1", default-features = false }

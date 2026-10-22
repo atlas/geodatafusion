@@ -57,6 +57,8 @@ jobs:
         run: cargo check -p geodatafusion
       - name: Check with the system GEOS
         run: cargo check -p geodatafusion --features geos-3_11
+      - name: Check Wagyu with the system GEOS
+        run: cargo check -p geodatafusion --features wagyu
 
   fmt:
     name: Fmt

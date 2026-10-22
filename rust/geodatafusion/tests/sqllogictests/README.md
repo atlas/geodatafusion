@@ -53,6 +53,11 @@ When the PostGIS image moves to a new GEOS, update `geos-src` and `geos-sys`, re
 the last bit between platforms (the C math library), so hand-written ST_Transform records return
 geometries, which are compared to 12 significant digits, rather than verbatim text.
 
+ST_AsMVTGeom clips polygons with Wagyu 0.5.0, the version the oracle's PostGIS bundles
+(`rust/geodatafusion-wagyu`). PostGIS converts tile coordinates to 32-bit integers with a C
+cast, which gives `INT32_MIN` for out-of-range values on x86-64, the oracle's platform; the
+implementation does the same everywhere.
+
 ## How values are compared
 
 Both engines render results through `render.rs`, so neither side's native text output gets

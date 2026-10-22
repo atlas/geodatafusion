@@ -1,0 +1,14 @@
+[package]
+name = "geodatafusion-wagyu"
+version = { workspace = true }
+authors = { workspace = true }
+edition = { workspace = true }
+license = { workspace = true }
+repository = { workspace = true }
+description = "Polygon clipping with the vendored Wagyu C++ library, for geodatafusion's ST_AsMVTGeom"
+categories = { workspace = true }
+rust-version = { workspace = true }
+links = "gdf_wagyu"
+
+[build-dependencies]
+cc = { workspace = true }

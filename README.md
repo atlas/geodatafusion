@@ -13,8 +13,9 @@ geodatafusion = "0.6"
 ```
 
 Optional features: `geos-3_11` for the functions PostGIS computes with GEOS (`geos-static` builds
-GEOS from source), and `proj` for ST_Transform and the pipeline functions (`proj-bundled` builds
-PROJ from source).
+GEOS from source), `proj` for ST_Transform and the pipeline functions (`proj-bundled` builds
+PROJ from source), and `wagyu` for ST_AsMVTGeom (with `geos-3_11`; it compiles the Wagyu C++
+library, vendored).
 
 ## Functions supported
 
@@ -244,7 +245,7 @@ geodatafusion::register(&ctx);
 | ST_AsGML             |             | Return the geometry as a GML version 2 or 3 element.                    |
 | ST_AsKML             |             | Return the geometry as a KML element.                                   |
 | ST_AsLatLonText      |             | Return the Degrees, Minutes, Seconds representation of the given point. |
-| ST_AsMVTGeom         |             | Transforms a geometry into the coordinate space of a MVT tile.          |
+| ST_AsMVTGeom         | ✅          | Transforms a geometry into the coordinate space of a MVT tile.          |
 | ST_AsMVT             |             | Aggregate function returning a MVT representation of a set of rows.     |
 | ST_AsSVG             |             | Returns SVG path data for a geometry.                                   |
 | ST_AsTWKB            |             | Returns the geometry as TWKB, aka "Tiny Well-Known Binary"              |

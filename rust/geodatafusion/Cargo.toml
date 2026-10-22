@@ -30,6 +30,10 @@ geos-static = ["geos-3_11", "geos/static"]
 proj = ["dep:proj-sys"]
 # Always builds the bundled PROJ 9.6.2 from source, ignoring the system library.
 proj-bundled = ["proj", "proj-sys/bundled_proj"]
+# Enables ST_AsMVTGeom, which clips and validates polygons with Wagyu, the C++ library PostGIS
+# uses (vendored in geodatafusion-wagyu and compiled with the system C++ compiler), and clips
+# lines with GEOS.
+wagyu = ["geos-3_11", "dep:geodatafusion-wagyu"]
 
 [dependencies]
 arrow-arith = { workspace = true }
@@ -43,6 +47,7 @@ geo = { workspace = true }
 geo-traits = { workspace = true }
 geoarrow-array = { workspace = true }
 geoarrow-schema = { workspace = true }
+geodatafusion-wagyu = { workspace = true, optional = true }
 geos = { workspace = true, optional = true }
 proj-sys = { workspace = true, optional = true }
 serde_json = { workspace = true }
@@ -83,5 +88,5 @@ required-features = ["sql"]
 
 [package.metadata.docs.rs]
 # Not geos-static or proj-bundled, which would build GEOS and PROJ from source; geos/dox and
-# proj-sys/nobuild skip linking them.
-features = ["geos-3_11", "geos/dox", "proj", "proj-sys/nobuild"]
+# proj-sys/nobuild skip linking them. wagyu only compiles a few C++ headers.
+features = ["geos-3_11", "geos/dox", "proj", "proj-sys/nobuild", "wagyu"]

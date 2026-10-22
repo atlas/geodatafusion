@@ -12,6 +12,7 @@ This is a Rust workspace with multiple crates:
         - `geo/` - Operations implemented using the `geo` crate
         - `geos/` - Operations implemented using the `geos` crate (bindings to the native GEOS library), gated behind the `geos-3_11` feature (and `geos-static` to build GEOS from source)
         - `proj/` - Coordinate transformations with PROJ (through `proj-sys`), gated behind the `proj` feature (and `proj-bundled` to build PROJ from source)
+- `rust/geodatafusion-wagyu` - The Wagyu polygon clipper (C++, vendored) for ST_AsMVTGeom
 - `rust/geodatafusion-flatgeobuf` - FlatGeobuf format support
 - `rust/geodatafusion-geoparquet` - GeoParquet format support
 - `rust/geodatafusion-geojson` - GeoJSON format support
@@ -136,6 +137,14 @@ otherwise builds the bundled PROJ 9.6.2. `proj-bundled` always builds the bundle
 command and the SQLite development files (`sqlite3 libsqlite3-dev` on Debian and Ubuntu); it
 takes about a minute. PROJ reads its database, `proj.db`, at runtime: from the install prefix
 it was built with, or from `PROJ_DATA`.
+
+### ST_AsMVTGeom and Wagyu
+
+ST_AsMVTGeom (in `geos/io/`) clips lines with GEOS and clips and validates polygons with
+[Wagyu](https://github.com/mapbox/wagyu), as PostGIS does. It is behind the `wagyu` feature,
+which implies `geos-3_11`. Wagyu is a header-only C++ library; `rust/geodatafusion-wagyu` vendors
+version 0.5.0, the one PostGIS 3.6 bundles, and compiles a small C entry point with the system
+C++ compiler. To move to a new Wagyu, replace `vendor/include` and re-record the parity tests.
 
 ### Code Style
 
