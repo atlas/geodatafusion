@@ -234,8 +234,9 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    kernel, now `native/util/distance`), the G5 dump functions with their table function forms
    (`util/set_returning`, R2 and R3 of the G5 plan; `FROM st_dump(<constant>)` works, lowercase
    only), ST_IsSimple and ST_IsRing (G3), and ST_ClosestPointOfApproach, ST_DistanceCPA and
-   ST_CPAWithin (G1 batch 4). Parity 4033/4260 -> 4312/4526. Left in G1 batch 4:
-   ST_LocateBetween and ST_LocateBetweenElevations.
+   ST_CPAWithin (G1 batch 4). Parity 4033/4260 -> 4312/4526. Then ST_LocateBetween and
+   ST_LocateBetweenElevations, which complete G1 batch 4 (line crossings can differ from
+   PostGIS's in the last digit). Parity 4389/4600.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
