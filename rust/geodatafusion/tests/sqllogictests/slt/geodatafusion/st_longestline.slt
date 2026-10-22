@@ -1,0 +1,94 @@
+# Edge cases for ST_LongestLine, not covered by the PostGIS docs examples.
+
+# NULL and EMPTY
+query T
+SELECT ST_AsText(ST_LongestLine(NULL::geometry, 'POINT(1 1)'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_LongestLine('POINT EMPTY'::geometry, 'POINT(1 1)'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_LongestLine('POINT(1 1)'::geometry, 'LINESTRING EMPTY'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_LongestLine('GEOMETRYCOLLECTION(POINT EMPTY)'::geometry, 'POINT(1 1)'::geometry))
+----
+NULL
+
+# SRIDs: the result has the inputs' SRID; mixed SRIDs are an error
+query T
+SELECT ST_AsEWKT(ST_LongestLine('SRID=4326;POINT(1 1)'::geometry, 'SRID=4326;LINESTRING(2 0, 2 5)'::geometry))
+----
+SRID=4326;LINESTRING(1 1,2 5)
+
+query error
+SELECT ST_AsEWKT(ST_LongestLine('SRID=4326;POINT(1 1)'::geometry, 'SRID=3857;POINT(2 2)'::geometry))
+
+# Z and M are dropped
+query T
+SELECT ST_AsText(ST_LongestLine('POINT Z (1 1 5)'::geometry, 'LINESTRING Z (2 0 1, 2 5 9)'::geometry))
+----
+LINESTRING(1 1,2 5)
+
+query T
+SELECT ST_AsText(ST_LongestLine('LINESTRING M (0 0 1, 0 5 2)'::geometry, 'POINT ZM (3 3 3 3)'::geometry))
+----
+LINESTRING(0 0,3 3)
+
+# Farthest vertices
+query T
+SELECT ST_AsText(ST_LongestLine('POINT(160 40)'::geometry, 'LINESTRING(10 30, 50 50, 30 110, 70 90, 180 140, 130 190)'::geometry))
+----
+LINESTRING(160 40,130 190)
+
+query T
+SELECT ST_AsText(ST_LongestLine('LINESTRING(0 0, 10 0, 0 1)'::geometry, 'POINT(5 0)'::geometry))
+----
+LINESTRING(0 1,5 0)
+
+query T
+SELECT ST_AsText(ST_LongestLine('LINESTRING(0 0, 10 0)'::geometry, 'LINESTRING(0 0, 10 0)'::geometry))
+----
+LINESTRING(0 0,10 0)
+
+query T
+SELECT ST_AsText(ST_LongestLine('POINT(0 0)'::geometry, 'LINESTRING(2 2, 2 2)'::geometry))
+----
+LINESTRING(0 0,2 2)
+
+query T
+SELECT ST_AsText(ST_LongestLine('POINT(5 5)'::geometry, 'POLYGON((0 0, 10 0, 10 12, 0 10, 0 0))'::geometry))
+----
+LINESTRING(5 5,10 12)
+
+query T
+SELECT ST_AsText(ST_LongestLine('GEOMETRYCOLLECTION(POINT(0 0), LINESTRING(10 0, 10 10))'::geometry, 'MULTIPOINT(3 4, -20 1)'::geometry))
+----
+LINESTRING(10 10,-20 1)
+
+# A polygon counts with its shell, but in a collection with all its rings
+query T
+SELECT ST_AsText(ST_LongestLine('POINT(-5 -5)'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (20 20, 21 20, 21 21, 20 20))'::geometry))
+----
+LINESTRING(-5 -5,10 10)
+
+query T
+SELECT ST_AsText(ST_LongestLine('POINT(-5 -5)'::geometry, 'MULTIPOLYGON(((0 0, 10 0, 10 10, 0 10, 0 0), (20 20, 21 20, 21 21, 20 20)))'::geometry))
+----
+LINESTRING(-5 -5,21 21)
+
+query T
+SELECT ST_AsText(ST_LongestLine('MULTIPOLYGON(((0 0, 10 0, 10 10, 0 10, 0 0), (20 20, 21 20, 21 21, 20 20)))'::geometry, 'POINT(-5 -5)'::geometry))
+----
+LINESTRING(21 21,-5 -5)
+
+query T
+SELECT ST_AsText(ST_LongestLine('POINT(-5 -5)'::geometry, 'GEOMETRYCOLLECTION(POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (20 20, 21 20, 21 21, 20 20)))'::geometry))
+----
+LINESTRING(-5 -5,21 21)

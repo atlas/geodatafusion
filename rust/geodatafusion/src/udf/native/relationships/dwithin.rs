@@ -13,7 +13,7 @@ use datafusion_macros::user_doc;
 use geo_traits::GeometryTrait;
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::native::measurement::distance::distance;
+use crate::udf::native::util::distance::distance;
 use crate::util::args::optional_float_arg;
 use crate::util::field::{common_metadata, geometry_array};
 use crate::util::kernel::{GeometryKernel, map_geometry};

@@ -316,7 +316,7 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 | ST_Area                 | ✅          | Returns the area of a polygonal geometry.                                                                                      |
 | ST_Azimuth              |             | Returns the north-based azimuth of a line between two points.                                                                  |
 | ST_Angle                |             | Returns the angle between two vectors defined by 3 or 4 points, or 2 lines.                                                    |
-| ST_ClosestPoint         |             | Returns the 2D point on g1 that is closest to g2. This is the first point of the shortest line from one geometry to the other. |
+| ST_ClosestPoint         | ✅          | Returns the 2D point on g1 that is closest to g2. This is the first point of the shortest line from one geometry to the other. |
 | ST_3DClosestPoint       |             | Returns the 3D point on g1 that is closest to g2. This is the first point of the 3D shortest line.                             |
 | ST_Distance             | ✅          | Returns the distance between two geometry or geography values.                                                                 |
 | ST_3DDistance           |             | Returns the 3D cartesian minimum distance (based on spatial ref) between two geometries in projected units.                    |
@@ -328,16 +328,16 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 | ST_Length2D             | ✅          | Returns the 2D length of a linear geometry. Alias for ST_Length                                                                |
 | ST_3DLength             | ✅          | Returns the 3D length of a linear geometry.                                                                                    |
 | ST_LengthSpheroid       |             | Returns the 2D or 3D length/perimeter of a lon/lat geometry on a spheroid.                                                     |
-| ST_LongestLine          |             | Returns the 2D longest line between two geometries.                                                                            |
+| ST_LongestLine          | ✅          | Returns the 2D longest line between two geometries.                                                                            |
 | ST_3DLongestLine        |             | Returns the 3D longest line between two geometries                                                                             |
-| ST_MaxDistance          |             | Returns the 2D largest distance between two geometries in projected units.                                                     |
+| ST_MaxDistance          | ✅          | Returns the 2D largest distance between two geometries in projected units.                                                     |
 | ST_3DMaxDistance        |             | Returns the 3D cartesian maximum distance (based on spatial ref) between two geometries in projected units.                    |
 | ST_MinimumClearance     | ✅          | Returns the minimum clearance of a geometry, a measure of a geometry's robustness.                                             |
 | ST_MinimumClearanceLine | ✅          | Returns the two-point LineString spanning a geometry's minimum clearance.                                                      |
 | ST_Perimeter            | ✅          | Returns the length of the boundary of a polygonal geometry or geography.                                                       |
 | ST_Perimeter2D          | ✅          | Returns the 2D perimeter of a polygonal geometry. Alias for ST_Perimeter.                                                      |
 | ST_3DPerimeter          | ✅          | Returns the 3D perimeter of a polygonal geometry.                                                                              |
-| ST_ShortestLine         |             | Returns the 2D shortest line between two geometries                                                                            |
+| ST_ShortestLine         | ✅          | Returns the 2D shortest line between two geometries                                                                            |
 | ST_3DShortestLine       |             | Returns the 3D shortest line between two geometries                                                                            |
 
 ### Overlay Functions

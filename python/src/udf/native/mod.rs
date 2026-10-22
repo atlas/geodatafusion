@@ -169,11 +169,15 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
 
     // measurement
     m.add_class::<measurement::PyArea>()?;
+    m.add_class::<measurement::PyClosestPoint>()?;
     m.add_class::<measurement::PyDistance>()?;
     m.add_class::<measurement::PyLength>()?;
     m.add_class::<measurement::PyLength3D>()?;
+    m.add_class::<measurement::PyLongestLine>()?;
+    m.add_class::<measurement::PyMaxDistance>()?;
     m.add_class::<measurement::PyPerimeter3D>()?;
     m.add_class::<measurement::PyPerimeter>()?;
+    m.add_class::<measurement::PyShortestLine>()?;
 
     // operators
     m.add_class::<operators::PyGeometryAbove>()?;

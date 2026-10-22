@@ -176,11 +176,15 @@ def register_all_native(ctx: SessionContext):
 
     # measurement
     ctx.register_udf(udf(native.Area()))
+    ctx.register_udf(udf(native.ClosestPoint()))
     ctx.register_udf(udf(native.Distance()))
     ctx.register_udf(udf(native.Length()))
     ctx.register_udf(udf(native.Length3D()))
+    ctx.register_udf(udf(native.LongestLine()))
+    ctx.register_udf(udf(native.MaxDistance()))
     ctx.register_udf(udf(native.Perimeter3D()))
     ctx.register_udf(udf(native.Perimeter()))
+    ctx.register_udf(udf(native.ShortestLine()))
 
     # operators
     ctx.register_udf(udf(native.GeometryAbove()))

@@ -1,0 +1,94 @@
+# Edge cases for ST_MaxDistance, not covered by the PostGIS docs examples.
+
+# NULL and EMPTY
+query R
+SELECT (ST_MaxDistance(NULL::geometry, 'POINT(1 1)'::geometry))
+----
+NULL
+
+query R
+SELECT (ST_MaxDistance('POINT EMPTY'::geometry, 'POINT(1 1)'::geometry))
+----
+NULL
+
+query R
+SELECT (ST_MaxDistance('POINT(1 1)'::geometry, 'LINESTRING EMPTY'::geometry))
+----
+NULL
+
+query R
+SELECT (ST_MaxDistance('GEOMETRYCOLLECTION(POINT EMPTY)'::geometry, 'POINT(1 1)'::geometry))
+----
+NULL
+
+# SRIDs: the result has the inputs' SRID; mixed SRIDs are an error
+query R
+SELECT (ST_MaxDistance('SRID=4326;POINT(1 1)'::geometry, 'SRID=4326;LINESTRING(2 0, 2 5)'::geometry))
+----
+4.12310562562
+
+query error
+SELECT (ST_MaxDistance('SRID=4326;POINT(1 1)'::geometry, 'SRID=3857;POINT(2 2)'::geometry))
+
+# Z and M are dropped
+query R
+SELECT (ST_MaxDistance('POINT Z (1 1 5)'::geometry, 'LINESTRING Z (2 0 1, 2 5 9)'::geometry))
+----
+4.12310562562
+
+query R
+SELECT (ST_MaxDistance('LINESTRING M (0 0 1, 0 5 2)'::geometry, 'POINT ZM (3 3 3 3)'::geometry))
+----
+4.24264068712
+
+# Farthest vertices
+query R
+SELECT (ST_MaxDistance('POINT(160 40)'::geometry, 'LINESTRING(10 30, 50 50, 30 110, 70 90, 180 140, 130 190)'::geometry))
+----
+152.970585408
+
+query R
+SELECT (ST_MaxDistance('LINESTRING(0 0, 10 0, 0 1)'::geometry, 'POINT(5 0)'::geometry))
+----
+5.09901951359
+
+query R
+SELECT (ST_MaxDistance('LINESTRING(0 0, 10 0)'::geometry, 'LINESTRING(0 0, 10 0)'::geometry))
+----
+10
+
+query R
+SELECT (ST_MaxDistance('POINT(0 0)'::geometry, 'LINESTRING(2 2, 2 2)'::geometry))
+----
+2.82842712475
+
+query R
+SELECT (ST_MaxDistance('POINT(5 5)'::geometry, 'POLYGON((0 0, 10 0, 10 12, 0 10, 0 0))'::geometry))
+----
+8.60232526704
+
+query R
+SELECT (ST_MaxDistance('GEOMETRYCOLLECTION(POINT(0 0), LINESTRING(10 0, 10 10))'::geometry, 'MULTIPOINT(3 4, -20 1)'::geometry))
+----
+31.3209195267
+
+# A polygon counts with its shell, but in a collection with all its rings
+query R
+SELECT (ST_MaxDistance('POINT(-5 -5)'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (20 20, 21 20, 21 21, 20 20))'::geometry))
+----
+21.2132034356
+
+query R
+SELECT (ST_MaxDistance('POINT(-5 -5)'::geometry, 'MULTIPOLYGON(((0 0, 10 0, 10 10, 0 10, 0 0), (20 20, 21 20, 21 21, 20 20)))'::geometry))
+----
+36.7695526217
+
+query R
+SELECT (ST_MaxDistance('MULTIPOLYGON(((0 0, 10 0, 10 10, 0 10, 0 0), (20 20, 21 20, 21 21, 20 20)))'::geometry, 'POINT(-5 -5)'::geometry))
+----
+36.7695526217
+
+query R
+SELECT (ST_MaxDistance('POINT(-5 -5)'::geometry, 'GEOMETRYCOLLECTION(POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (20 20, 21 20, 21 21, 20 20)))'::geometry))
+----
+36.7695526217

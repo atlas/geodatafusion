@@ -1,0 +1,197 @@
+# Edge cases for ST_ShortestLine, not covered by the PostGIS docs examples.
+
+# NULL and EMPTY
+query T
+SELECT ST_AsText(ST_ShortestLine(NULL::geometry, 'POINT(1 1)'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT EMPTY'::geometry, 'POINT(1 1)'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT(1 1)'::geometry, 'LINESTRING EMPTY'::geometry))
+----
+NULL
+
+query T
+SELECT ST_AsText(ST_ShortestLine('GEOMETRYCOLLECTION(POINT EMPTY)'::geometry, 'POINT(1 1)'::geometry))
+----
+NULL
+
+# SRIDs: the result has the inputs' SRID; mixed SRIDs are an error
+query T
+SELECT ST_AsEWKT(ST_ShortestLine('SRID=4326;POINT(1 1)'::geometry, 'SRID=4326;LINESTRING(2 0, 2 5)'::geometry))
+----
+SRID=4326;LINESTRING(1 1,2 1)
+
+query error
+SELECT ST_AsEWKT(ST_ShortestLine('SRID=4326;POINT(1 1)'::geometry, 'SRID=3857;POINT(2 2)'::geometry))
+
+# Z and M are dropped
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT Z (1 1 5)'::geometry, 'LINESTRING Z (2 0 1, 2 5 9)'::geometry))
+----
+LINESTRING(1 1,2 1)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING M (0 0 1, 0 5 2)'::geometry, 'POINT ZM (3 3 3 3)'::geometry))
+----
+LINESTRING(0 3,3 3)
+
+# Points, lines and projections
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT(1 1)'::geometry, 'POINT(4 5)'::geometry))
+----
+LINESTRING(1 1,4 5)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT(5 3)'::geometry, 'LINESTRING(0 0, 10 0)'::geometry))
+----
+LINESTRING(5 3,5 0)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(0 0, 10 0)'::geometry, 'POINT(5 3)'::geometry))
+----
+LINESTRING(5 0,5 3)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(0 0, 10 0, 10 10)'::geometry, 'POINT(11 -1)'::geometry))
+----
+LINESTRING(10 0,11 -1)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT(160 40)'::geometry, 'LINESTRING(10 30, 50 50, 30 110, 70 90, 180 140, 130 190)'::geometry))
+----
+LINESTRING(160 40,125.75342465753425 115.34246575342466)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(0 0, 10 0)'::geometry, 'LINESTRING(5 1, 7 4)'::geometry))
+----
+LINESTRING(5 0,5 1)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(5 1, 7 4)'::geometry, 'LINESTRING(0 0, 10 0)'::geometry))
+----
+LINESTRING(5 1,5 0)
+
+# Crossing and touching: the intersection, at distance 0
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(0 0, 10 10)'::geometry, 'LINESTRING(0 10, 10 0)'::geometry))
+----
+LINESTRING(5 5,5 5)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(0 0, 10 3)'::geometry, 'LINESTRING(0 10, 7 -1)'::geometry))
+----
+LINESTRING(5.34351145038168 1.603053435114504,5.34351145038168 1.603053435114504)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(0 10, 7 -1)'::geometry, 'LINESTRING(0 0, 10 3)'::geometry))
+----
+LINESTRING(5.34351145038168 1.603053435114504,5.34351145038168 1.603053435114504)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(0 0, 10 0)'::geometry, 'LINESTRING(5 0, 5 1)'::geometry))
+----
+LINESTRING(5 0,5 0)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(0 0, 10 0)'::geometry, 'POINT(5 0)'::geometry))
+----
+LINESTRING(5 0,5 0)
+
+# Inside polygons: the point inside, or where a line meets a hole
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT(5 1)'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (4 4, 6 4, 6 6, 4 6, 4 4))'::geometry))
+----
+LINESTRING(5 1,5 1)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (4 4, 6 4, 6 6, 4 6, 4 4))'::geometry, 'POINT(5 1)'::geometry))
+----
+LINESTRING(5 1,5 1)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT(5 5)'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (4 4, 6 4, 6 6, 4 6, 4 4))'::geometry))
+----
+LINESTRING(5 5,5 4)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(1 5, 3 5)'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (4 4, 6 4, 6 6, 4 6, 4 4))'::geometry))
+----
+LINESTRING(1 5,1 5)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(1 5, 20 5)'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (4 4, 6 4, 6 6, 4 6, 4 4))'::geometry))
+----
+LINESTRING(6 5,6 5)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (4 4, 6 4, 6 6, 4 6, 4 4))'::geometry, 'LINESTRING(1 5, 20 5)'::geometry))
+----
+LINESTRING(6 5,6 5)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(1 1, 9 9)'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (4 4, 6 4, 6 6, 4 6, 4 4))'::geometry))
+----
+LINESTRING(4 4,4 4)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POLYGON((0 0, 10 0, 10 10, 0 10, 0 0))'::geometry, 'POLYGON((2 2, 3 2, 3 3, 2 2))'::geometry))
+----
+LINESTRING(2 2,2 2)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POLYGON((1 1, 5 1, 5 5, 1 5, 1 1))'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (4 4, 6 4, 6 6, 4 6, 4 4))'::geometry))
+----
+LINESTRING(1 1,1 1)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POLYGON((0 0, 10 0, 10 10, 0 10, 0 0))'::geometry, 'POLYGON((5 5, 20 5, 20 6, 5 5))'::geometry))
+----
+LINESTRING(5 5,5 5)
+
+# Outside polygons: to the shell, or to the hole a geometry is in
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT(12 3)'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (4 4, 6 4, 6 6, 4 6, 4 4))'::geometry))
+----
+LINESTRING(12 3,10 3)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT(5 4.5)'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (4 4, 6 4, 6 6, 4 6, 4 4))'::geometry))
+----
+LINESTRING(5 4.5,5 4)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(4.5 4.5, 5.5 5.2)'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (4 4, 6 4, 6 6, 4 6, 4 4))'::geometry))
+----
+LINESTRING(4.5 4.5,4.5 4)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POLYGON((12 3, 14 3, 14 5, 12 3))'::geometry, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0), (4 4, 6 4, 6 6, 4 6, 4 4))'::geometry))
+----
+LINESTRING(12 3,10 3)
+
+# Multi geometries and collections
+query T
+SELECT ST_AsText(ST_ShortestLine('MULTIPOINT(0 0, 10 0)'::geometry, 'POINT(7 3)'::geometry))
+----
+LINESTRING(10 0,7 3)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT(7 3)'::geometry, 'MULTIPOINT(0 0, 10 0)'::geometry))
+----
+LINESTRING(7 3,10 0)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('GEOMETRYCOLLECTION(POINT(0 0), LINESTRING(10 0, 10 10))'::geometry, 'GEOMETRYCOLLECTION(POINT(5 1), POLYGON((20 0, 30 0, 30 10, 20 0)))'::geometry))
+----
+LINESTRING(10 1,5 1)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('MULTIPOLYGON(((0 0, 1 0, 1 1, 0 0)), ((5 5, 6 5, 6 6, 5 5)))'::geometry, 'POINT(5 7)'::geometry))
+----
+LINESTRING(6 6,5 7)
