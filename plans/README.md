@@ -108,6 +108,9 @@ versions; a missing helper is added to the shared module.
 - Done (G3 batch 6): a `proj` feature on `proj-sys` (system PROJ >= 9.6.2, or the bundled
   9.6.2), with `proj-bundled` in `--all-features` (+~1 min in CI, which installs SQLite), and
   `proj.db` read from the build prefix or `PROJ_DATA` (E5 H12). Wheels don't ship PROJ yet.
+- Done (G3): a `wagyu` feature (implies `geos-3_11`) for ST_AsMVTGeom, on the
+  `geodatafusion-wagyu` crate, which vendors Wagyu 0.5.0 (PostGIS's) and compiles it with the
+  system C++ compiler.
 - Done (G6 batch 2): the geodatafusion engine runs with the PostgreSQL dialect, for the operators.
 - Done (G6 batch 5): the `::geometry` shim is gone; literals plan through the `geometry` type.
 
@@ -223,6 +226,10 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    G3 batch 6 (PROJ) done: ST_Transform (all four overloads, Z included), ST_TransformPipeline
    and ST_InverseTransformPipeline, through `proj-sys` with PostGIS's call sequence. Parity
    3856/4097 -> 3910/4138. postgis_srs* stay blocked: they are table functions.
+   ST_AsMVTGeom done ahead of its batch (requested): polygons through Wagyu, as the oracle's
+   PostGIS does, lines and points through GEOS, with PostGIS's steps fitted to 9,700 random
+   calls (9,696 match; the rest have self-intersecting polygons). Parity 3910/4138 ->
+   4033/4260. ST_AsMVT, the aggregate, stays deferred (G5, whole-row argument).
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
