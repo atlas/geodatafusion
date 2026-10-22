@@ -3,6 +3,7 @@
 mod as_binary;
 mod as_encoded_polyline;
 mod as_geojson;
+mod as_lat_lon_text;
 mod as_text;
 mod geo_hash;
 mod geom_from_geo_hash;
@@ -15,6 +16,7 @@ pub(crate) mod util;
 pub use as_binary::{AsBinary, AsEWKB, AsHEXEWKB};
 pub use as_encoded_polyline::AsEncodedPolyline;
 pub use as_geojson::AsGeoJSON;
+pub use as_lat_lon_text::AsLatLonText;
 pub use as_text::{AsEWKT, AsText};
 pub use geo_hash::GeoHash;
 pub use geom_from_geo_hash::{Box2DFromGeoHash, GeomFromGeoHash, PointFromGeoHash};
@@ -58,6 +60,7 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(MPolyFromText::default().into());
     session_context.register_udf(GeomCollFromText.into());
     session_context.register_udf(AsGeoJSON.into());
+    session_context.register_udf(AsLatLonText.into());
     session_context.register_udf(GeomFromGeoJSON.into());
     session_context.register_udf(AsEncodedPolyline.into());
     session_context.register_udf(LineFromEncodedPolyline.into());

@@ -1,0 +1,256 @@
+# Edge cases for ST_AsLatLonText, not covered by the PostGIS docs examples.
+
+# The default format, and an empty one
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry)
+----
+2°15'0.000"N 1°30'0.000"E
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, '')
+----
+2°15'0.000"N 1°30'0.000"E
+
+query T
+SELECT ST_AsLatLonText('POINT(0 0)'::geometry)
+----
+0°0'0.000"N 0°0'0.000"E
+
+query T
+SELECT ST_AsLatLonText('POINT(-0.0000001 -0.0000001)'::geometry)
+----
+0°0'0.000"S 0°0'0.000"W
+
+# Widths, decimal places, and fields in any order
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'DD MM SS')
+----
+ 2 15  0  1 30  0
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'DDD°MM''SS"')
+----
+  2°15' 0"   1°30' 0"
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D')
+----
+2 2
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D.DD')
+----
+2.25 1.50
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D M')
+----
+2 15 1 30
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D M.MM')
+----
+2 15.00 1 30.00
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D.DD M')
+----
+2.00 15 1.00 30
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D M.MM S')
+----
+2 15.00 0 1 30.00 0
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'S M D')
+----
+0 15 2 0 30 1
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'C D')
+----
+N 2 E 2
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'DC')
+----
+2N 2E
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'DMS')
+----
+2150 1300
+
+# Dots: the first starts the decimal places, others are swallowed
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D..D')
+----
+2.2 1.5
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D.')
+----
+2 2
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, '.D')
+----
+.2 .2
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D.x')
+----
+2x 2x
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D.DD.D')
+----
+2.250 1.500
+
+# Rounding: half to even, and seconds carry
+query T
+SELECT ST_AsLatLonText('POINT(2.5 0.5)'::geometry, 'D')
+----
+0 2
+
+query T
+SELECT ST_AsLatLonText('POINT(0.25 0.35)'::geometry, 'D.D')
+----
+0.3 0.2
+
+query T
+SELECT ST_AsLatLonText('POINT(0.9999999 0.9999999)'::geometry, 'D°M''S"')
+----
+1°0'0" 1°0'0"
+
+query T
+SELECT ST_AsLatLonText('POINT(10.99999999 59.9999999)'::geometry, 'D°M''S.S"')
+----
+60°0'0.0" 11°0'0.0"
+
+query T
+SELECT ST_AsLatLonText('POINT(1 59.99999999)'::geometry, 'D M.M')
+----
+59 60.0 1 0.0
+
+query T
+SELECT ST_AsLatLonText('POINT(1.99999 1.99999)'::geometry, 'D.DD')
+----
+2.00 2.00
+
+# Without a compass direction, the degrees carry the sign
+query T
+SELECT ST_AsLatLonText('POINT(-1.5 -2.25)'::geometry, 'D M S')
+----
+-2 15 0 -1 30 0
+
+query T
+SELECT ST_AsLatLonText('POINT(-0.25 -0.5)'::geometry, 'D°M''')
+----
+-0°30' -0°15'
+
+query T
+SELECT ST_AsLatLonText('POINT(-0.0001 -0.0001)'::geometry, 'D')
+----
+-0 -0
+
+query T
+SELECT ST_AsLatLonText('POINT(1.5 -2.25)'::geometry, 'D.DDD')
+----
+-2.250 1.500
+
+# Coordinates are wrapped over the poles and the antimeridian
+query T
+SELECT ST_AsLatLonText('POINT(180 90)'::geometry)
+----
+90°0'0.000"N 180°0'0.000"E
+
+query T
+SELECT ST_AsLatLonText('POINT(181 91)'::geometry)
+----
+89°0'0.000"N 1°0'0.000"E
+
+query T
+SELECT ST_AsLatLonText('POINT(-181 -91)'::geometry)
+----
+89°0'0.000"S 1°0'0.000"W
+
+query T
+SELECT ST_AsLatLonText('POINT(360 180)'::geometry)
+----
+0°0'0.000"N 180°0'0.000"E
+
+query T
+SELECT ST_AsLatLonText('POINT(540 270)'::geometry)
+----
+90°0'0.000"S 0°0'0.000"E
+
+query T
+SELECT ST_AsLatLonText('POINT(-180 319)'::geometry, 'D°M''S"')
+----
+-41°0'0" -180°0'0"
+
+query T
+SELECT ST_AsLatLonText('POINT(0 92.5)'::geometry, 'D.DD M')
+----
+87.00 30 180.00 0
+
+query T
+SELECT ST_AsLatLonText('POINT(-302.2342342 -792.32498)'::geometry)
+----
+72°19'29.928"S 57°45'56.757"E
+
+# Z, M and the SRID don't matter
+query T
+SELECT ST_AsLatLonText('POINT Z (1 2 3)'::geometry)
+----
+2°0'0.000"N 1°0'0.000"E
+
+query T
+SELECT ST_AsLatLonText('SRID=4326;POINT M (1 2 3)'::geometry)
+----
+2°0'0.000"N 1°0'0.000"E
+
+# Bad formats
+query error
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'M')
+
+query error
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D S')
+
+query error
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D D')
+
+query error
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D M M')
+
+query error
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D M S S')
+
+query error
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'D°M''S" C C')
+
+query error
+SELECT ST_AsLatLonText('POINT(1.5 2.25)'::geometry, 'd m s c')
+
+# Only points, and not empty ones
+query error
+SELECT ST_AsLatLonText('POINT EMPTY'::geometry)
+
+query error
+SELECT ST_AsLatLonText('LINESTRING(1 2, 3 4)'::geometry)
+
+query error
+SELECT ST_AsLatLonText('MULTIPOINT(1 2)'::geometry)
+
+# NULL
+query T
+SELECT ST_AsLatLonText(NULL::geometry)
+----
+NULL
+
+query T
+SELECT ST_AsLatLonText('POINT(1 2)'::geometry, NULL)
+----
+NULL

@@ -163,6 +163,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.GeomFromGeoHash()))
     ctx.register_udf(udf(native.Box2DFromGeoHash()))
     ctx.register_udf(udf(native.AsGeoJSON()))
+    ctx.register_udf(udf(native.AsLatLonText()))
     ctx.register_udf(udf(native.GeomFromGeoJSON()))
     ctx.register_udf(udf(native.AsEncodedPolyline()))
     ctx.register_udf(udf(native.LineFromEncodedPolyline()))

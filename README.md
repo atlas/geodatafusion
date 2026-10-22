@@ -244,7 +244,7 @@ geodatafusion::register(&ctx);
 | ST_AsGeoJSON         | ✅          | Return a geometry or feature in GeoJSON format.                         |
 | ST_AsGML             |             | Return the geometry as a GML version 2 or 3 element.                    |
 | ST_AsKML             |             | Return the geometry as a KML element.                                   |
-| ST_AsLatLonText      |             | Return the Degrees, Minutes, Seconds representation of the given point. |
+| ST_AsLatLonText      | ✅          | Return the Degrees, Minutes, Seconds representation of the given point. |
 | ST_AsMVTGeom         | ✅          | Transforms a geometry into the coordinate space of a MVT tile.          |
 | ST_AsMVT             |             | Aggregate function returning a MVT representation of a set of rows.     |
 | ST_AsSVG             |             | Returns SVG path data for a geometry.                                   |
