@@ -35,6 +35,7 @@ flatgeobuf = { version = "5.0", default-features = false }
 futures = "0.3"
 geo = "0.33.1"
 geo-traits = "0.3.0"
+geographiclib-rs = "0.2.7"
 geoarrow-array = "0.9.0"
 geoarrow-flatgeobuf = "0.9.0"
 geoarrow-geojson = "0.9.0"

@@ -24,9 +24,8 @@ use crate::udf::native::io::util::wkb::ewkb_srid;
 use crate::udf::native::util::box_geometry::box_geometry;
 use crate::util::ewkt::{ewkt_srid_prefix, parse_ewkt};
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
-use crate::util::geography::{coerce_into_range, geography_metadata, geography_srid, is_geography};
-use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
-use crate::util::owned::map_coords;
+use crate::util::geography::{CoerceIntoRange, geography_metadata, geography_srid, is_geography};
+use crate::util::kernel::map_geometry_to_wkb;
 use crate::util::signature::{Arg, coerce_args};
 use crate::util::srid::{SRID_GEOGRAPHY_DEFAULT, SRID_UNKNOWN, crs_to_srid, srid_to_crs};
 
@@ -272,21 +271,6 @@ pub(crate) fn cast_impl(
     let geometries = from_arrow_array(&result, &return_field)?;
     let coerced = map_geometry_to_wkb(geometries.as_ref(), &CoerceIntoRange, &return_field)?;
     Ok(ColumnarValue::Array(coerced.into_array_ref()))
-}
-
-/// Geography's coordinates brought into the range of longitude and latitude.
-struct CoerceIntoRange;
-
-impl GeometryKernel for CoerceIntoRange {
-    type Output = wkt::Wkt<f64>;
-
-    fn eval(
-        &self,
-        geom: &impl geo_traits::GeometryTrait<T = f64>,
-        _row: usize,
-    ) -> GeoDataFusionResult<Option<wkt::Wkt<f64>>> {
-        Ok(Some(map_coords(geom, &coerce_into_range)))
-    }
 }
 
 /// The value converted to WKB with the type of the return field.

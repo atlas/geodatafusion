@@ -180,6 +180,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
 
     // measurement
     m.add_class::<measurement::PyArea>()?;
+    m.add_class::<measurement::PyAzimuth>()?;
     m.add_class::<measurement::PyClosestPoint>()?;
     m.add_class::<measurement::PyDistance>()?;
     m.add_class::<measurement::PyLength>()?;

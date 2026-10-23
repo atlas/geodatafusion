@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use datafusion::common::DFSchema;
+use datafusion::common::{DFSchema, plan_err};
 use datafusion::error::Result;
 use datafusion::logical_expr::expr::ScalarFunction;
 use datafusion::logical_expr::planner::{ExprPlanner, PlannerResult, RawBinaryExpr};
@@ -13,6 +13,7 @@ use crate::udf::native::operators::{
     GeometryOverAbove, GeometryOverBelow, GeometryOverLeft, GeometryOverRight, GeometryOverlaps,
     GeometryOverlapsNd, GeometryRight, GeometrySame, GeometryWithin,
 };
+use crate::util::geography::is_geography;
 
 /// Plans PostGIS's operators as calls of the functions behind them.
 ///
@@ -25,7 +26,8 @@ use crate::udf::native::operators::{
 /// | `<->`, `<#>` | `st_distance`, `geometry_distance_box` |
 ///
 /// An operator is planned only when an operand is a geometry or a box, so the operators DataFusion
-/// already has (`&&` on arrays, `~` on strings, `<<` on integers) keep their meaning. Only the
+/// already has (`&&` on arrays, `~` on strings, `<<` on integers) keep their meaning. Geography
+/// operands are a plan error until the operators' geography forms are written. Only the
 /// PostgreSQL dialect parses most of them: `SET datafusion.sql_parser.dialect = 'PostgreSQL'`.
 #[derive(Debug)]
 pub(crate) struct GeoExprPlanner;
@@ -41,6 +43,11 @@ impl ExprPlanner for GeoExprPlanner {
         };
         if !is_spatial(&expr.left, schema)? && !is_spatial(&expr.right, schema)? {
             return Ok(PlannerResult::Original(expr));
+        }
+        // PostGIS's geography operators measure on the sphere, which the functions behind these
+        // don't.
+        if is_geography_operand(&expr.left, schema)? || is_geography_operand(&expr.right, schema)? {
+            return plan_err!("operator {} doesn't take geography yet", expr.op);
         }
         Ok(PlannerResult::Planned(Expr::ScalarFunction(
             ScalarFunction::new_udf(function, vec![expr.left, expr.right]),
@@ -76,6 +83,10 @@ fn is_spatial(expr: &Expr, schema: &DFSchema) -> Result<bool> {
     Ok(field
         .extension_type_name()
         .is_some_and(|name| name.starts_with("geoarrow.")))
+}
+
+fn is_geography_operand(expr: &Expr, schema: &DFSchema) -> Result<bool> {
+    Ok(is_geography(&expr.to_field(schema)?.1))
 }
 
 fn udf(function: impl ScalarUDFImpl + 'static) -> Arc<ScalarUDF> {

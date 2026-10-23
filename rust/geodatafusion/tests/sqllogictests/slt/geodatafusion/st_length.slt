@@ -90,3 +90,66 @@ query R
 SELECT ST_Length(NULL::geometry)
 ----
 NULL
+
+# Geography
+query R
+SELECT ST_Length('LINESTRING(0 0,1 0)'::geography)
+----
+111319.490793
+
+query R
+SELECT ST_Length('LINESTRING(0 0,1 0)'::geography, false)
+----
+111195.079735
+
+# Z adds to each segment's length, on the spheroid and the sphere; M doesn't
+query R
+SELECT ST_Length('LINESTRING Z(0 0 0,1 0 1000)'::geography)
+----
+111323.982279
+
+query R
+SELECT ST_Length('LINESTRING Z(0 0 0,1 0 1000)'::geography, false)
+----
+111199.576246
+
+query R
+SELECT ST_Length('LINESTRING M(0 0 0,1 0 1000)'::geography)
+----
+111319.490793
+
+query R
+SELECT ST_Length('GEOMETRYCOLLECTION(LINESTRING(0 0,1 0),POLYGON((0 0,1 0,1 1,0 0)),POINT(1 1))'::geography)
+----
+111319.490793
+
+query R
+SELECT ST_Length('POLYGON((0 0,1 0,1 1,0 0))'::geography)
+----
+0
+
+query R
+SELECT ST_Length('SRID=4269;LINESTRING(0 0,1 1)'::geography)
+----
+156899.568289
+
+# A spheroid that is a sphere
+query R
+SELECT ST_Length('SRID=4047;LINESTRING(0 0,1 1)'::geography)
+----
+157249.554046
+
+query R
+SELECT ST_Length('LINESTRING EMPTY'::geography)
+----
+0
+
+query R
+SELECT ST_Length('LINESTRING(0 0,1 0)'::geometry, true)
+----
+111319.490793
+
+query R
+SELECT ST_Length('LINESTRING(0 0,1 0)'::geography, NULL)
+----
+NULL

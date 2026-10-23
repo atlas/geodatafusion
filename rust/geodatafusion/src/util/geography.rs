@@ -1,13 +1,22 @@
 //! PostGIS's geography type: a geometry field whose GeoArrow metadata has spherical edges, with
 //! a longitude/latitude CRS.
 
-use arrow_schema::Field;
-use datafusion::common::plan_datafusion_err;
+use std::sync::Arc;
+
+use arrow_schema::{DataType, Field, FieldRef};
+use datafusion::common::{exec_datafusion_err, plan_datafusion_err};
 use datafusion::error::Result;
-use geoarrow_schema::{Edges, Metadata};
+use datafusion::logical_expr::{ColumnarValue, ScalarFunctionArgs};
+use geo_traits::GeometryTrait;
+use geoarrow_array::GeoArrowArray;
+use geoarrow_schema::{Edges, Metadata, WkbType};
+use wkt::Wkt;
 use wkt::types::Coord;
 
-use crate::util::field::input_metadata;
+use crate::error::GeoDataFusionResult;
+use crate::util::field::{geometry_array, input_metadata};
+use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
+use crate::util::owned::map_coords;
 use crate::util::srid::{
     SRID_GEOGRAPHY_DEFAULT, SRID_UNKNOWN, Spheroid, crs_to_srid, lonlat_spheroid, srid_to_crs,
 };
@@ -44,6 +53,54 @@ pub(crate) fn geography_spheroid(name: &str, srid: i32) -> Result<Spheroid> {
             "{name}: Only lon/lat coordinate systems are supported in geography (SRID {srid})."
         )
     })
+}
+
+/// Argument `index` as geography, with its SRID: geography as it is, and geometry as PostgreSQL's
+/// implicit cast to geography makes it, so its SRID (4326 for none) must be longitude/latitude
+/// and its coordinates are brought into range.
+pub(crate) fn geography_argument(
+    name: &str,
+    args: &ScalarFunctionArgs,
+    index: usize,
+) -> GeoDataFusionResult<(ColumnarValue, FieldRef, i32)> {
+    let field = &args.arg_fields[index];
+    if is_geography(field) {
+        let srid = geography_srid(field).ok_or_else(|| {
+            exec_datafusion_err!("{name}: geography with a CRS that doesn't name an SRID")
+        })?;
+        return Ok((args.args[index].clone(), Arc::clone(field), srid));
+    }
+    let geometries = geometry_array(args, index)?;
+    let srid = crs_to_srid(geometries.data_type().metadata().crs()).ok_or_else(|| {
+        exec_datafusion_err!("{name}: geometry with a CRS that doesn't name an SRID")
+    })?;
+    let metadata = geography_metadata(name, srid)?;
+    let srid = crs_to_srid(metadata.crs()).unwrap_or(SRID_GEOGRAPHY_DEFAULT);
+    let field = Arc::new(
+        Field::new(field.name(), DataType::Binary, true)
+            .with_extension_type(WkbType::new(Arc::new(metadata))),
+    );
+    let converted = map_geometry_to_wkb(geometries.as_ref(), &CoerceIntoRange, &field)?;
+    Ok((
+        ColumnarValue::Array(converted.into_array_ref()),
+        field,
+        srid,
+    ))
+}
+
+/// Geography's coordinates brought into the range of longitude and latitude.
+pub(crate) struct CoerceIntoRange;
+
+impl GeometryKernel for CoerceIntoRange {
+    type Output = Wkt<f64>;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        _row: usize,
+    ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        Ok(Some(map_coords(geom, &coerce_into_range)))
+    }
 }
 
 /// The coordinate with its longitude and latitude brought into range, as PostGIS does for

@@ -165,3 +165,63 @@ SELECT ST_Distance(g, 'POINT(0 0)'::geometry) FROM (VALUES ('POINT(3 4)'::geomet
 5
 NULL
 NULL
+
+# Geography
+query R
+SELECT ST_Distance('POINT(0 0)'::geography, 'POINT(1 0)'::geography)
+----
+111319.490793
+
+query R
+SELECT ST_Distance('POINT(0 0)'::geography, 'POINT(1 0)'::geography, false)
+----
+111195.079735
+
+query R
+SELECT ST_Distance('POINT(0 0)'::geography, 'POINT(180 0)'::geography)
+----
+20003931.4586
+
+query R
+SELECT ST_Distance('POINT(0 0)'::geography, 'POINT(0 0)'::geography)
+----
+0
+
+query R
+SELECT ST_Distance('MULTIPOINT((0 0),(5 5))'::geography, 'POINT(1 2)'::geography)
+----
+247576.472648
+
+# Geometry with geography is cast to geography
+query R
+SELECT ST_Distance('POINT(0 0)'::geography, 'POINT(1 2)'::geometry)
+----
+247576.472648
+
+query R
+SELECT ST_Distance('POINT(0 0)'::geometry, 'POINT(1 2)'::geometry, true)
+----
+247576.472648
+
+query R
+SELECT ST_Distance('SRID=4269;POINT(0 0)'::geography, 'SRID=4269;POINT(1 2)'::geography)
+----
+247576.472641
+
+query R
+SELECT ST_Distance('POINT Z(0 0 0)'::geography, 'POINT Z(1 0 1000)'::geography)
+----
+111319.490793
+
+query R
+SELECT ST_Distance('POINT EMPTY'::geography, 'POINT(1 2)'::geography)
+----
+NULL
+
+query R
+SELECT ST_Distance('POINT(0 0)'::geography, 'POINT(1 0)'::geography, NULL)
+----
+NULL
+
+query error
+SELECT ST_Distance('POINT(0 0)'::geography, 'SRID=4269;POINT(1 2)'::geography)

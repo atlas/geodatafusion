@@ -113,3 +113,61 @@ SELECT ST_Area(g) FROM (VALUES ('POLYGON((0 0,0 1,1 1,1 0,0 0))'::geometry), (NU
 0
 1
 NULL
+
+# Geography
+query R
+SELECT ST_Area('POLYGON((0 0,1 0,1 1,0 0))'::geography)
+----
+6154854786.72
+
+query R
+SELECT ST_Area('POLYGON((0 0,0 1,1 1,0 0))'::geography)
+----
+6153923574.75
+
+query R
+SELECT ST_Area('POLYGON((0 0,10 0,10 10,0 10,0 0),(1 1,2 1,2 2,1 1))'::geography)
+----
+1221723230540
+
+query R
+SELECT ST_Area('GEOMETRYCOLLECTION(POLYGON((0 0,1 0,1 1,0 0)),LINESTRING(0 0,1 1))'::geography)
+----
+6154854786.72
+
+query R
+SELECT ST_Area('POLYGON((0 0,90 0,180 0,-90 0,0 0))'::geography)
+----
+255032810862000
+
+query R
+SELECT ST_Area('SRID=4269;POLYGON((0 0,1 0,1 1,0 0))'::geography)
+----
+6154854786.52
+
+query R
+SELECT ST_Area('SRID=4047;POLYGON((0 0,1 0,1 1,0 0))'::geography)
+----
+6182483308.45
+
+query R
+SELECT ST_Area('POLYGON EMPTY'::geography)
+----
+0
+
+query R
+SELECT ST_Area('POLYGON((0 0,1 0,1 1,0 0))'::geometry, true)
+----
+6154854786.72
+
+query R
+SELECT ST_Area('POLYGON((0 0,1 0,1 1,0 0))'::geography, NULL)
+----
+NULL
+
+# A hole larger than its shell
+query error
+SELECT ST_Area('POLYGON((0 0,1 0,1 1,0 1,0 0),(0.5 0.5,2 0.5,2 2,0.5 0.5))'::geography)
+
+query error
+SELECT ST_Area('SRID=3857;POLYGON((0 0,1 0,1 1,0 0))'::geometry, true)

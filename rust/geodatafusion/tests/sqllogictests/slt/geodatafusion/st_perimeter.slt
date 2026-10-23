@@ -56,3 +56,34 @@ query R
 SELECT ST_Perimeter(NULL::geometry)
 ----
 NULL
+
+# Geography
+query R
+SELECT ST_Perimeter('POLYGON((0 0,1 0,1 1,0 0))'::geography)
+----
+378793.447642
+
+query R
+SELECT ST_Perimeter('POLYGON((0 0,1 0,1 1,0 0))'::geography, false)
+----
+379639.757238
+
+query R
+SELECT ST_Perimeter('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((5 5,6 5,6 6,5 5),(5.2 5.1,5.8 5.1,5.8 5.7,5.2 5.1)))'::geography)
+----
+983642.400163
+
+query R
+SELECT ST_Perimeter('GEOMETRYCOLLECTION(LINESTRING(0 0,1 0),POLYGON((0 0,1 0,1 1,0 0)))'::geography)
+----
+378793.447642
+
+query R
+SELECT ST_Perimeter('POLYGON Z((0 0 0,1 0 1000,1 1 0,0 0 0))'::geography)
+----
+378802.460879
+
+query R
+SELECT ST_Perimeter('LINESTRING(0 0,1 0)'::geography)
+----
+0

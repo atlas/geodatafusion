@@ -16,7 +16,7 @@ geodatafusion/st_3dperimeter 12/12
 geodatafusion/st_addmeasure 16/16
 geodatafusion/st_addpoint 20/20
 geodatafusion/st_affine 17/17
-geodatafusion/st_area 21/21
+geodatafusion/st_area 33/33
 geodatafusion/st_asbinary 19/19
 geodatafusion/st_asencodedpolyline 21/21
 geodatafusion/st_asewkb 17/17
@@ -28,6 +28,7 @@ geodatafusion/st_asmvtgeom 122/122
 geodatafusion/st_assvg 26/26
 geodatafusion/st_astext 30/30
 geodatafusion/st_astwkb 34/34
+geodatafusion/st_azimuth 19/19
 geodatafusion/st_boundary 32/32
 geodatafusion/st_boundingdiagonal 22/22
 geodatafusion/st_box2dfromgeohash 12/12
@@ -55,13 +56,13 @@ geodatafusion/st_delaunaytriangles 14/14
 geodatafusion/st_difference 20/20
 geodatafusion/st_dimension 19/19
 geodatafusion/st_disjoint 20/20
-geodatafusion/st_distance 31/31
+geodatafusion/st_distance 43/43
 geodatafusion/st_distancecpa 16/16
 geodatafusion/st_dump 18/18
 geodatafusion/st_dumppoints 15/15
 geodatafusion/st_dumprings 10/10
 geodatafusion/st_dumpsegments 14/14
-geodatafusion/st_dwithin 18/18
+geodatafusion/st_dwithin 25/25
 geodatafusion/st_endpoint 16/16
 geodatafusion/st_envelope 19/19
 geodatafusion/st_equals 20/20
@@ -110,7 +111,7 @@ geodatafusion/st_issimple 31/31
 geodatafusion/st_isvalid 22/22
 geodatafusion/st_isvalidreason 13/13
 geodatafusion/st_isvalidtrajectory 11/11
-geodatafusion/st_length 17/17
+geodatafusion/st_length 29/29
 geodatafusion/st_lineextend 17/17
 geodatafusion/st_linefromencodedpolyline 18/18
 geodatafusion/st_linefrommultipoint 10/10
@@ -157,7 +158,7 @@ geodatafusion/st_numpoints 15/15
 geodatafusion/st_offsetcurve 31/31
 geodatafusion/st_orientedenvelope 18/18
 geodatafusion/st_overlaps 20/20
-geodatafusion/st_perimeter 11/11
+geodatafusion/st_perimeter 17/17
 geodatafusion/st_point 6/6
 geodatafusion/st_pointfromgeohash 13/13
 geodatafusion/st_pointfromtext 10/10
@@ -275,7 +276,7 @@ postgis_docs/st_asmvtgeom 1/1
 postgis_docs/st_assvg 1/4
 postgis_docs/st_astwkb 1/1
 postgis_docs/st_asx3d 0/3
-postgis_docs/st_azimuth 0/1
+postgis_docs/st_azimuth 1/1
 postgis_docs/st_boundary 6/6
 postgis_docs/st_boundingdiagonal 1/1
 postgis_docs/st_box2dfromgeohash 3/3
@@ -380,7 +381,7 @@ postgis_docs/st_isvaliddetail 0/2
 postgis_docs/st_isvalidreason 2/3
 postgis_docs/st_isvalidtrajectory 2/2
 postgis_docs/st_largestemptycircle 0/2
-postgis_docs/st_length 2/3
+postgis_docs/st_length 3/3
 postgis_docs/st_letters 0/2
 postgis_docs/st_linecrossingdirection 0/3
 postgis_docs/st_lineextend 1/1

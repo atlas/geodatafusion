@@ -1,0 +1,86 @@
+# Edge cases for ST_Azimuth, not covered by the PostGIS docs examples.
+
+query R
+SELECT ST_Azimuth('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry)
+----
+0.785398163397
+
+query R
+SELECT ST_Azimuth('POINT(0 0)'::geometry, 'POINT(-1 -1)'::geometry)
+----
+3.92699081699
+
+query R
+SELECT ST_Azimuth('POINT(0 0)'::geometry, 'POINT(0 -1)'::geometry)
+----
+3.14159265359
+
+query R
+SELECT ST_Azimuth('POINT(0 0)'::geometry, 'POINT(-1e-300 1)'::geometry)
+----
+0
+
+query R
+SELECT ST_Azimuth('POINT Z(0 0 5)'::geometry, 'POINT(1 1)'::geometry)
+----
+0.785398163397
+
+# Coincident points
+query R
+SELECT ST_Azimuth('POINT(0 0)'::geometry, 'POINT(0 0)'::geometry)
+----
+NULL
+
+query error
+SELECT ST_Azimuth('POINT(0 0)'::geometry, 'LINESTRING(0 0,1 1)'::geometry)
+
+query error
+SELECT ST_Azimuth('MULTIPOINT((0 0))'::geometry, 'POINT(1 1)'::geometry)
+
+query error
+SELECT ST_Azimuth('POINT EMPTY'::geometry, 'POINT(1 1)'::geometry)
+
+query error
+SELECT ST_Azimuth('SRID=4326;POINT(0 0)'::geometry, 'POINT(1 1)'::geometry)
+
+query R
+SELECT ST_Azimuth(NULL::geometry, 'POINT(1 1)'::geometry)
+----
+NULL
+
+# Geography: the geodesic's azimuth
+query R
+SELECT ST_Azimuth('POINT(0 0)'::geography, 'POINT(0 1)'::geography)
+----
+0
+
+query R
+SELECT ST_Azimuth('POINT(0 0)'::geography, 'POINT(-1 0)'::geography)
+----
+4.71238898038
+
+query R
+SELECT ST_Azimuth('POINT(0 90)'::geography, 'POINT(1 0)'::geography)
+----
+3.12413936107
+
+query R
+SELECT ST_Azimuth('POINT(-71.06 42.36)'::geography, 'POINT(2.35 48.86)'::geography)
+----
+0.972631896191
+
+query R
+SELECT ST_Azimuth('POINT(0 0)'::geography, 'POINT(0 0)'::geography)
+----
+NULL
+
+query error
+SELECT ST_Azimuth('POINT(0 0)'::geography, 'LINESTRING(0 0,1 1)'::geography)
+
+query error
+SELECT ST_Azimuth('POINT EMPTY'::geography, 'POINT(1 0)'::geography)
+
+query R
+SELECT ST_Azimuth(geom1 => 'POINT(0 0)'::geometry, geom2 => 'POINT(1 0)'::geometry)
+----
+1.57079632679

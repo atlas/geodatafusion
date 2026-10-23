@@ -1,6 +1,7 @@
 //! Measurement functions.
 
 mod area;
+mod azimuth;
 mod distance;
 mod length;
 pub(crate) mod length3d;
@@ -9,6 +10,7 @@ mod perimeter;
 mod shortest_line;
 
 pub use area::Area;
+pub use azimuth::Azimuth;
 pub use distance::Distance;
 pub use length::Length;
 pub use length3d::{Length3D, Perimeter3D};
@@ -18,6 +20,7 @@ pub use shortest_line::{ClosestPoint, ShortestLine};
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(Area.into());
+    session_context.register_udf(Azimuth.into());
     session_context.register_udf(ClosestPoint.into());
     session_context.register_udf(Distance::new().into());
     session_context.register_udf(Length.into());

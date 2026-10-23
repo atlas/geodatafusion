@@ -95,3 +95,40 @@ SELECT ST_DWithin(g, 'POINT(0 0)'::geometry, 5) FROM (VALUES ('POINT(3 4)'::geom
 NULL
 false
 true
+
+# Geography
+query T
+SELECT ST_DWithin('POINT(0 0)'::geography, 'POINT(1 0)'::geography, 111319.49079327357)
+----
+true
+
+query T
+SELECT ST_DWithin('POINT(0 0)'::geography, 'POINT(1 0)'::geography, 111319.4907932)
+----
+false
+
+query T
+SELECT ST_DWithin('POINT(0 0)'::geography, 'POINT(1 0)'::geography, 111200, false)
+----
+true
+
+# A negative distance is false, not an error, for geography
+query T
+SELECT ST_DWithin('POINT(0 0)'::geography, 'POINT(1 0)'::geography, -1)
+----
+false
+
+query T
+SELECT ST_DWithin('POINT EMPTY'::geography, 'POINT(1 0)'::geography, 1)
+----
+false
+
+query T
+SELECT ST_DWithin('POINT(0 0)'::geography, 'POINT(1 0)'::geography, NULL)
+----
+NULL
+
+query T
+SELECT ST_DWithin('POINT(0 0)'::geometry, 'POINT(1 0)'::geometry, 111320, true)
+----
+true

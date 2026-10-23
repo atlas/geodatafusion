@@ -187,6 +187,7 @@ def register_all_native(ctx: SessionContext):
 
     # measurement
     ctx.register_udf(udf(native.Area()))
+    ctx.register_udf(udf(native.Azimuth()))
     ctx.register_udf(udf(native.ClosestPoint()))
     ctx.register_udf(udf(native.Distance()))
     ctx.register_udf(udf(native.Length()))
