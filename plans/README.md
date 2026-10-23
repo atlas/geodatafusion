@@ -255,7 +255,7 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    the linear referencing ones), which need `_ST_BestSRID` or geodetic editing.
    ST_ClipByBox2D done ahead of G2 batch 5 (requested), on GEOS with PostGIS's box checks around
    it, with `box2d`/`box3d` text input (`'BOX(1 2,5 6)'::box2d`) for it. Parity 4714/4909 ->
-   4759/4954. `box2d::text` output is still to do.
+   4759/4954. Box text output since done.
    G2 batch 5 done: geodetic distance involving lines and polygons (nearest points on the sphere,
    with the Aviation Formulary's cancellation-free arc normals), the sphere area (PostGIS's is
    (R / a)² times its spheroid area), and the validity flags with ST_IsValidDetail, through a
@@ -270,6 +270,9 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    ST_Intersection (proj feature). PostGIS bugs documented rather than reproduced: garbage
    geography Z in linear referencing, a wrong sphere ST_LineLocatePoint, a line's last vertex
    sometimes not covered. Parity 4807/5000 -> 4929/5116.
+   Box text output done: `box2d_out` and `box3d_out`, which `box::text` calls, with the numbers
+   as WKT writes them; an untyped NULL now reads as a NULL geometry (`ST_XMin(NULL)` failed).
+   Parity 4929/5116 -> 4964/5151.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
