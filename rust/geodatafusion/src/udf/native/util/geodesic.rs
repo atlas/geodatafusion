@@ -62,6 +62,20 @@ pub(crate) fn geodetic_pair(
     if !flagged && !args.arg_fields[..2].iter().any(|field| is_geography(field)) {
         return Ok(None);
     }
+    let use_spheroid = match flag {
+        Some(flag) => optional_bool_arg(args, flag, true)?,
+        None => BooleanArray::from(vec![true; args.number_rows]),
+    };
+    geography_pair(name, args, use_spheroid).map(Some)
+}
+
+/// Arguments 0 and 1, cast to geography as PostgreSQL does, to measure as `use_spheroid` says.
+/// Their SRIDs must match.
+pub(crate) fn geography_pair(
+    name: &str,
+    args: &ScalarFunctionArgs,
+    use_spheroid: BooleanArray,
+) -> GeoDataFusionResult<GeodeticPair> {
     let (first, first_field, srid) = geography_argument(name, args, 0)?;
     let (second, second_field, second_srid) = geography_argument(name, args, 1)?;
     if srid != second_srid {
@@ -70,18 +84,14 @@ pub(crate) fn geodetic_pair(
         )
         .into());
     }
-    let use_spheroid = match flag {
-        Some(flag) => optional_bool_arg(args, flag, true)?,
-        None => BooleanArray::from(vec![true; args.number_rows]),
-    };
-    Ok(Some(GeodeticPair {
+    Ok(GeodeticPair {
         first: GeodeticArgument {
             geometries: geometries_from_array(&first.to_array(args.number_rows)?, &first_field)?,
             geodesic: Geodesic::new(geography_spheroid(name, srid)?),
             use_spheroid,
         },
         second: (second, second_field),
-    }))
+    })
 }
 
 /// Argument `index` of a measurement function, to measure as geography if it is geography, or
@@ -117,8 +127,14 @@ pub(crate) struct Geodesic {
 impl Geodesic {
     pub(crate) fn new(spheroid: Spheroid) -> Self {
         let Spheroid { a, b } = spheroid;
+        Self::with_flattening(a, (a - b) / a)
+    }
+
+    /// The geodesics of the spheroid with semi-major axis `a` and flattening `f`.
+    pub(crate) fn with_flattening(a: f64, f: f64) -> Self {
+        let b = a - a * f;
         Self {
-            geodesic: geographiclib_rs::Geodesic::new(a, (a - b) / a),
+            geodesic: geographiclib_rs::Geodesic::new(a, f),
             radius: (2.0 * a + b) / 3.0,
             sphere: a == b,
         }
@@ -185,17 +201,19 @@ impl Geodesic {
         b: &impl GeometryTrait<T = f64>,
         use_spheroid: bool,
     ) -> GeoDataFusionResult<Option<f64>> {
-        let (a, b) = (points(name, a)?, points(name, b)?);
-        let mut nearest: Option<(f64, [(f64, f64); 2])> = None;
-        for &p in &a {
-            for &q in &b {
-                let angle = central_angle(p, q);
-                if nearest.is_none_or(|(best, _)| angle < best) {
-                    nearest = Some((angle, [p, q]));
-                }
-            }
-        }
+        let nearest = nearest_points(name, a, b)?;
         Ok(nearest.map(|(_, [p, q])| self.distance(p, q, use_spheroid)))
+    }
+
+    /// The angle at the centre of the sphere between the nearest points of two geometries of
+    /// points; `Ok(None)` if either is empty.
+    pub(crate) fn points_angle(
+        &self,
+        name: &str,
+        a: &impl GeometryTrait<T = f64>,
+        b: &impl GeometryTrait<T = f64>,
+    ) -> GeoDataFusionResult<Option<f64>> {
+        Ok(nearest_points(name, a, b)?.map(|(angle, _)| angle))
     }
 
     /// The length in metres of a polygon's rings, its holes' included.
@@ -239,6 +257,28 @@ impl Geodesic {
     }
 }
 
+/// Two points, as longitude and latitude, and the angle between them at the sphere's centre.
+type Nearest = (f64, [(f64, f64); 2]);
+
+/// The nearest points of two geometries of points on the sphere.
+fn nearest_points(
+    name: &str,
+    a: &impl GeometryTrait<T = f64>,
+    b: &impl GeometryTrait<T = f64>,
+) -> GeoDataFusionResult<Option<Nearest>> {
+    let (a, b) = (points(name, a)?, points(name, b)?);
+    let mut nearest: Option<Nearest> = None;
+    for &p in &a {
+        for &q in &b {
+            let angle = central_angle(p, q);
+            if nearest.is_none_or(|(best, _)| angle < best) {
+                nearest = Some((angle, [p, q]));
+            }
+        }
+    }
+    Ok(nearest)
+}
+
 /// The points of a point, multipoint or collection of them, as longitude and latitude.
 fn points(name: &str, geom: &impl GeometryTrait<T = f64>) -> GeoDataFusionResult<Vec<(f64, f64)>> {
     let mut points = vec![];
@@ -275,6 +315,39 @@ fn collect_points(
     Ok(())
 }
 
+/// PostGIS's spheroid text, `SPHEROID["name",a,rf]` (or with parentheses), as `(a, rf)`, read as
+/// PostGIS reads it: the name has 1 to 19 characters, each number ends at the comma after it,
+/// whitespace may come before a number, and text after the second number is ignored.
+pub(crate) fn parse_spheroid(text: &str) -> Result<(f64, f64), &'static str> {
+    const BAD: &str = "SPHEROID parser - couldn't parse the spheroid";
+    let Some(rest) = text.strip_prefix("SPHEROID") else {
+        return Err("SPHEROID parser - doesn't start with SPHEROID");
+    };
+    let rest = rest
+        .strip_prefix("[\"")
+        .or_else(|| rest.strip_prefix("(\""))
+        .ok_or(BAD)?;
+    let (name, rest) = rest.split_once('"').ok_or(BAD)?;
+    if name.is_empty() || name.chars().count() > 19 {
+        return Err(BAD);
+    }
+    let rest = rest.strip_prefix(',').ok_or(BAD)?;
+    let (a, rest) = scan_number(rest).ok_or(BAD)?;
+    let rest = rest.strip_prefix(',').ok_or(BAD)?;
+    let (rf, _) = scan_number(rest).ok_or(BAD)?;
+    Ok((a, rf))
+}
+
+/// The number at the start of `text`, after any whitespace, and the text after it: the longest
+/// prefix that reads as a number.
+fn scan_number(text: &str) -> Option<(f64, &str)> {
+    let text = text.trim_start();
+    (1..=text.len())
+        .rev()
+        .filter(|&end| text.is_char_boundary(end))
+        .find_map(|end| Some((text[..end].parse().ok()?, &text[end..])))
+}
+
 pub(crate) fn xy(coord: &impl CoordTrait<T = f64>) -> (f64, f64) {
     (coord.x(), coord.y())
 }
@@ -299,4 +372,40 @@ fn central_angle(p: (f64, f64), q: (f64, f64)) -> f64 {
     let y = (a * a + b * b).sqrt();
     let x = sin1 * sin2 + cos1 * cos2 * cos_delta;
     y.atan2(x)
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_parse_spheroid() {
+        let wgs84 = Ok((6378137.0, 298.257223563));
+        assert_eq!(
+            parse_spheroid(r#"SPHEROID["WGS 84",6378137,298.257223563]"#),
+            wgs84
+        );
+        assert_eq!(
+            parse_spheroid(r#"SPHEROID("x", 6378137, 298.257223563]"#),
+            wgs84
+        );
+        assert_eq!(
+            parse_spheroid(r#"SPHEROID["x",6378137,298.257223563, 5]"#),
+            wgs84
+        );
+        assert_eq!(
+            parse_spheroid(r#"SPHEROID["x",6.378137e6,298.257223563"#),
+            wgs84
+        );
+        for bad in [
+            r#"spheroid["x",6378137,298.257223563]"#,
+            r#"SPHEROID ["x",6378137,298.257223563]"#,
+            r#"SPHEROID["",6378137,298.257223563]"#,
+            r#"SPHEROID["12345678901234567890",6378137,298.257223563]"#,
+            r#"SPHEROID["x",6378137 ,298.257223563]"#,
+            r#"SPHEROID["x",6378137]"#,
+        ] {
+            assert!(parse_spheroid(bad).is_err(), "{bad}");
+        }
+    }
 }

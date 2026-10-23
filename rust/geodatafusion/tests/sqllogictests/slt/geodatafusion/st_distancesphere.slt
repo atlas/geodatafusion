@@ -1,0 +1,56 @@
+# Edge cases for ST_DistanceSphere, not covered by the PostGIS docs examples.
+
+query R
+SELECT ST_DistanceSphere('POINT(0 0)'::geometry, 'POINT(1 0)'::geometry)
+----
+111195.079735
+
+query R
+SELECT ST_DistanceSphere('SRID=4269;POINT(0 0)'::geometry, 'SRID=4269;POINT(1 0)'::geometry)
+----
+111195.079734
+
+# With a radius, the angle times the radius, unrounded
+query R
+SELECT ST_DistanceSphere('POINT(0 0)'::geometry, 'POINT(1 0)'::geometry, 6371000)
+----
+111194.926645
+
+query R
+SELECT ST_DistanceSphere('POINT(0 0)'::geometry, 'POINT(1 0)'::geometry, -1)
+----
+-0.0174532925199
+
+query R
+SELECT ST_DistanceSphere('MULTIPOINT((0 0),(5 5))'::geometry, 'POINT(4 4)'::geometry)
+----
+157010.378808
+
+# Coordinates are brought into range, as for geography
+query R
+SELECT ST_DistanceSphere('POINT(0 0)'::geometry, 'POINT(200 100)'::geometry)
+----
+11051821.9497
+
+query R
+SELECT ST_DistanceSphere('POINT EMPTY'::geometry, 'POINT(1 0)'::geometry)
+----
+NULL
+
+query R
+SELECT ST_DistanceSphere(NULL::geometry, 'POINT(1 0)'::geometry)
+----
+NULL
+
+query R
+SELECT ST_DistanceSphere('POINT(0 0)'::geometry, 'POINT(1 0)'::geometry, NULL)
+----
+NULL
+
+query error
+SELECT ST_DistanceSphere('SRID=3857;POINT(0 0)'::geometry, 'SRID=3857;POINT(1 0)'::geometry)
+
+query R
+SELECT ST_DistanceSphere(geom1 => 'POINT(0 0)'::geometry, geom2 => 'POINT(0 1)'::geometry)
+----
+111195.079735

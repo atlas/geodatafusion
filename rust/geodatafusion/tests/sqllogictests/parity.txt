@@ -58,6 +58,8 @@ geodatafusion/st_dimension 19/19
 geodatafusion/st_disjoint 20/20
 geodatafusion/st_distance 43/43
 geodatafusion/st_distancecpa 16/16
+geodatafusion/st_distancesphere 11/11
+geodatafusion/st_distancespheroid 13/13
 geodatafusion/st_dump 18/18
 geodatafusion/st_dumppoints 15/15
 geodatafusion/st_dumprings 10/10
@@ -112,6 +114,7 @@ geodatafusion/st_isvalid 22/22
 geodatafusion/st_isvalidreason 13/13
 geodatafusion/st_isvalidtrajectory 11/11
 geodatafusion/st_length 29/29
+geodatafusion/st_lengthspheroid 8/8
 geodatafusion/st_lineextend 17/17
 geodatafusion/st_linefromencodedpolyline 18/18
 geodatafusion/st_linefrommultipoint 10/10
@@ -313,9 +316,9 @@ postgis_docs/st_difference 2/2
 postgis_docs/st_dimension 1/1
 postgis_docs/st_disjoint 2/2
 postgis_docs/st_distance 4/6
-postgis_docs/st_distance_spheroid 0/1
+postgis_docs/st_distance_spheroid 1/1
 postgis_docs/st_distancecpa 0/1
-postgis_docs/st_distancesphere 0/1
+postgis_docs/st_distancesphere 1/1
 postgis_docs/st_dump 0/2
 postgis_docs/st_dumppoints 0/4
 postgis_docs/st_dumprings 0/1

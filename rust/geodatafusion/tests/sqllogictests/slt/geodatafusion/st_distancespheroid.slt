@@ -1,0 +1,62 @@
+# Edge cases for ST_DistanceSpheroid, not covered by the PostGIS docs examples.
+
+query R
+SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry, 'SPHEROID["WGS 84",6378137,298.257223563]')
+----
+156899.568291
+
+# WGS 84 by default
+query R
+SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry)
+----
+156899.568291
+
+query R
+SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry, 'SPHEROID["Clarke 1866",6378206.4,294.9786982139006]')
+----
+156895.449465
+
+# Parentheses, whitespace before a number, and text after the last one
+query R
+SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry, 'SPHEROID("x", 6378137, 298.257223563, 5]')
+----
+156899.568291
+
+# An infinite inverse flattening is a sphere
+query R
+SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry, 'SPHEROID["x",6378137,inf]')
+----
+157425.537108
+
+# The SRID isn't checked
+query R
+SELECT ST_DistanceSpheroid('SRID=3857;POINT(0 0)'::geometry, 'SRID=3857;POINT(1 0)'::geometry, 'SPHEROID["WGS 84",6378137,298.257223563]')
+----
+111319.490793
+
+query R
+SELECT ST_DistanceSpheroid('MULTIPOINT((0 0),(5 5))'::geometry, 'POINT(4 4)'::geometry)
+----
+156665.641848
+
+query R
+SELECT ST_DistanceSpheroid('POINT EMPTY'::geometry, 'POINT(1 0)'::geometry)
+----
+-1
+
+query R
+SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'POINT(1 0)'::geometry, NULL)
+----
+NULL
+
+query error
+SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry, 'spheroid["x",6378137,298.257223563]')
+
+query error
+SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry, 'SPHEROID["x",6378137 ,298.257223563]')
+
+query error
+SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry, 'SPHEROID["12345678901234567890",6378137,298.257223563]')
+
+query error
+SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry, 'SPHEROID["x",6378137]')
