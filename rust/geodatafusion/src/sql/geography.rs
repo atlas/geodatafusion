@@ -30,6 +30,7 @@ const GEOGRAPHY_FUNCTIONS: &[&str] = &[
     "st_astext",
     "st_azimuth",
     "st_centroid",
+    "st_closestpoint",
     "st_distance",
     "st_dwithin",
     "st_geohash",
@@ -38,6 +39,7 @@ const GEOGRAPHY_FUNCTIONS: &[&str] = &[
     "st_project",
     "st_segmentize",
     "st_setsrid",
+    "st_shortestline",
     "st_srid",
     "st_summary",
 ];

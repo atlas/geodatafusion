@@ -53,6 +53,11 @@ impl Spot {
         self.vector
     }
 
+    /// The longitude and latitude in degrees, turned back as PostGIS does.
+    pub(crate) fn degrees(&self) -> (f64, f64) {
+        (self.lon * 180.0 / PI, self.lat * 180.0 / PI)
+    }
+
     /// The point a unit vector points at.
     pub(crate) fn from_vector(vector: Vector) -> Self {
         let [x, y, z] = vector;

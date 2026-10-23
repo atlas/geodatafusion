@@ -195,3 +195,24 @@ query T
 SELECT ST_AsText(ST_ClosestPoint('MULTIPOLYGON(((0 0, 1 0, 1 1, 0 0)), ((5 5, 6 5, 6 6, 5 5)))'::geometry, 'POINT(5 7)'::geometry))
 ----
 POINT(6 6)
+
+# Geography
+query T
+SELECT ST_AsText(ST_ClosestPoint('LINESTRING(1 0,1 1)'::geography, 'POINT(0 0.5)'::geography))
+----
+POINT(1 0.500076160154315)
+
+query T
+SELECT ST_AsText(ST_ClosestPoint('LINESTRING Z(1 0 5,1 1 6)'::geography, 'POINT(0 0.5)'::geography))
+----
+POINT(1 0.500076160154315)
+
+query T
+SELECT ST_AsText(ST_ClosestPoint('MULTIPOINT((0 0),(5 5))'::geography, 'POINT(4 4)'::geography))
+----
+POINT(5 5)
+
+query T
+SELECT ST_AsText(ST_ClosestPoint('LINESTRING(0 0,1 1)'::geography, 'LINESTRING(0 1,1 0)'::geography), 9)
+----
+POINT(0.5 0.50005712)

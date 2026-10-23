@@ -16,6 +16,8 @@ use wkt::types::{Coord, Dimension, LineString, Point};
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::util::distance::{Measure, Xy, nearest};
+use crate::udf::native::util::geodesic::{GeodeticArgument, GeodeticPair, geodetic_pair};
+use crate::udf::native::util::geodetic_distance::nearest as geodetic_nearest;
 use crate::util::field::{common_metadata, geometry_array, input_metadata, wkb_return_field};
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
 use crate::util::owned::OwnedColumn;
@@ -23,7 +25,10 @@ use crate::util::signature::{Arg, coerce_args};
 
 /// PostGIS: ST_ShortestLine(geometry geom1, geometry geom2), and the same for ST_ClosestPoint.
 /// The geography forms wait for the geography type.
-static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry, Arg::Geometry]];
+static ARGUMENTS: &[&[Arg]] = &[
+    &[Arg::Geometry, Arg::Geometry],
+    &[Arg::Geometry, Arg::Geometry, Arg::Boolean],
+];
 
 static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
     Signature::user_defined(Volatility::Immutable)
@@ -34,7 +39,7 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// Returns the 2D shortest line between two geometries.
 #[user_doc(
     doc_section(label = "Measurement Functions"),
-    description = "Returns the 2D line between the nearest points of two geometries, from geom1 to geom2; its length is ST_Distance. If several pairs are equally near, the first found is returned, which can differ from PostGIS's choice. Returns NULL if either geometry is empty. The result is 2D. The geography form isn't supported yet.",
+    description = "Returns the 2D line between the nearest points of two geometries, from geom1 to geom2; its length is ST_Distance. If several pairs are equally near, the first found is returned, which can differ from PostGIS's choice. Returns NULL if either geometry is empty. The result is 2D. For geography the nearest points are found on the sphere, along great circles, as for ST_Distance; use_spheroid doesn't change them, as in PostGIS. Where geography touches or overlaps in several places, PostGIS returns the first its index finds, which can differ.",
     syntax_example = "ST_ShortestLine(geom1, geom2)",
     argument(name = "geom1", description = "geometry"),
     argument(name = "geom2", description = "geometry"),
@@ -93,7 +98,7 @@ impl ScalarUDFImpl for ShortestLine {
 /// Returns the 2D point on geom1 that is closest to geom2.
 #[user_doc(
     doc_section(label = "Measurement Functions"),
-    description = "Returns the 2D point of geom1 nearest to geom2: the first point of ST_ShortestLine. If several points are equally near, the first found is returned, which can differ from PostGIS's choice. Returns NULL if either geometry is empty. The result is 2D. The geography form isn't supported yet.",
+    description = "Returns the 2D point of geom1 nearest to geom2: the first point of ST_ShortestLine. If several points are equally near, the first found is returned, which can differ from PostGIS's choice. Returns NULL if either geometry is empty. The result is 2D. For geography the nearest points are found on the sphere, along great circles, as for ST_Distance; use_spheroid doesn't change them, as in PostGIS. Where geography touches or overlaps in several places, PostGIS returns the first its index finds, which can differ.",
     syntax_example = "ST_ClosestPoint(geom1, geom2)",
     argument(name = "geom1", description = "geometry"),
     argument(name = "geom2", description = "geometry"),
@@ -162,6 +167,15 @@ fn nearest_impl(
     args: ScalarFunctionArgs,
     output: Output,
 ) -> GeoDataFusionResult<ColumnarValue> {
+    if let Some(GeodeticPair { first, second }) = geodetic_pair(name, &args, Some(2))? {
+        let kernel = GeodeticNearestKernel {
+            first: &first,
+            geom2: OwnedColumn::try_new(&second.0, &second.1, args.number_rows)?,
+            output,
+        };
+        let result = map_geometry_to_wkb(first.geometries.as_ref(), &kernel, &args.return_field)?;
+        return Ok(ColumnarValue::Array(result.to_array_ref()));
+    }
     common_metadata(name, &args, &[0, 1])?;
     let geometries = geometry_array(&args, 0)?;
     let kernel = NearestKernel {
@@ -189,6 +203,34 @@ impl GeometryKernel for NearestKernel {
             return Ok(None);
         };
         Ok(nearest(geom1, geom2).map(|measure| measure_geometry(measure, self.output)))
+    }
+}
+
+struct GeodeticNearestKernel<'a> {
+    first: &'a GeodeticArgument,
+    geom2: OwnedColumn,
+    output: Output,
+}
+
+impl GeometryKernel for GeodeticNearestKernel<'_> {
+    type Output = Wkt<f64>;
+
+    fn eval(
+        &self,
+        geom1: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        let (Some(geom2), Some(_)) = (self.geom2.get(row), self.first.use_spheroid(row)) else {
+            return Ok(None);
+        };
+        Ok(geodetic_nearest(geom1, geom2).map(|nearest| {
+            let [p, q] = nearest.points;
+            let measure = Measure {
+                distance: 0.0,
+                points: [p.degrees(), q.degrees()],
+            };
+            measure_geometry(measure, self.output)
+        }))
     }
 }
 

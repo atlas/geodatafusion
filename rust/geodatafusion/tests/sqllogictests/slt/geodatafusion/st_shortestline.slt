@@ -195,3 +195,29 @@ query T
 SELECT ST_AsText(ST_ShortestLine('MULTIPOLYGON(((0 0, 1 0, 1 1, 0 0)), ((5 5, 6 5, 6 6, 5 5)))'::geometry, 'POINT(5 7)'::geometry))
 ----
 LINESTRING(6 6,5 7)
+
+# Geography: the nearest points on the sphere
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(1 0,1 1)'::geography, 'POINT(0 0.5)'::geography))
+----
+LINESTRING(1 0.500076160154315,0 0.5)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT(0 0.5)'::geography, 'LINESTRING(1 0,1 1)'::geography, false))
+----
+LINESTRING(0 0.5,1 0.500076160154315)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('LINESTRING(0 0,10 0)'::geography, 'LINESTRING(5 1,6 2)'::geography))
+----
+LINESTRING(5 0,5 1)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'POINT(5 5)'::geography))
+----
+LINESTRING(5 5,5 5)
+
+query T
+SELECT ST_AsText(ST_ShortestLine('POINT EMPTY'::geography, 'POINT(0 0)'::geography))
+----
+NULL
