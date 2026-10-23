@@ -178,6 +178,8 @@ geodatafusion::register(&ctx);
 | ------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ST_BdPolyFromText   |             | Construct a Polygon given an arbitrary collection of closed linestrings as a MultiLineString Well-Known text representation.                          |
 | ST_BdMPolyFromText  |             | Construct a MultiPolygon given an arbitrary collection of closed linestrings as a MultiLineString text representation Well-Known text representation. |
+| ST_GeogFromText     | ✅          | Return a specified geography value from Well-Known Text representation or extended (WKT).                                                             |
+| ST_GeographyFromText | ✅          | Return a specified geography value from Well-Known Text representation or extended (WKT).                                                             |
 | ST_GeomCollFromText | ✅          | Makes a collection Geometry from collection WKT with the given SRID. If SRID is not given, it defaults to 0.                                          |
 | ST_GeomFromEWKT     | ✅          | Return a specified ST_Geometry value from Extended Well-Known Text representation (EWKT).                                                             |
 | ST_GeometryFromText | ✅          | Return a specified ST_Geometry value from Well-Known Text representation (WKT). This is an alias name for ST_GeomFromText                             |
@@ -194,6 +196,7 @@ geodatafusion::register(&ctx);
 
 | Name                 | Implemented | Description                                                                                                                                   |
 | -------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| ST_GeogFromWKB       | ✅          | Creates a geography instance from a Well-Known Binary geometry representation (WKB) or extended Well Known Binary (EWKB).                     |
 | ST_GeomFromEWKB      | ✅          | Return a specified ST_Geometry value from Extended Well-Known Binary representation (EWKB).                                                   |
 | ST_GeomFromWKB       | ✅          | Creates a geometry instance from a Well-Known Binary geometry representation (WKB) and optional SRID.                                         |
 | ST_LineFromWKB       | ✅          | Makes a LINESTRING from WKB with the given SRID                                                                                               |

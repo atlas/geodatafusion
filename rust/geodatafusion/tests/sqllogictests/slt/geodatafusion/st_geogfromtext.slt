@@ -1,0 +1,34 @@
+# Edge cases for ST_GeogFromText and ST_GeographyFromText, not covered by the PostGIS docs
+# examples.
+
+query T
+SELECT ST_AsEWKT(ST_GeogFromText('POINT(1 2)'))
+----
+SRID=4326;POINT(1 2)
+
+query T
+SELECT ST_AsEWKT(ST_GeogFromText('SRID=4269;LINESTRING(1 2,190 3)'))
+----
+SRID=4269;LINESTRING(1 2,-170 3)
+
+query T
+SELECT ST_AsEWKT(ST_GeographyFromText('POINT Z(1 2 3)'))
+----
+SRID=4326;POINT(1 2 3)
+
+query T
+SELECT ST_AsEWKT(ST_GeographyFromText('SRID=0;POINT(1 2)'))
+----
+SRID=4326;POINT(1 2)
+
+query error
+SELECT ST_GeogFromText('SRID=3857;POINT(1 2)')
+
+# Hex-encoded EWKB isn't text input here, unlike in a cast
+query error
+SELECT ST_GeogFromText('0101000020AD100000000000000000F03F0000000000000040')
+
+query T
+SELECT ST_GeogFromText(NULL)
+----
+NULL

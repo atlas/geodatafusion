@@ -8,6 +8,7 @@ mod as_svg;
 mod as_text;
 mod as_twkb;
 mod geo_hash;
+mod geog_from;
 mod geom_from_geo_hash;
 mod geom_from_geojson;
 mod geom_from_text;
@@ -24,6 +25,7 @@ pub use as_svg::AsSVG;
 pub use as_text::{AsEWKT, AsText};
 pub use as_twkb::AsTWKB;
 pub use geo_hash::GeoHash;
+pub use geog_from::{GeogFromText, GeogFromWKB, GeographyFromText};
 pub use geom_from_geo_hash::{Box2DFromGeoHash, GeomFromGeoHash, PointFromGeoHash};
 pub use geom_from_geojson::GeomFromGeoJSON;
 pub use geom_from_text::{
@@ -53,6 +55,9 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(AsText.into());
     session_context.register_udf(AsEWKT.into());
     session_context.register_udf(GeoHash.into());
+    session_context.register_udf(GeogFromText.into());
+    session_context.register_udf(GeographyFromText.into());
+    session_context.register_udf(GeogFromWKB.into());
     session_context.register_udf(PointFromGeoHash.into());
     session_context.register_udf(GeomFromGeoHash.into());
     session_context.register_udf(Box2DFromGeoHash.into());

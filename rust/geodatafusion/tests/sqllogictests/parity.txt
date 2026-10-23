@@ -79,6 +79,8 @@ geodatafusion/st_forcecollection 21/21
 geodatafusion/st_forcepolygonccw 14/14
 geodatafusion/st_forcepolygoncw 14/14
 geodatafusion/st_forcerhr 14/14
+geodatafusion/st_geogfromtext 7/7
+geodatafusion/st_geogfromwkb 5/5
 geodatafusion/st_geohash 24/24
 geodatafusion/st_geomcollfromtext 10/10
 geodatafusion/st_geomcollfromwkb 8/8
