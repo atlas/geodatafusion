@@ -452,7 +452,7 @@ pub(crate) fn on_arc(c: &Vector, a: &Spot, b: &Spot, normal: &Vector) -> bool {
 }
 
 /// Where two arcs cross, if they do.
-fn crossing(e: &[Spot; 2], f: &[Spot; 2]) -> Option<Spot> {
+pub(crate) fn crossing(e: &[Spot; 2], f: &[Spot; 2]) -> Option<Spot> {
     let n1 = arc_normal(&e[0], &e[1]);
     let n2 = arc_normal(&f[0], &f[1]);
     if norm(&n1) == 0.0 || norm(&n2) == 0.0 {
@@ -488,7 +488,7 @@ pub(crate) fn arc_normal(a: &Spot, b: &Spot) -> Vector {
 }
 
 /// Whether `p` is inside a ring: the ring winds around it, as seen in the plane tangent at it.
-fn in_ring(ring: &[Spot], p: &Spot) -> bool {
+pub(crate) fn in_ring(ring: &[Spot], p: &Spot) -> bool {
     let mut total = 0.0;
     for pair in ring.windows(2) {
         let (ta, tb) = (
@@ -522,7 +522,7 @@ fn cross(u: &Vector, v: &Vector) -> Vector {
     ]
 }
 
-fn dot(u: &Vector, v: &Vector) -> f64 {
+pub(crate) fn dot(u: &Vector, v: &Vector) -> f64 {
     u[0] * v[0] + u[1] * v[1] + u[2] * v[2]
 }
 

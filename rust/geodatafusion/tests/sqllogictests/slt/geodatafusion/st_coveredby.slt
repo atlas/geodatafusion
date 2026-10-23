@@ -1,4 +1,4 @@
-# ST_CoveredBy with constant and column arguments in both positions, and NULL constants.
+# ST_CoveredBy with constant and column arguments in both positions, NULL constants, and geography.
 
 # Constant first argument, column second
 query TT rowsort
@@ -149,3 +149,16 @@ SELECT ST_CoveredBy(a, b) FROM (VALUES ('POINT(5 5)'::geometry, 'POLYGON((0 0,10
 NULL
 false
 true
+
+# Geography: ST_CoveredBy(A, B) is ST_Covers(B, A)
+query TTT
+SELECT ST_CoveredBy('POINT(5 5)'::geography, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography), ST_CoveredBy('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'POINT(5 5)'::geography), ST_CoveredBy('LINESTRING(2 0, 50 50, 3 0)'::geography, 'LINESTRING(0 0, 10 0)'::geography)
+----
+true false true
+
+query T
+SELECT ST_CoveredBy(g, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography) FROM (VALUES ('POINT(5 5)'::geography), ('POINT(15 5)'::geography), (NULL::geography)) AS t(g)
+----
+true
+false
+NULL

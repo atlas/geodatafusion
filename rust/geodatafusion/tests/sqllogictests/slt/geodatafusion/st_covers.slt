@@ -1,4 +1,4 @@
-# ST_Covers with constant and column arguments in both positions, and NULL constants.
+# ST_Covers with constant and column arguments in both positions, NULL constants, and geography.
 
 # Constant first argument, column second
 query TT rowsort
@@ -149,3 +149,48 @@ SELECT ST_Covers(a, b) FROM (VALUES ('POINT(5 5)'::geometry, 'POLYGON((0 0,10 0,
 NULL
 false
 true
+
+# Geography: a polygon covers points inside it and on its shell, but not on a hole's edge
+query TTTT
+SELECT ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0),(4 4,6 4,6 6,4 6,4 4))'::geography, 'POINT(1 1)'::geography), ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0),(4 4,6 4,6 6,4 6,4 4))'::geography, 'POINT(10 5)'::geography), ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0),(4 4,6 4,6 6,4 6,4 4))'::geography, 'POINT(5 5)'::geography), ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0),(4 4,6 4,6 6,4 6,4 4))'::geography, 'POINT(4 5)'::geography)
+----
+true true false false
+
+# It covers lines and polygons whose edges don't cross or touch its rings: not its boundary, nor itself
+query TTTTT
+SELECT ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'LINESTRING(1 1, 5 5)'::geography), ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'LINESTRING(1 1, 10 5)'::geography), ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'LINESTRING(0 0, 10 0)'::geography), ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography), ST_Covers('POLYGON((0 0,10 0,10 10,5 2,0 10,0 0))'::geography, 'LINESTRING(1 5, 9 5)'::geography)
+----
+true false false false false
+
+# A hole inside the covered polygon isn't noticed
+query T
+SELECT ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0),(4 4,6 4,6 6,4 6,4 4))'::geography, 'POLYGON((1 1,9 1,9 9,1 9,1 1))'::geography)
+----
+true
+
+# A line covers points on its edges, and lines by their first and last points
+query TTTTT
+SELECT ST_Covers('LINESTRING(0 0, 10 0)'::geography, 'POINT(5 0)'::geography), ST_Covers('LINESTRING(0 0, 10 0)'::geography, 'POINT(5 0.000000000001)'::geography), ST_Covers('LINESTRING(0 0, 10 0)'::geography, 'POINT(5 0.000000000003)'::geography), ST_Covers('LINESTRING(0 0, 10 0)'::geography, 'LINESTRING(2 0, 50 50, 3 0)'::geography), ST_Covers('LINESTRING(0 0, 10 0)'::geography, 'LINESTRING(0 0, 5 5)'::geography)
+----
+true true false true false
+
+# A point covers the same point; nothing else covers anything
+query TTTT
+SELECT ST_Covers('POINT(1 2)'::geography, 'POINT(1 2)'::geography), ST_Covers('POINT(1 2)'::geography, 'POINT(1 2.000000000001)'::geography), ST_Covers('POINT(0 0)'::geography, 'LINESTRING(0 0, 0 0)'::geography), ST_Covers('LINESTRING(0 0, 10 0, 10 10, 0 10, 0 0)'::geography, 'POLYGON((0 0, 10 0, 10 10, 0 10, 0 0))'::geography)
+----
+true false false false
+
+# One part must cover all of the other
+query TTTT
+SELECT ST_Covers('MULTIPOLYGON(((0 0,10 0,10 10,0 10,0 0)),((20 0,30 0,30 10,20 0)))'::geography, 'MULTIPOINT(5 5, 6 6)'::geography), ST_Covers('MULTIPOLYGON(((0 0,10 0,10 10,0 10,0 0)),((20 0,30 0,30 10,20 0)))'::geography, 'MULTIPOINT(5 5, 25 2)'::geography), ST_Covers('MULTIPOINT(0 0, 1 1)'::geography, 'MULTIPOINT(1 1, 0 0)'::geography), ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'GEOMETRYCOLLECTION(POINT(1 1), LINESTRING(2 2, 3 3))'::geography)
+----
+true false false true
+
+# EMPTY, NULL, geometry cast to geography, and mixed SRIDs
+query TTTT
+SELECT ST_Covers('POINT EMPTY'::geography, 'POINT(0 0)'::geography), ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'GEOMETRYCOLLECTION EMPTY'::geography), ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, NULL::geography), ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'POINT(1 1)'::geometry)
+----
+false false NULL true
+
+query error
+SELECT ST_Covers('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'SRID=4269;POINT(1 1)'::geography)

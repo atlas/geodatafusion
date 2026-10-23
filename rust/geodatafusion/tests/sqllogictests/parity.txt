@@ -49,8 +49,8 @@ geodatafusion/st_containsproperly 20/20
 geodatafusion/st_convexhull 18/18
 geodatafusion/st_coorddim 11/11
 geodatafusion/st_coverageunion 15/15
-geodatafusion/st_coveredby 25/25
-geodatafusion/st_covers 25/25
+geodatafusion/st_coveredby 27/27
+geodatafusion/st_covers 33/33
 geodatafusion/st_cpawithin 19/19
 geodatafusion/st_crosses 20/20
 geodatafusion/st_delaunaytriangles 14/14
@@ -103,7 +103,7 @@ geodatafusion/st_hexagon 20/20
 geodatafusion/st_interiorringn 16/16
 geodatafusion/st_interpolatepoint 16/16
 geodatafusion/st_intersection 20/20
-geodatafusion/st_intersects 25/25
+geodatafusion/st_intersects 28/28
 geodatafusion/st_inversetransformpipeline 5/5
 geodatafusion/st_isclosed 26/26
 geodatafusion/st_iscollection 14/14
@@ -376,7 +376,7 @@ postgis_docs/st_hexagon 1/1
 postgis_docs/st_interiorringn 1/1
 postgis_docs/st_interpolatepoint 1/1
 postgis_docs/st_intersection 2/3
-postgis_docs/st_intersects 0/1
+postgis_docs/st_intersects 1/1
 postgis_docs/st_inversetransformpipeline 2/2
 postgis_docs/st_isclosed 0/2
 postgis_docs/st_isempty 4/5

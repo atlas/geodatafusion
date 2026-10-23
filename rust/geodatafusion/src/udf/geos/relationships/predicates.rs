@@ -15,8 +15,12 @@ use geos::{Geom, Geometry, PreparedGeometry};
 use crate::error::GeoDataFusionResult;
 use crate::udf::geos::util::{GeosColumn, to_geos};
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
+use crate::udf::native::util::geodesic::{GeodeticArgument, geography_pair};
+use crate::udf::native::util::geodetic_covers::covers;
 use crate::util::field::{common_metadata, geometry_array};
+use crate::util::geography::is_geography;
 use crate::util::kernel::{GeometryKernel, map_geometry};
+use crate::util::owned::OwnedColumn;
 use crate::util::signature::{Arg, coerce_args};
 
 /// PostGIS: ST_Intersects(geometry geom1, geometry geom2), and the same for every predicate.
@@ -89,7 +93,7 @@ impl_predicate_udf!(
     "st_intersects",
     Predicate::Intersects,
     "Tests if two geometries intersect (they have at least one point in common).",
-    "Returns true if two geometries intersect. Geometries intersect if they have any point in common. Returns false when either geometry is empty.",
+    "Returns true if two geometries intersect. Geometries intersect if they have any point in common. Returns false when either geometry is empty. For geography they intersect at distance zero on the sphere (see ST_Distance), where points whose longitudes and latitudes differ by at most 5e-14 radians are the same; geometry with geography is cast to geography.",
     "ST_Intersects(geom1, geom2)"
 );
 
@@ -134,7 +138,7 @@ impl_predicate_udf!(
     "st_covers",
     Predicate::Covers,
     "Tests if every point of B lies in A.",
-    "Returns true if every point in Geometry/Geography B lies inside (i.e. intersects the interior or boundary of) Geometry/Geography A. Equivalently, tests that no point of B lies outside (in the exterior of) A. Returns false when either geometry is empty.",
+    "Returns true if every point in Geometry/Geography B lies inside (i.e. intersects the interior or boundary of) Geometry/Geography A. Equivalently, tests that no point of B lies outside (in the exterior of) A. Returns false when either geometry is empty. For geography, as in PostGIS, one part of A must cover all of B, and parts are compared by their vertices and edges on the sphere: a point covers the same point; a line covers points on its edges and lines whose first and last points are on its edges, whatever lies between (PostGIS's edge test misses an edge's last point for about one edge in twenty, so a line can fail to cover its own end, or itself; that isn't reproduced); a polygon covers points inside it or on its shell (not on a hole's edge), and lines and polygons whose vertices it covers and whose edges don't cross or touch its rings, so not its own boundary or itself. Geometry with geography is cast to geography.",
     "ST_Covers(geom1, geom2)"
 );
 
@@ -143,7 +147,7 @@ impl_predicate_udf!(
     "st_coveredby",
     Predicate::CoveredBy,
     "Tests if every point of A lies in B.",
-    "Returns true if every point in Geometry/Geography A lies inside (i.e. intersects the interior or boundary of) Geometry/Geography B. Equivalently, tests that no point of A lies outside (in the exterior of) B. Returns false when either geometry is empty.",
+    "Returns true if every point in Geometry/Geography A lies inside (i.e. intersects the interior or boundary of) Geometry/Geography B. Equivalently, tests that no point of A lies outside (in the exterior of) B. Returns false when either geometry is empty. For geography it is ST_Covers(geom2, geom1).",
     "ST_CoveredBy(geom1, geom2)"
 );
 
@@ -281,6 +285,9 @@ fn predicate_impl(
     args: ScalarFunctionArgs,
     predicate: Predicate,
 ) -> GeoDataFusionResult<ColumnarValue> {
+    if args.arg_fields[..2].iter().any(|field| is_geography(field)) {
+        return geodetic_predicate_impl(name, args, predicate);
+    }
     common_metadata(name, &args, &[0, 1])?;
     // A constant geometry is converted and prepared once, and the other argument iterated.
     let constant1 = matches!(args.args[0], ColumnarValue::Scalar(_))
@@ -352,5 +359,53 @@ impl GeometryKernel for PredicateKernel<'_> {
             (None, false) => self.predicate.eval(other, &geom)?,
         };
         Ok(Some(result))
+    }
+}
+
+/// The geography forms of ST_Intersects, ST_Covers and ST_CoveredBy; the analyzer rule rejects
+/// geography for the others.
+fn geodetic_predicate_impl(
+    name: &str,
+    args: ScalarFunctionArgs,
+    predicate: Predicate,
+) -> GeoDataFusionResult<ColumnarValue> {
+    let use_spheroid = arrow_array::BooleanArray::from(vec![false; args.number_rows]);
+    let pair = geography_pair(name, &args, use_spheroid)?;
+    let kernel = GeodeticPredicateKernel {
+        predicate,
+        first: &pair.first,
+        geom2: OwnedColumn::try_new(&pair.second.0, &pair.second.1, args.number_rows)?,
+    };
+    let result: arrow_array::BooleanArray = map_geometry(pair.first.geometries.as_ref(), &kernel)?;
+    Ok(ColumnarValue::Array(std::sync::Arc::new(result)))
+}
+
+struct GeodeticPredicateKernel<'a> {
+    predicate: Predicate,
+    first: &'a GeodeticArgument,
+    geom2: OwnedColumn,
+}
+
+impl GeometryKernel for GeodeticPredicateKernel<'_> {
+    type Output = bool;
+
+    fn eval(
+        &self,
+        geom1: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<bool>> {
+        let Some(geom2) = self.geom2.get(row) else {
+            return Ok(None);
+        };
+        Ok(Some(match self.predicate {
+            Predicate::Covers => covers(geom1, geom2),
+            Predicate::CoveredBy => covers(geom2, geom1),
+            // As PostGIS, ST_DWithin(geom1, geom2, 0, false).
+            _ => self
+                .first
+                .geodesic
+                .geometry_distance(geom1, geom2, false)
+                .is_some_and(|distance| distance <= 0.0),
+        }))
     }
 }

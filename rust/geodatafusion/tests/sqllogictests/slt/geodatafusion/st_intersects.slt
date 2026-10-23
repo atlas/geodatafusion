@@ -1,4 +1,4 @@
-# ST_Intersects with constant and column arguments in both positions, and NULL constants.
+# ST_Intersects with constant and column arguments in both positions, NULL constants, and geography.
 
 # Constant first argument, column second
 query TT rowsort
@@ -149,3 +149,18 @@ SELECT ST_Intersects(a, b) FROM (VALUES ('POINT(5 5)'::geometry, 'POLYGON((0 0,1
 NULL
 true
 true
+
+# Geography: intersecting is distance zero on the sphere
+query TTTTT
+SELECT ST_Intersects('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'POINT(5 5)'::geography), ST_Intersects('LINESTRING(0 0, 10 10)'::geography, 'LINESTRING(0 10, 10 0)'::geography), ST_Intersects('LINESTRING(-10 60, 10 60)'::geography, 'POINT(0 60)'::geography), ST_Intersects('POINT EMPTY'::geography, 'POINT(0 0)'::geography), ST_Intersects('POINT(0 0)'::geography, 'POINT(0 0)'::geometry)
+----
+true true false false true
+
+# Points within 5e-14 radians in longitude and latitude are the same
+query TTT
+SELECT ST_Intersects('POINT(0 0)'::geography, 'POINT(0 0.000000000001)'::geography), ST_Intersects('POINT(0 0)'::geography, 'POINT(0 0.00000000001)'::geography), ST_Intersects('LINESTRING(0 79, 0 81)'::geography, 'POINT(0.000000000002 80)'::geography)
+----
+true false true
+
+query error
+SELECT ST_Intersects('SRID=4269;POINT(0 0)'::geography, 'POINT(0 0)'::geography)
