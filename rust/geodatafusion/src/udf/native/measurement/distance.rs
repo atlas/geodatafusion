@@ -34,7 +34,7 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// Returns the distance between two geometries.
 #[user_doc(
     doc_section(label = "Measurement Functions"),
-    description = "For geometry types returns the minimum 2D Cartesian (planar) distance between two geometries, in projected units (spatial ref units). A point inside a polygon is at distance 0 from it. Returns NULL if either geometry is empty. Z and M are ignored. geometry_distance_centroid, the function behind the <-> operator, is the same function. For geography the distance is in metres, along the geodesic on the SRID's spheroid, or the great circle on a sphere of the spheroid's mean radius if use_spheroid is false, rounded to 8 decimals as in PostGIS; geometry with geography, or given use_spheroid, is measured as geography. Only points, multipoints and their collections are supported as geography yet.",
+    description = "For geometry types returns the minimum 2D Cartesian (planar) distance between two geometries, in projected units (spatial ref units). A point inside a polygon is at distance 0 from it. Returns NULL if either geometry is empty. Z and M are ignored. geometry_distance_centroid, the function behind the <-> operator, is the same function. For geography the distance is in metres, along the geodesic on the SRID's spheroid, or the great circle on a sphere of the spheroid's mean radius if use_spheroid is false, rounded to 8 decimals as in PostGIS; geometry with geography, or given use_spheroid, is measured as geography. For lines and polygons the nearest points are found on the sphere, along great circles, as in PostGIS; anything inside a polygon is at distance 0.",
     syntax_example = "ST_Distance(g1, g2)",
     alternative_syntax = "g1 <-> g2",
     alternative_syntax = "ST_Distance(geog1, geog2, use_spheroid)",
@@ -94,7 +94,6 @@ impl ScalarUDFImpl for Distance {
 fn distance_impl(name: &str, args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
     if let Some(GeodeticPair { first, second }) = geodetic_pair(name, &args, Some(2))? {
         let kernel = GeodeticDistanceKernel {
-            name,
             geom2: OwnedColumn::try_new(&second.0, &second.1, args.number_rows)?,
             first: &first,
         };
@@ -127,7 +126,6 @@ impl GeometryKernel for DistanceKernel {
 }
 
 struct GeodeticDistanceKernel<'a> {
-    name: &'a str,
     first: &'a GeodeticArgument,
     geom2: OwnedColumn,
 }
@@ -147,7 +145,7 @@ impl GeometryKernel for GeodeticDistanceKernel<'_> {
         let distance = self
             .first
             .geodesic
-            .points_distance(self.name, geom1, geom2, spheroid)?;
+            .geometry_distance(geom1, geom2, spheroid);
         // PostGIS rounds geography distances to 8 decimals.
         Ok(distance.map(|distance| (distance * 1e8).round() / 1e8))
     }

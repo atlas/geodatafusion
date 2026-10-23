@@ -132,3 +132,18 @@ query T
 SELECT ST_DWithin('POINT(0 0)'::geometry, 'POINT(1 0)'::geometry, 111320, true)
 ----
 true
+
+query T
+SELECT ST_DWithin('POINT(0 0.5)'::geography, 'LINESTRING(1 0,1 1)'::geography, 111300)
+----
+false
+
+query T
+SELECT ST_DWithin('POINT(0 0.5)'::geography, 'LINESTRING(1 0,1 1)'::geography, 111400)
+----
+true
+
+query T
+SELECT ST_DWithin('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'POINT(5 5)'::geography, 0)
+----
+true

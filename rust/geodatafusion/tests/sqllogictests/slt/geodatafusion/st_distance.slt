@@ -225,3 +225,54 @@ NULL
 
 query error
 SELECT ST_Distance('POINT(0 0)'::geography, 'SRID=4269;POINT(1 2)'::geography)
+
+# Geography lines and polygons: the nearest points on the sphere, measured on the spheroid
+query R
+SELECT ST_Distance('POINT(0 0.5)'::geography, 'LINESTRING(1 0,1 1)'::geography)
+----
+111315.280032
+
+query R
+SELECT ST_Distance('POINT(0 0.5)'::geography, 'LINESTRING(1 0,1 1)'::geography, false)
+----
+111190.845337
+
+query R
+SELECT ST_Distance('LINESTRING(0 0,1 1)'::geography, 'LINESTRING(0 1,1 0)'::geography)
+----
+0
+
+query R
+SELECT ST_Distance('LINESTRING(0 0,10 0)'::geography, 'LINESTRING(5 1,6 2)'::geography)
+----
+110574.388558
+
+query R
+SELECT ST_Distance('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'POINT(5 5)'::geography)
+----
+0
+
+query R
+SELECT ST_Distance('POLYGON((0 0,10 0,10 10,0 10,0 0),(4 4,6 4,6 6,4 6,4 4))'::geography, 'POINT(5 5)'::geography)
+----
+110898.66346
+
+query R
+SELECT ST_Distance('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, 'POLYGON((20 0,30 0,30 10,20 10,20 0))'::geography)
+----
+1096351.55457
+
+query R
+SELECT ST_Distance('LINESTRING(179 0,-179 0)'::geography, 'POINT(180 1)'::geography)
+----
+110574.388558
+
+query R
+SELECT ST_Distance('LINESTRING(-10 89,170 89)'::geography, 'POINT(0 0)'::geography)
+----
+9891969.06882
+
+query R
+SELECT ST_Distance('GEOMETRYCOLLECTION(POINT(0 0),LINESTRING(5 5,6 6))'::geography, 'MULTIPOLYGON(((5 4,7 4,7 5,5 4)))'::geography)
+----
+98912.9895721

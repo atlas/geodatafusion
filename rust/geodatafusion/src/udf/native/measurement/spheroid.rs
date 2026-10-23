@@ -44,7 +44,7 @@ static SPHERE_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// Returns minimum distance in meters between two lon/lat geometries using a spherical earth model.
 #[user_doc(
     doc_section(label = "Measurement Functions"),
-    description = "Returns the distance in metres between two longitude/latitude geometries on a sphere: without radius, the sphere of the SRID's spheroid's mean radius, as ST_Distance(geography, geography, false) measures it (rounded to 8 decimals, the SRID 4326 by default and longitude/latitude); with radius, the angle between the nearest points times radius. Only points, multipoints and their collections are supported yet.",
+    description = "Returns the distance in metres between two longitude/latitude geometries on a sphere: without radius, the sphere of the SRID's spheroid's mean radius, as ST_Distance(geography, geography, false) measures it (rounded to 8 decimals, the SRID 4326 by default and longitude/latitude); with radius, the angle between the nearest points times radius.",
     syntax_example = "ST_DistanceSphere(geom1, geom2, radius)",
     argument(name = "geom1", description = "geometry"),
     argument(name = "geom2", description = "geometry"),
@@ -98,7 +98,6 @@ fn distance_sphere_impl(
     let use_spheroid = BooleanArray::from(vec![false; args.number_rows]);
     let GeodeticPair { first, second } = geography_pair(name, &args, use_spheroid)?;
     let kernel = DistanceSphereKernel {
-        name,
         first: &first,
         geom2: OwnedColumn::try_new(&second.0, &second.1, args.number_rows)?,
         radius: (args.args.len() > 2)
@@ -110,7 +109,6 @@ fn distance_sphere_impl(
 }
 
 struct DistanceSphereKernel<'a> {
-    name: &'a str,
     first: &'a GeodeticArgument,
     geom2: OwnedColumn,
     /// The radius argument, if given.
@@ -132,11 +130,11 @@ impl GeometryKernel for DistanceSphereKernel<'_> {
         match &self.radius {
             Some(radius) if radius.is_null(row) => Ok(None),
             Some(radius) => Ok(geodesic
-                .points_angle(self.name, geom1, geom2)?
+                .geometry_angle(geom1, geom2)
                 .map(|angle| angle * radius.value(row))),
             // As ST_Distance(geography, geography, false), rounded to 8 decimals.
             None => Ok(geodesic
-                .points_distance(self.name, geom1, geom2, false)?
+                .geometry_distance(geom1, geom2, false)
                 .map(|distance| (distance * 1e8).round() / 1e8)),
         }
     }
@@ -158,7 +156,7 @@ static SPHEROID_SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// Returns the minimum distance between two lon/lat geometries using a spheroidal earth model.
 #[user_doc(
     doc_section(label = "Measurement Functions"),
-    description = "Returns the distance in metres between two longitude/latitude geometries along the geodesic on a spheroid, given as text: SPHEROID[\"name\",semi-major axis,inverse flattening], WGS 84 by default. The nearest points are found on the sphere, as in PostGIS. The SRID isn't checked, and an empty geometry gives -1, as in PostGIS. Only points, multipoints and their collections are supported yet.",
+    description = "Returns the distance in metres between two longitude/latitude geometries along the geodesic on a spheroid, given as text: SPHEROID[\"name\",semi-major axis,inverse flattening], WGS 84 by default. The nearest points are found on the sphere, as in PostGIS. The SRID isn't checked, an empty geometry gives -1, and collections are an error, as in PostGIS.",
     syntax_example = "ST_DistanceSpheroid(geom1, geom2, measurement_spheroid)",
     argument(name = "geom1", description = "geometry"),
     argument(name = "geom2", description = "geometry"),
@@ -243,10 +241,19 @@ impl GeometryKernel for DistanceSpheroidKernel<'_> {
         let Some(geodesic) = spheroid_geodesic(self.name, &self.spheroid, row)? else {
             return Ok(None);
         };
+        if is_collection(geom1) || is_collection(geom2) {
+            return Err(
+                exec_datafusion_err!("{}: Only point/line/polygon supported.", self.name).into(),
+            );
+        }
         // PostGIS gives -1 for an empty geometry here.
-        let distance = geodesic.points_distance(self.name, geom1, geom2, true)?;
+        let distance = geodesic.geometry_distance(geom1, geom2, true);
         Ok(Some(distance.unwrap_or(-1.0)))
     }
+}
+
+fn is_collection(geom: &impl GeometryTrait<T = f64>) -> bool {
+    matches!(geom.as_type(), GeometryType::GeometryCollection(_))
 }
 
 /// PostGIS: ST_LengthSpheroid(geometry a_geometry, spheroid a_spheroid). geodatafusion takes

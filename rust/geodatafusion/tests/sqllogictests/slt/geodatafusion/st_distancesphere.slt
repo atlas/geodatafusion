@@ -54,3 +54,14 @@ query R
 SELECT ST_DistanceSphere(geom1 => 'POINT(0 0)'::geometry, geom2 => 'POINT(0 1)'::geometry)
 ----
 111195.079735
+
+# Lines and polygons
+query R
+SELECT ST_DistanceSphere('POINT(0 0.5)'::geometry, 'LINESTRING(1 0,1 1)'::geometry)
+----
+111190.845337
+
+query R
+SELECT ST_DistanceSphere('POINT(0 0.5)'::geometry, 'LINESTRING(1 0,1 1)'::geometry, 6371000)
+----
+111190.692253

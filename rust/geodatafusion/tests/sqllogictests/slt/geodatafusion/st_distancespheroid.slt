@@ -60,3 +60,17 @@ SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry, 'SPHE
 
 query error
 SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'POINT(1 1)'::geometry, 'SPHEROID["x",6378137]')
+
+# Lines and polygons, but not collections
+query R
+SELECT ST_DistanceSpheroid('POINT(0 0.5)'::geometry, 'LINESTRING(1 0,1 1)'::geometry)
+----
+111315.280032
+
+query R
+SELECT ST_DistanceSpheroid('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POINT(5 5)'::geometry)
+----
+0
+
+query error
+SELECT ST_DistanceSpheroid('POINT(0 0)'::geometry, 'GEOMETRYCOLLECTION(POINT(1 1))'::geometry)

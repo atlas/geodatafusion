@@ -14,14 +14,12 @@ use arrow_array::{Array, BooleanArray};
 use arrow_schema::FieldRef;
 use datafusion::common::exec_datafusion_err;
 use datafusion::logical_expr::{ColumnarValue, ScalarFunctionArgs};
-use geo_traits::{
-    CoordTrait, GeometryCollectionTrait, GeometryTrait, GeometryType, LineStringTrait,
-    MultiPointTrait, PointTrait, PolygonTrait,
-};
+use geo_traits::{CoordTrait, GeometryTrait, LineStringTrait, PolygonTrait};
 use geoarrow_array::GeoArrowArray;
 use geographiclib_rs::{InverseGeodesic, PolygonArea, Winding};
 
 use crate::error::GeoDataFusionResult;
+use crate::udf::native::util::geodetic_distance::{Nearest, nearest};
 use crate::util::args::optional_bool_arg;
 use crate::util::field::geometries_from_array;
 use crate::util::geography::{geography_argument, geography_spheroid, is_geography};
@@ -144,13 +142,16 @@ impl Geodesic {
     /// The distance in metres between two points, given as longitude and latitude in degrees:
     /// along the geodesic, or the great circle if `use_spheroid` is false.
     pub(crate) fn distance(&self, p: (f64, f64), q: (f64, f64), use_spheroid: bool) -> f64 {
+        let radians = |(lon, lat): (f64, f64)| (radians(lon), radians(lat));
+        self.distance_radians(radians(p), radians(q), use_spheroid)
+    }
+
+    /// The distance in metres between two points given as longitude and latitude in radians,
+    /// which GeographicLib gets in degrees.
+    fn distance_radians(&self, p: (f64, f64), q: (f64, f64), use_spheroid: bool) -> f64 {
         if use_spheroid && !self.sphere {
-            self.geodesic.inverse(
-                round_trip(p.1),
-                round_trip(p.0),
-                round_trip(q.1),
-                round_trip(q.0),
-            )
+            self.geodesic
+                .inverse(degrees(p.1), degrees(p.0), degrees(q.1), degrees(q.0))
         } else {
             self.radius * central_angle(p, q)
         }
@@ -192,29 +193,27 @@ impl Geodesic {
         length
     }
 
-    /// The distance in metres between the nearest points of two geometries of points, found on
-    /// the sphere and measured as `use_spheroid` says. `Ok(None)` if either is empty; other
-    /// geometries than points aren't supported yet.
-    pub(crate) fn points_distance(
+    /// The distance in metres between the nearest points of two geometries, found on the
+    /// sphere and measured as `use_spheroid` says; `None` if either is empty.
+    pub(crate) fn geometry_distance(
         &self,
-        name: &str,
         a: &impl GeometryTrait<T = f64>,
         b: &impl GeometryTrait<T = f64>,
         use_spheroid: bool,
-    ) -> GeoDataFusionResult<Option<f64>> {
-        let nearest = nearest_points(name, a, b)?;
-        Ok(nearest.map(|(_, [p, q])| self.distance(p, q, use_spheroid)))
+    ) -> Option<f64> {
+        let Nearest { points: [p, q], .. } = nearest(a, b)?;
+        Some(self.distance_radians((p.lon, p.lat), (q.lon, q.lat), use_spheroid))
     }
 
-    /// The angle at the centre of the sphere between the nearest points of two geometries of
-    /// points; `Ok(None)` if either is empty.
-    pub(crate) fn points_angle(
+    /// The angle at the centre of the sphere between the nearest points of two geometries;
+    /// `None` if either is empty.
+    pub(crate) fn geometry_angle(
         &self,
-        name: &str,
         a: &impl GeometryTrait<T = f64>,
         b: &impl GeometryTrait<T = f64>,
-    ) -> GeoDataFusionResult<Option<f64>> {
-        Ok(nearest_points(name, a, b)?.map(|(angle, _)| angle))
+    ) -> Option<f64> {
+        let Nearest { points: [p, q], .. } = nearest(a, b)?;
+        Some(central_angle((p.lon, p.lat), (q.lon, q.lat)))
     }
 
     /// The length in metres of a polygon's rings, its holes' included.
@@ -258,64 +257,6 @@ impl Geodesic {
     }
 }
 
-/// Two points, as longitude and latitude, and the angle between them at the sphere's centre.
-type Nearest = (f64, [(f64, f64); 2]);
-
-/// The nearest points of two geometries of points on the sphere.
-fn nearest_points(
-    name: &str,
-    a: &impl GeometryTrait<T = f64>,
-    b: &impl GeometryTrait<T = f64>,
-) -> GeoDataFusionResult<Option<Nearest>> {
-    let (a, b) = (points(name, a)?, points(name, b)?);
-    let mut nearest: Option<Nearest> = None;
-    for &p in &a {
-        for &q in &b {
-            let angle = central_angle(p, q);
-            if nearest.is_none_or(|(best, _)| angle < best) {
-                nearest = Some((angle, [p, q]));
-            }
-        }
-    }
-    Ok(nearest)
-}
-
-/// The points of a point, multipoint or collection of them, as longitude and latitude.
-fn points(name: &str, geom: &impl GeometryTrait<T = f64>) -> GeoDataFusionResult<Vec<(f64, f64)>> {
-    let mut points = vec![];
-    collect_points(name, geom, &mut points)?;
-    Ok(points)
-}
-
-fn collect_points(
-    name: &str,
-    geom: &impl GeometryTrait<T = f64>,
-    points: &mut Vec<(f64, f64)>,
-) -> GeoDataFusionResult<()> {
-    match geom.as_type() {
-        GeometryType::Point(point) => points.extend(point.coord().map(|coord| xy(&coord))),
-        GeometryType::MultiPoint(multi) => {
-            points.extend(
-                multi
-                    .points()
-                    .filter_map(|point| point.coord().map(|coord| xy(&coord))),
-            );
-        }
-        GeometryType::GeometryCollection(collection) => {
-            for member in collection.geometries() {
-                collect_points(name, &member, points)?;
-            }
-        }
-        _ => {
-            return Err(exec_datafusion_err!(
-                "{name}: the distance of geography other than points isn't supported yet"
-            )
-            .into());
-        }
-    }
-    Ok(())
-}
-
 /// PostGIS's spheroid text, `SPHEROID["name",a,rf]` (or with parentheses), as `(a, rf)`, read as
 /// PostGIS reads it: the name has 1 to 19 characters, each number ends at the comma after it,
 /// whitespace may come before a number, and text after the second number is ignored.
@@ -347,14 +288,19 @@ fn radians(degrees: f64) -> f64 {
     degrees * PI / 180.0
 }
 
-fn round_trip(degrees: f64) -> f64 {
-    radians(degrees) * 180.0 / PI
+fn degrees(radians: f64) -> f64 {
+    radians * 180.0 / PI
 }
 
-/// The angle between two points at the centre of the unit sphere, by Vincenty's formula.
+fn round_trip(degrees: f64) -> f64 {
+    self::degrees(radians(degrees))
+}
+
+/// The angle between two points, as longitude and latitude in radians, at the centre of the
+/// unit sphere, by Vincenty's formula.
 fn central_angle(p: (f64, f64), q: (f64, f64)) -> f64 {
-    let (lat1, lat2) = (radians(p.1), radians(q.1));
-    let delta = radians(q.0) - radians(p.0);
+    let (lat1, lat2) = (p.1, q.1);
+    let delta = q.0 - p.0;
     let (sin1, cos1) = lat1.sin_cos();
     let (sin2, cos2) = lat2.sin_cos();
     let (sin_delta, cos_delta) = delta.sin_cos();
