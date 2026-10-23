@@ -85,3 +85,30 @@ SELECT Box3D(g) FROM (VALUES ('LINESTRING Z (1 2 3,4 5 6)'::geometry), (NULL::ge
 BOX3D(1 2 3,4 5 6)
 NULL
 NULL
+
+# Text input
+query T
+SELECT 'BOX3D(1 2 3,4 5 6)'::box3d
+----
+BOX3D(1 2 3,4 5 6)
+
+query T
+SELECT 'BOX3D(4 5 6,1 2 3)'::box3d
+----
+BOX3D(1 2 3,4 5 6)
+
+query T
+SELECT 'BOX3D(1 2,4 5)'::box3d
+----
+BOX3D(1 2 0,4 5 0)
+
+query T
+SELECT 'BOX3D( 1 2 3 , 4 5 6 )xyz'::box3d
+----
+BOX3D(1 2 3,4 5 6)
+
+query error
+SELECT 'box3d(1 2 3,4 5 6)'::box3d
+
+query error
+SELECT 'BOX3D(1 2 3,4 5)'::box3d

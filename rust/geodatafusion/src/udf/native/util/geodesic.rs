@@ -26,6 +26,7 @@ use crate::util::args::optional_bool_arg;
 use crate::util::field::geometries_from_array;
 use crate::util::geography::{geography_argument, geography_spheroid, is_geography};
 use crate::util::ordinates::z;
+use crate::util::scan::scan_number;
 use crate::util::srid::Spheroid;
 
 /// A geometry argument to measure as geography, with what to measure it on.
@@ -336,16 +337,6 @@ pub(crate) fn parse_spheroid(text: &str) -> Result<(f64, f64), &'static str> {
     let rest = rest.strip_prefix(',').ok_or(BAD)?;
     let (rf, _) = scan_number(rest).ok_or(BAD)?;
     Ok((a, rf))
-}
-
-/// The number at the start of `text`, after any whitespace, and the text after it: the longest
-/// prefix that reads as a number.
-fn scan_number(text: &str) -> Option<(f64, &str)> {
-    let text = text.trim_start();
-    (1..=text.len())
-        .rev()
-        .filter(|&end| text.is_char_boundary(end))
-        .find_map(|end| Some((text[..end].parse().ok()?, &text[end..])))
 }
 
 pub(crate) fn xy(coord: &impl CoordTrait<T = f64>) -> (f64, f64) {

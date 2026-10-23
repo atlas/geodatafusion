@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
+use arrow_array::cast::AsArray;
 use arrow_schema::{DataType, FieldRef};
-use datafusion::common::{internal_datafusion_err, internal_err};
+use datafusion::common::{exec_datafusion_err, internal_datafusion_err, internal_err};
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
@@ -13,13 +14,16 @@ use geoarrow_schema::{BoxType, Dimension, GeoArrowType};
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::bounding_box::util::bounds::{BoundingRect, BoundsKernel};
+use crate::udf::native::bounding_box::util::box_text::{
+    is_box2d_text, is_box3d_text, parse_box2d, parse_box3d,
+};
 use crate::util::field::{geometry_array, input_metadata};
 use crate::util::kernel::map_geometry;
 use crate::util::signature::single_geometry;
 
 #[user_doc(
     doc_section(label = "Data Types"),
-    description = "Returns a box2d representing the 2D extent of the geometry, or NULL for an empty geometry.",
+    description = "Returns a box2d representing the 2D extent of the geometry, or NULL for an empty geometry. Text of the form BOX(xmin ymin,xmax ymax) is read as a box, as the box2d type reads it in PostGIS: the corners in any order, no whitespace before the comma, and anything after the last number ignored.",
     syntax_example = "Box2D(geometry)",
     argument(name = "geom", description = "geometry")
 )]
@@ -66,7 +70,7 @@ impl ScalarUDFImpl for Box2D {
 
 #[user_doc(
     doc_section(label = "Data Types"),
-    description = "Returns a box3d representing the 3D extent of the geometry, or NULL for an empty geometry. The Z of a geometry without Z is 0.",
+    description = "Returns a box3d representing the 3D extent of the geometry, or NULL for an empty geometry. The Z of a geometry without Z is 0. Text of the form BOX3D(xmin ymin zmin,xmax ymax zmax), or BOX3D(xmin ymin,xmax ymax) for Z 0, is read as a box, as the box3d type reads it in PostGIS.",
     syntax_example = "Box3D(geometry)",
     argument(name = "geom", description = "geometry")
 )]
@@ -117,9 +121,13 @@ fn return_field_impl(name: &str, args: ReturnFieldArgs, dim: Dimension) -> Field
 }
 
 fn box_impl(args: ScalarFunctionArgs, include_z: bool) -> GeoDataFusionResult<ColumnarValue> {
-    let geometries = geometry_array(&args, 0)?;
-    let rects: Vec<Option<BoundingRect>> =
-        map_geometry(geometries.as_ref(), &BoundsKernel { include_z })?;
+    let rects = match box_texts(&args, include_z)? {
+        Some(rects) => rects,
+        None => {
+            let geometries = geometry_array(&args, 0)?;
+            map_geometry(geometries.as_ref(), &BoundsKernel { include_z })?
+        }
+    };
 
     let GeoArrowType::Rect(output_type) = GeoArrowType::from_arrow_field(&args.return_field)?
     else {
@@ -130,6 +138,42 @@ fn box_impl(args: ScalarFunctionArgs, include_z: bool) -> GeoDataFusionResult<Co
         builder.push_rect(rect.as_ref());
     }
     Ok(ColumnarValue::Array(builder.finish().into_array_ref()))
+}
+
+/// The boxes of a text argument whose every value is a box literal, `BOX(...)` for box2d or
+/// `BOX3D(...)` for box3d, as a cast to the box type reads it; `None` for other arguments, which
+/// are geometries.
+fn box_texts(
+    args: &ScalarFunctionArgs,
+    include_z: bool,
+) -> GeoDataFusionResult<Option<Vec<Option<BoundingRect>>>> {
+    let field = &args.arg_fields[0];
+    let is_text = matches!(
+        field.data_type(),
+        DataType::Utf8 | DataType::LargeUtf8 | DataType::Utf8View
+    );
+    if !is_text || field.extension_type_name().is_some() {
+        return Ok(None);
+    }
+    let texts = args.args[0]
+        .cast_to(&DataType::Utf8, None)?
+        .to_array(args.number_rows)?;
+    let texts = texts.as_string::<i32>();
+    let is_box: fn(&str) -> bool = if include_z {
+        is_box3d_text
+    } else {
+        is_box2d_text
+    };
+    if !texts.iter().flatten().all(is_box) {
+        return Ok(None);
+    }
+    let parse = if include_z { parse_box3d } else { parse_box2d };
+    let rects = texts
+        .iter()
+        .map(|text| text.map(parse).transpose())
+        .collect::<std::result::Result<_, _>>()
+        .map_err(|e| exec_datafusion_err!("{e}"))?;
+    Ok(Some(rects))
 }
 
 #[cfg(test)]
