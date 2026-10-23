@@ -121,13 +121,7 @@ fn return_field_impl(name: &str, args: ReturnFieldArgs, dim: Dimension) -> Field
 }
 
 fn box_impl(args: ScalarFunctionArgs, include_z: bool) -> GeoDataFusionResult<ColumnarValue> {
-    let rects = match box_texts(&args, include_z)? {
-        Some(rects) => rects,
-        None => {
-            let geometries = geometry_array(&args, 0)?;
-            map_geometry(geometries.as_ref(), &BoundsKernel { include_z })?
-        }
-    };
+    let rects = boxes(&args, include_z)?;
 
     let GeoArrowType::Rect(output_type) = GeoArrowType::from_arrow_field(&args.return_field)?
     else {
@@ -138,6 +132,21 @@ fn box_impl(args: ScalarFunctionArgs, include_z: bool) -> GeoDataFusionResult<Co
         builder.push_rect(rect.as_ref());
     }
     Ok(ColumnarValue::Array(builder.finish().into_array_ref()))
+}
+
+/// The boxes of the first argument, as a cast to box2d, or with `include_z` box3d, makes them:
+/// geometries' extents, or box literals in text.
+pub(super) fn boxes(
+    args: &ScalarFunctionArgs,
+    include_z: bool,
+) -> GeoDataFusionResult<Vec<Option<BoundingRect>>> {
+    match box_texts(args, include_z)? {
+        Some(rects) => Ok(rects),
+        None => {
+            let geometries = geometry_array(args, 0)?;
+            map_geometry(geometries.as_ref(), &BoundsKernel { include_z })
+        }
+    }
 }
 
 /// The boxes of a text argument whose every value is a box literal, `BOX(...)` for box2d or

@@ -75,6 +75,8 @@ def register_all_native(ctx: SessionContext):
     # bounding box
     ctx.register_udf(udf(native.Box2D()))
     ctx.register_udf(udf(native.Box3D()))
+    ctx.register_udf(udf(native.Box2DOut()))
+    ctx.register_udf(udf(native.Box3DOut()))
     ctx.register_udf(udf(native.XMin()))
     ctx.register_udf(udf(native.YMin()))
     ctx.register_udf(udf(native.ZMin()))

@@ -69,6 +69,8 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     // bounding_box
     m.add_class::<bounding_box::PyBox2D>()?;
     m.add_class::<bounding_box::PyBox3D>()?;
+    m.add_class::<bounding_box::PyBox2DOut>()?;
+    m.add_class::<bounding_box::PyBox3DOut>()?;
     m.add_class::<bounding_box::PyExtent>()?;
     m.add_class::<bounding_box::PyExtent3D>()?;
     m.add_class::<bounding_box::PyMakeBox2D>()?;

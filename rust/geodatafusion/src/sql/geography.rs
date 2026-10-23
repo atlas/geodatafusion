@@ -113,7 +113,10 @@ fn check_call(expr: &Expr, schema: &DFSchema) -> Result<()> {
 fn is_geodatafusion(name: &str) -> bool {
     name.starts_with("st_")
         || name.starts_with("geometry_")
-        || matches!(name, "box2d" | "box3d" | "geometrytype")
+        || matches!(
+            name,
+            "box2d" | "box3d" | "box2d_out" | "box3d_out" | "geometrytype"
+        )
 }
 
 /// The SQL type of an argument, for the error.

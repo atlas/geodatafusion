@@ -1,0 +1,76 @@
+# Edge cases for box3d_out and the cast of box3d to text, not covered by the PostGIS docs examples.
+
+# Boxes and geometries
+query T
+SELECT box3d_out('BOX3D(1 2 3,4 5 6)'::box3d)
+----
+BOX3D(1 2 3,4 5 6)
+
+query T
+SELECT box3d_out('BOX(0.1 2,5 6)'::box2d)
+----
+BOX3D(0.1 2 0,5 6 0)
+
+query T
+SELECT box3d_out('LINESTRING(1 2 3,4 5 -6)'::geometry)
+----
+BOX3D(1 2 -6,4 5 3)
+
+query T
+SELECT box3d_out('LINESTRING M (1 2 3,4 5 -6)'::geometry)
+----
+BOX3D(1 2 0,4 5 0)
+
+query T
+SELECT box3d_out('POINT(1 2)'::geometry)
+----
+BOX3D(1 2 0,1 2 0)
+
+# Numbers as in WKT
+query T
+SELECT box3d_out('BOX3D(1.5 2 3,4 5 1e300)'::box3d)
+----
+BOX3D(1.5 2 3,4 5 1e+300)
+
+query T
+SELECT box3d_out('BOX3D(-0.0 1e-9 0.30000000000000004,1 2 3)'::box3d)
+----
+BOX3D(0 1e-9 0.3,1 2 3)
+
+# EMPTY and NULL
+query T
+SELECT box3d_out('POINT EMPTY'::geometry)
+----
+NULL
+
+query T
+SELECT box3d_out(NULL::box3d)
+----
+NULL
+
+# Casts
+query T
+SELECT 'BOX3D(1 2 3,5 6 7)'::box3d::text
+----
+BOX3D(1 2 3,5 6 7)
+
+query T
+SELECT ST_3DExtent('POINT(1 2 3)'::geometry)::text
+----
+BOX3D(1 2 3,1 2 3)
+
+query T
+SELECT 'BOX(0.1 2,5 6)'::box2d::box3d::text
+----
+BOX3D(0.1 2 0,5 6 0)
+
+query T
+SELECT 'BOX3D(1 2 3,4 5 6)'::box3d::box2d::text
+----
+BOX(1 2,4 5)
+
+query error
+SELECT 'BOX3D(1 2 3,5 6 7)'::box3d::bytea
+
+query error
+SELECT box3d_out('POINT(1 2)'::geography)

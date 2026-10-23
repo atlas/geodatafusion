@@ -1,6 +1,7 @@
 //! PostGIS's text form of `box2d` and `box3d`: `BOX(1 2,5 6)` and `BOX3D(1 2 3,4 5 6)`.
 
 use crate::udf::native::bounding_box::util::bounds::BoundingRect;
+use crate::udf::native::io::util::number::{DEFAULT_MAX_DECIMAL_DIGITS, write_number};
 use crate::util::scan::scan_number;
 
 const BOX2D_ERROR: &str =
@@ -40,6 +41,48 @@ pub(crate) fn parse_box3d(text: &str) -> Result<BoundingRect, &'static str> {
         .or_else(|| scan_corners(rest, 2, true))
         .ok_or(BOX3D_ERROR)?;
     Ok(rect(corners, true))
+}
+
+/// A box as PostGIS writes a `box2d`: `BOX(xmin ymin,xmax ymax)`, the numbers as in WKT.
+pub(crate) fn write_box2d(rect: &BoundingRect) -> String {
+    let mut out = String::from("BOX(");
+    write_corners(
+        &mut out,
+        [
+            [rect.minx(), rect.miny()].as_slice(),
+            &[rect.maxx(), rect.maxy()],
+        ],
+    );
+    out
+}
+
+/// A box as PostGIS writes a `box3d`: `BOX3D(xmin ymin zmin,xmax ymax zmax)`, Z 0 if the box has
+/// none.
+pub(crate) fn write_box3d(rect: &BoundingRect) -> String {
+    let mut out = String::from("BOX3D(");
+    write_corners(
+        &mut out,
+        [
+            [rect.minx(), rect.miny(), rect.minz()].as_slice(),
+            &[rect.maxx(), rect.maxy(), rect.maxz()],
+        ],
+    );
+    out
+}
+
+fn write_corners(out: &mut String, corners: [&[f64]; 2]) {
+    for (index, corner) in corners.into_iter().enumerate() {
+        if index == 1 {
+            out.push(',');
+        }
+        for (index, value) in corner.iter().enumerate() {
+            if index > 0 {
+                out.push(' ');
+            }
+            write_number(out, *value, DEFAULT_MAX_DECIMAL_DIGITS);
+        }
+    }
+    out.push(')');
 }
 
 /// Two corners of `size` numbers each, separated by a comma.
@@ -118,5 +161,18 @@ mod test {
         assert_eq!(bounds(rect), [1.0, 2.0, 0.0, 4.0, 5.0, 0.0]);
         assert!(parse_box3d("box3d(1 2 3,4 5 6)").is_err());
         assert!(parse_box3d("BOX(1 2,4 5)").is_err());
+    }
+
+    #[test]
+    fn test_write_box() {
+        let rect = parse_box2d("BOX(-0 1e-9,1.00000000000000000001 123456789012345678)").unwrap();
+        assert_eq!(write_box2d(&rect), "BOX(0 1e-9,1 1.234567890123457e+17)");
+        assert_eq!(
+            write_box3d(&rect),
+            "BOX3D(0 1e-9 0,1 1.234567890123457e+17 0)"
+        );
+        let rect = parse_box3d("BOX3D(1.5 2 3,4 5 1e300)").unwrap();
+        assert_eq!(write_box3d(&rect), "BOX3D(1.5 2 3,4 5 1e+300)");
+        assert_eq!(write_box2d(&rect), "BOX(1.5 2,4 5)");
     }
 }

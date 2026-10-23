@@ -10,7 +10,7 @@ use datafusion::logical_expr::expr_rewriter::FunctionRewrite;
 use datafusion::logical_expr::{Expr, ExprSchemable, ScalarUDF, ScalarUDFImpl};
 use geoarrow_schema::{BoxType, Dimension, Edges, Metadata, WkbType};
 
-use crate::udf::native::bounding_box::{Box2D, Box3D};
+use crate::udf::native::bounding_box::{Box2D, Box2DOut, Box3D, Box3DOut};
 use crate::udf::native::io::{AsEWKB, AsHEXEWKB};
 use crate::udf::native::types::{Geography, Geometry};
 use crate::util::srid::{SRID_UNKNOWN, crs_to_srid};
@@ -24,8 +24,9 @@ use crate::util::srid::{SRID_UNKNOWN, crs_to_srid};
 /// | `x::box2d`, `x::box3d` | `box2d(x)`, `box3d(x)` |
 /// | `geom::text` | `st_ashexewkb(geom)`, PostGIS's `text(geometry)` |
 /// | `geom::bytea` | `st_asewkb(geom)` |
+/// | `box::text` | `box2d_out(box)` or `box3d_out(box)`, by the box's dimension |
 ///
-/// A cast of a geometry to any other type is a plan error. Without this, DataFusion would cast
+/// A cast of a geometry to any other type, or of a box to anything but text, is a plan error. Without this, DataFusion would cast
 /// the storage: text bytes as WKB, or WKB as text.
 #[derive(Debug)]
 pub(crate) struct GeoCastRewrite;
@@ -83,9 +84,16 @@ fn typmod_srid(metadata: &Metadata) -> i32 {
 fn cast_from(source: &Field, target: &Field, input: Expr) -> Result<Expr> {
     let (output, output_type) = match target.data_type() {
         DataType::Utf8 | DataType::LargeUtf8 | DataType::Utf8View => {
-            (call(udf(AsHEXEWKB::new()), input), DataType::Utf8)
+            let output = match source.try_extension_type::<BoxType>() {
+                Ok(box_type) if box_type.dimension() == Dimension::XYZ => udf(Box3DOut::new()),
+                Ok(_) => udf(Box2DOut::new()),
+                Err(_) => udf(AsHEXEWKB::new()),
+            };
+            (call(output, input), DataType::Utf8)
         }
-        DataType::Binary | DataType::LargeBinary | DataType::BinaryView => {
+        DataType::Binary | DataType::LargeBinary | DataType::BinaryView
+            if source.try_extension_type::<BoxType>().is_err() =>
+        {
             (call(udf(AsEWKB::new()), input), DataType::Binary)
         }
         other => {

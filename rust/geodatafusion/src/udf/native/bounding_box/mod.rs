@@ -1,4 +1,5 @@
 mod r#box;
+mod box_out;
 mod expand;
 mod extent;
 mod extrema;
@@ -6,6 +7,7 @@ mod make_box;
 pub mod util;
 
 pub use r#box::{Box2D, Box3D};
+pub use box_out::{Box2DOut, Box3DOut};
 pub use expand::Expand;
 pub use extent::{Extent, Extent3D};
 pub use extrema::{XMax, XMin, YMax, YMin, ZMax, ZMin};
@@ -14,6 +16,8 @@ pub use make_box::{MakeBox2D, MakeBox3D};
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(Box2D.into());
     session_context.register_udf(Box3D.into());
+    session_context.register_udf(Box2DOut.into());
+    session_context.register_udf(Box3DOut.into());
     session_context.register_udaf(Extent.into());
     session_context.register_udaf(Extent3D.into());
     session_context.register_udf(XMax.into());

@@ -1,12 +1,14 @@
 use geodatafusion::udf::native::bounding_box::{
-    Box2D, Box3D, Expand, Extent, Extent3D, MakeBox2D, MakeBox3D, XMax, XMin, YMax, YMin, ZMax,
-    ZMin,
+    Box2D, Box2DOut, Box3D, Box3DOut, Expand, Extent, Extent3D, MakeBox2D, MakeBox3D, XMax, XMin,
+    YMax, YMin, ZMax, ZMin,
 };
 
 use crate::{impl_udaf, impl_udf};
 
 impl_udf!(Box2D, PyBox2D, "Box2D");
 impl_udf!(Box3D, PyBox3D, "Box3D");
+impl_udf!(Box2DOut, PyBox2DOut, "Box2DOut");
+impl_udf!(Box3DOut, PyBox3DOut, "Box3DOut");
 impl_udf!(XMin, PyXMin, "XMin");
 impl_udf!(XMax, PyXMax, "XMax");
 impl_udf!(YMin, PyYMin, "YMin");

@@ -4,7 +4,9 @@
 # improvements are recorded.
 geodatafusion/_st_bestsrid 6/6
 geodatafusion/box2d 29/29
+geodatafusion/box2d_out 16/16
 geodatafusion/box3d 23/23
+geodatafusion/box3d_out 15/15
 geodatafusion/geography 45/45
 geodatafusion/geometry 64/64
 geodatafusion/geometrytype 19/19
