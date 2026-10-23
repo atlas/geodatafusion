@@ -111,8 +111,9 @@ geodatafusion/st_ispolygonccw 22/22
 geodatafusion/st_ispolygoncw 22/22
 geodatafusion/st_isring 15/15
 geodatafusion/st_issimple 31/31
-geodatafusion/st_isvalid 22/22
-geodatafusion/st_isvalidreason 13/13
+geodatafusion/st_isvalid 29/29
+geodatafusion/st_isvaliddetail 9/9
+geodatafusion/st_isvalidreason 20/20
 geodatafusion/st_isvalidtrajectory 11/11
 geodatafusion/st_length 29/29
 geodatafusion/st_lengthspheroid 8/8

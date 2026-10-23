@@ -69,3 +69,39 @@ SELECT ST_IsValidReason(g) FROM (VALUES ('POLYGON((0 0,10 0,10 10,0 10,0 0))'::g
 NULL
 Self-intersection[5 5]
 Valid Geometry
+
+# Flags: the reason without the location
+query T
+SELECT ST_IsValidReason('POLYGON((100 200,100 100,200 200,200 100,100 200))'::geometry, 0)
+----
+Self-intersection
+
+query T
+SELECT ST_IsValidReason('POLYGON((0 0,10 0,10 10,5 0,0 10,0 0))'::geometry, 0)
+----
+Ring Self-intersection
+
+query T
+SELECT ST_IsValidReason('POLYGON((0 0,10 0,10 10,5 0,0 10,0 0))'::geometry, 1)
+----
+Interior is disconnected
+
+query T
+SELECT ST_IsValidReason('LINESTRING(0 0,0 0)'::geometry, 0)
+----
+Too few points in geometry component
+
+query T
+SELECT ST_IsValidReason('POINT(1 2)'::geometry, 1)
+----
+Valid Geometry
+
+query T
+SELECT ST_IsValidReason('POLYGON EMPTY'::geometry, 0)
+----
+Valid Geometry
+
+query T
+SELECT ST_IsValidReason('POLYGON((0 0,10 0,10 10,5 0,0 10,0 0))'::geometry, NULL)
+----
+NULL

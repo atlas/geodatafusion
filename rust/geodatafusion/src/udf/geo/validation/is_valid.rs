@@ -1,10 +1,11 @@
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 
 use arrow_array::BooleanArray;
 use arrow_schema::DataType;
+use datafusion::common::exec_datafusion_err;
 use datafusion::error::Result;
 use datafusion::logical_expr::{
-    ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature,
+    ColumnarValue, Documentation, ScalarFunctionArgs, ScalarUDFImpl, Signature, Volatility,
 };
 use datafusion_macros::user_doc;
 use geo::{Area, Validation};
@@ -13,17 +14,30 @@ use geo_traits::{
     MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait,
     TriangleTrait,
 };
+use geoarrow_array::GeoArrowArray;
 
 use crate::error::GeoDataFusionResult;
+#[cfg(feature = "geos-3_11")]
+use crate::util::args::optional_int_arg;
 use crate::util::field::geometry_array;
 use crate::util::kernel::{GeometryKernel, map_geometry};
-use crate::util::signature::single_geometry;
+use crate::util::signature::{Arg, coerce_args};
+
+/// PostGIS: ST_IsValid(geometry g) and ST_IsValid(geometry g, integer flags).
+static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry], &[Arg::Geometry, Arg::Integer]];
+
+static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
+    Signature::user_defined(Volatility::Immutable)
+        .with_parameter_names(vec!["g", "flags"])
+        .expect("parameter names are valid for a user-defined signature")
+});
 
 #[user_doc(
     doc_section(label = "Geometry Validation"),
-    description = "Tests if an ST_Geometry value is well-formed and valid in 2D according to the OGC rules. An empty geometry is valid, and empty parts are ignored. A ring with zero area is invalid.",
-    syntax_example = "ST_IsValid(geomA)",
-    argument(name = "geom", description = "geometry")
+    description = "Tests if an ST_Geometry value is well-formed and valid in 2D according to the OGC rules. An empty geometry is valid, and empty parts are ignored. A ring with zero area is invalid. With flags, the test is GEOS's, as in PostGIS, and flag 1 lets self-touching rings form holes, as ESRI's rules do; this form needs the geos-3_11 feature.",
+    syntax_example = "ST_IsValid(g, flags)",
+    argument(name = "g", description = "geometry"),
+    argument(name = "flags", description = "integer")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct IsValid;
@@ -46,7 +60,11 @@ impl ScalarUDFImpl for IsValid {
     }
 
     fn signature(&self) -> &Signature {
-        single_geometry()
+        &SIGNATURE
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, ARGUMENTS)
     }
 
     fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
@@ -64,8 +82,57 @@ impl ScalarUDFImpl for IsValid {
 
 fn is_valid_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
     let geometries = geometry_array(&args, 0)?;
-    let result: BooleanArray = map_geometry(geometries.as_ref(), &IsValidKernel)?;
+    let result: BooleanArray = if args.args.len() > 1 {
+        flags_is_valid(&args, geometries.as_ref())?
+    } else {
+        map_geometry(geometries.as_ref(), &IsValidKernel)?
+    };
     Ok(ColumnarValue::Array(Arc::new(result)))
+}
+
+/// The flags form: GEOS's validity test.
+#[cfg(feature = "geos-3_11")]
+fn flags_is_valid(
+    args: &ScalarFunctionArgs,
+    geometries: &dyn GeoArrowArray,
+) -> GeoDataFusionResult<BooleanArray> {
+    let kernel = FlagsKernel {
+        flags: optional_int_arg(args, 1, 0)?,
+    };
+    map_geometry(geometries, &kernel)
+}
+
+#[cfg(not(feature = "geos-3_11"))]
+fn flags_is_valid(
+    _args: &ScalarFunctionArgs,
+    _geometries: &dyn GeoArrowArray,
+) -> GeoDataFusionResult<BooleanArray> {
+    Err(exec_datafusion_err!("st_isvalid: the flags form needs the geos-3_11 feature").into())
+}
+
+#[cfg(feature = "geos-3_11")]
+struct FlagsKernel {
+    flags: arrow_array::Int32Array,
+}
+
+#[cfg(feature = "geos-3_11")]
+impl GeometryKernel for FlagsKernel {
+    type Output = bool;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<bool>> {
+        use arrow_array::Array;
+
+        if self.flags.is_null(row) {
+            return Ok(None);
+        }
+        let detail = crate::udf::geos::util::valid_detail(geom, self.flags.value(row))
+            .map_err(|e| exec_datafusion_err!("st_isvalid: {e}"))?;
+        Ok(Some(detail.valid))
+    }
 }
 
 struct IsValidKernel;

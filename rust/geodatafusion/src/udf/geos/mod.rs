@@ -10,5 +10,5 @@ pub mod measurement;
 pub mod overlay;
 pub mod processing;
 pub mod relationships;
-mod util;
+pub(crate) mod util;
 pub mod validation;

@@ -115,3 +115,39 @@ query T
 SELECT ST_IsValid(NULL::geometry)
 ----
 NULL
+
+# Flags: GEOS's test, and 1 lets self-touching rings form holes
+query T
+SELECT ST_IsValid('POLYGON((0 0,10 0,10 10,5 0,0 10,0 0))'::geometry, 0)
+----
+false
+
+query T
+SELECT ST_IsValid('POLYGON((0 0,10 0,10 10,5 0,0 10,0 0))'::geometry, 1)
+----
+false
+
+query T
+SELECT ST_IsValid('POLYGON((0 0,4 0,4 4,2 0,2 2,0 4,0 0))'::geometry, 1)
+----
+false
+
+query T
+SELECT ST_IsValid('POLYGON((0 0,4 0,4 4,2 0,2 2,0 4,0 0))'::geometry, 0)
+----
+false
+
+query T
+SELECT ST_IsValid('POLYGON((100 200,100 100,200 200,200 100,100 200))'::geometry, 1)
+----
+false
+
+query T
+SELECT ST_IsValid('POINT EMPTY'::geometry, 1)
+----
+true
+
+query T
+SELECT ST_IsValid('POLYGON((0 0,10 0,10 10,5 0,0 10,0 0))'::geometry, NULL)
+----
+NULL

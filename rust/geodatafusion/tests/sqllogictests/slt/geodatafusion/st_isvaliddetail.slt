@@ -1,0 +1,50 @@
+# Edge cases for ST_IsValidDetail, not covered by the PostGIS docs examples.
+
+query TTT
+SELECT valid, reason, ST_AsText(location) FROM st_isvaliddetail('POLYGON((100 200,100 100,200 200,200 100,100 200))'::geometry)
+----
+false Self-intersection POINT(150 150)
+
+query TTT
+SELECT valid, reason, ST_AsText(location) FROM st_isvaliddetail('POLYGON((0 0,10 0,10 10,5 0,0 10,0 0))'::geometry)
+----
+false Ring Self-intersection POINT(5 0)
+
+# Flag 1 lets self-touching rings form holes
+query TTT
+SELECT valid, reason, ST_AsText(location) FROM st_isvaliddetail('POLYGON((0 0,10 0,10 10,5 0,0 10,0 0))'::geometry, 1)
+----
+false Interior is disconnected POINT(5 0)
+
+query TTT
+SELECT valid, reason, ST_AsText(location) FROM st_isvaliddetail('POLYGON((0 0,4 0,4 4,2 0,2 2,0 4,0 0))'::geometry, 1)
+----
+false Interior is disconnected POINT(2 0)
+
+# Valid: no reason or location
+query TTT
+SELECT valid, reason, location FROM st_isvaliddetail('LINESTRING(220227 150406,2220227 150407,222020 150410)'::geometry)
+----
+true NULL NULL
+
+query TTT
+SELECT valid, reason, location FROM st_isvaliddetail('POINT EMPTY'::geometry)
+----
+true NULL NULL
+
+# The location has no SRID and is 2D
+query T
+SELECT ST_AsEWKT(location) FROM st_isvaliddetail('SRID=4326;POLYGON Z((0 0 1,10 0 1,10 10 1,5 0 1,0 10 1,0 0 1))'::geometry)
+----
+POINT(5 0)
+
+# NULL gives a row of NULLs
+query TTT
+SELECT valid, reason, location FROM st_isvaliddetail(NULL::geometry)
+----
+NULL NULL NULL
+
+query TTT
+SELECT valid, reason, location FROM st_isvaliddetail('POLYGON((0 0,10 0,10 10,5 0,0 10,0 0))'::geometry, NULL)
+----
+NULL NULL NULL
