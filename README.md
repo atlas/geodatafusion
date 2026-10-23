@@ -347,7 +347,7 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 
 | Name             | Implemented | Description                                                                                 |
 | ---------------- | ----------- | ------------------------------------------------------------------------------------------- |
-| ST_ClipByBox2D   |             | Computes the portion of a geometry falling within a rectangle.                              |
+| ST_ClipByBox2D   | ✅          | Computes the portion of a geometry falling within a rectangle.                              |
 | ST_Difference    | ✅          | Computes a geometry representing the part of geometry A that does not intersect geometry B. |
 | ST_Intersection  | ✅          | Computes a geometry representing the shared portion of geometries A and B.                  |
 | ST_MemUnion      | ✅          | Aggregate function which unions geometries in a memory-efficent but slower way              |

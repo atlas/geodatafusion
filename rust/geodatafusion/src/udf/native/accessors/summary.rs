@@ -13,7 +13,7 @@ use geo_traits::{
 };
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
+use crate::udf::native::util::float_box::has_stored_box;
 use crate::util::field::{geometry_array, input_metadata};
 use crate::util::geography::is_geography;
 use crate::util::kernel::{GeometryKernel, map_geometry};
@@ -98,7 +98,7 @@ impl GeometryKernel for SummaryKernel {
         _row: usize,
     ) -> GeoDataFusionResult<Option<String>> {
         let mut out = String::new();
-        let bbox = needs_bbox(geom);
+        let bbox = has_stored_box(geom);
         match geom.as_type() {
             // As the polygon or linestring PostGIS would see.
             GeometryType::Rect(_) | GeometryType::Triangle(_) | GeometryType::Line(_) => {
@@ -232,24 +232,5 @@ fn plural(count: usize, word: &str) -> String {
         word.to_string()
     } else {
         format!("{word}s")
-    }
-}
-
-/// Whether PostGIS stores a bounding box with the geometry, as recorded: never when it is
-/// empty, for a point or a two-point line, nor for a MULTIPOINT or MULTILINESTRING of one such
-/// member; always otherwise.
-fn needs_bbox(geom: &impl GeometryTrait<T = f64>) -> bool {
-    if is_geometry_topologically_empty(geom) {
-        return false;
-    }
-    match geom.as_type() {
-        GeometryType::Point(_) => false,
-        GeometryType::LineString(line) => line.num_coords() > 2,
-        GeometryType::Line(_) => false,
-        GeometryType::MultiPoint(points) => points.num_points() > 1,
-        GeometryType::MultiLineString(lines) => {
-            lines.num_line_strings() > 1 || lines.line_strings().any(|line| line.num_coords() > 2)
-        }
-        _ => true,
     }
 }

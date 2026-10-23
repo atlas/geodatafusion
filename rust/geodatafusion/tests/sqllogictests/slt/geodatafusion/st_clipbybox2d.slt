@@ -1,0 +1,147 @@
+# Edge cases for ST_ClipByBox2D; the PostGIS docs have no examples.
+
+# Clipping
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'BOX(5 5,15 15)'::box2d))
+----
+POLYGON((5 5,5 10,10 10,10 5,5 5))
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((0 0,10 0,10 10,0 10,0 0),(2 2,8 2,8 8,2 8,2 2))'::geometry, 'BOX(1 1,5 5)'::box2d))
+----
+POLYGON((1 1,1 5,2 5,2 2,5 2,5 1,1 1))
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('LINESTRING(0 0,1 1,1 0,0 1)'::geometry, 'BOX(0.2 0.2,0.8 0.8)'::box2d))
+----
+MULTILINESTRING((0.2 0.2,0.8 0.8),(0.8 0.2,0.2 0.8))
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('MULTIPOINT((1 1),(5 5))'::geometry, 'BOX(0 0,2 2)'::box2d))
+----
+POINT(1 1)
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('GEOMETRYCOLLECTION(POINT(1 1),LINESTRING(0 0,10 10))'::geometry, 'BOX(0 0,2 2)'::box2d))
+----
+GEOMETRYCOLLECTION(LINESTRING(0 0,2 2),POINT(1 1))
+
+# Invalid input isn't an error, and the result may be invalid
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((0 0,10 0,0 10,10 10,0 0))'::geometry, 'BOX(2 2,8 8)'::box2d))
+----
+POLYGON((2 2,8 2,2 8,8 8,2 2))
+
+# Z is interpolated, M dropped
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('LINESTRING Z(0 0 0,10 10 10)'::geometry, 'BOX(2 2,5 5)'::box2d))
+----
+LINESTRING(2 2 2,5 5 5)
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON Z((0 0 1,10 0 2,10 10 3,0 10 4,0 0 1))'::geometry, 'BOX(5 5,15 15)'::box2d))
+----
+POLYGON((5 5 2.5,5 10 3.5,10 10 3,10 5 2.5,5 5 2.5))
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('LINESTRING M(0 0 0,10 10 10)'::geometry, 'BOX(2 2,5 5)'::box2d))
+----
+LINESTRING(2 2,5 5)
+
+# Strictly inside the box: as it is, M included; on its edge, clipped
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'BOX(-1 -1,11 11)'::box2d))
+----
+POLYGON((0 0,10 0,10 10,0 10,0 0))
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('LINESTRING M(1 1 5,2 2 6)'::geometry, 'BOX(0 0,10 10)'::box2d))
+----
+LINESTRINGM(1 1 5,2 2 6)
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'BOX(0 0,10 10)'::box2d))
+----
+POLYGON((0 0,0 10,10 10,10 0,0 0))
+
+# Touching the box: what GEOS leaves
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POINT(2 2)'::geometry, 'BOX(0 0,2 2)'::box2d))
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'BOX(10 0,20 20)'::box2d))
+----
+GEOMETRYCOLLECTION EMPTY
+
+# Apart from the box: a 2D empty geometry of the type
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'BOX(20 20,30 30)'::box2d))
+----
+POLYGON EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('MULTILINESTRING M((0 0 1,1 1 2))'::geometry, 'BOX(5 5,6 6)'::box2d))
+----
+MULTILINESTRING EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POINT(5 5)'::geometry, 'BOX(0 0,2 2)'::box2d))
+----
+POINT EMPTY
+
+# ... even for a box without area, which otherwise gives NULL
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POINT(5 5)'::geometry, 'BOX(1 1,1 1)'::box2d))
+----
+POINT EMPTY
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'BOX(5 5,15 5)'::box2d))
+----
+NULL
+
+# Empty input is returned as it is
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('LINESTRING M EMPTY'::geometry, 'BOX(0 0,1 1)'::box2d))
+----
+LINESTRINGM EMPTY
+
+# A geometry stands for its bounding box
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, ST_MakeEnvelope(5, 5, 15, 15)))
+----
+POLYGON((5 5,5 10,10 10,10 5,5 5))
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'LINESTRING(5 5,15 15)'::geometry))
+----
+POLYGON((5 5,5 10,10 10,10 5,5 5))
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'POINT EMPTY'::geometry))
+----
+NULL
+
+# The SRID is kept
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('SRID=4326;POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, 'BOX(5 5,15 15)'::box2d))
+----
+SRID=4326;POLYGON((5 5,5 10,10 10,10 5,5 5))
+
+# A clip GEOS fails on gives NULL
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('MULTIPOLYGON(((3.3815701 3.7024913,2.895 4.3,2.305 4.073,2 3.3319681,3 3,3.3815701 3.7024913)),((2.756 6.229,2 5,3.4 5,3 5,2.756 6.229)))'::geometry, 'BOX(5 7,3 4)'::box2d))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry, NULL))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D(NULL, 'BOX(0 0,1 1)'::box2d))
+----
+NULL

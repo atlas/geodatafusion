@@ -158,7 +158,11 @@ impl Converter {
 /// Many GEOS-backed PostGIS functions return EMPTY input unchanged, where GEOS would return
 /// another type or drop M.
 pub(crate) fn empty_like(geom: &impl GeometryTrait<T = f64>) -> Wkt<f64> {
-    let dim = dimension(geom);
+    empty_of_type(geom, dimension(geom))
+}
+
+/// An EMPTY geometry of the same type as `geom`, in dimension `dim`.
+pub(crate) fn empty_of_type(geom: &impl GeometryTrait<T = f64>, dim: Dimension) -> Wkt<f64> {
     match geom.as_type() {
         GeometryType::Point(_) => Wkt::Point(Point::empty(dim)),
         GeometryType::LineString(_) | GeometryType::Line(_) => {
