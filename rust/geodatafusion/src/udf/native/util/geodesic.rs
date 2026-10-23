@@ -199,6 +199,11 @@ impl Geodesic {
         Some((round_trip(lon), round_trip(lat)))
     }
 
+    /// The radius of the sphere PostGIS measures on without the spheroid.
+    pub(crate) fn radius(&self) -> f64 {
+        self.radius
+    }
+
     /// Half the circumference of the sphere, the farthest PostGIS projects.
     pub(crate) fn half_circumference(&self) -> f64 {
         PI * self.radius

@@ -35,6 +35,7 @@ const GEOGRAPHY_FUNCTIONS: &[&str] = &[
     "st_length",
     "st_perimeter",
     "st_project",
+    "st_segmentize",
     "st_setsrid",
     "st_srid",
     "st_summary",

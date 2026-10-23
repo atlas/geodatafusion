@@ -190,7 +190,7 @@ geodatafusion/st_rotatey 10/10
 geodatafusion/st_rotatez 10/10
 geodatafusion/st_scale 26/26
 geodatafusion/st_scroll 20/20
-geodatafusion/st_segmentize 26/26
+geodatafusion/st_segmentize 39/39
 geodatafusion/st_setpoint 14/14
 geodatafusion/st_setsrid 13/13
 geodatafusion/st_sharedpaths 9/9
@@ -268,7 +268,7 @@ postgis_docs/st_affine 2/2
 postgis_docs/st_angle 0/3
 postgis_docs/st_area 3/3
 postgis_docs/st_asbinary 2/2
-postgis_docs/st_asencodedpolyline 1/2
+postgis_docs/st_asencodedpolyline 2/2
 postgis_docs/st_asewkb 2/2
 postgis_docs/st_asgeobuf 0/1
 postgis_docs/st_asgeojson 2/4
@@ -463,7 +463,7 @@ postgis_docs/st_rotatey 1/1
 postgis_docs/st_rotatez 1/2
 postgis_docs/st_scale 4/4
 postgis_docs/st_scroll 0/1
-postgis_docs/st_segmentize 2/3
+postgis_docs/st_segmentize 3/3
 postgis_docs/st_seteffectivearea 0/1
 postgis_docs/st_setpoint 2/3
 postgis_docs/st_setsrid 2/2

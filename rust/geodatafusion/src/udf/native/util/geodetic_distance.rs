@@ -14,6 +14,7 @@ use geo_traits::{
     MultiLineStringTrait, MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait, RectTrait,
     TriangleTrait,
 };
+use wkt::types::Coord;
 
 type Vector = [f64; 3];
 
@@ -261,6 +262,101 @@ pub(crate) fn nearest(
     best
 }
 
+/// The coordinates, as longitude and latitude in degrees, with each edge bisected at its
+/// great-circle midpoint, and each half again, until no part is longer than `max_length` on a
+/// sphere of `radius`, as PostGIS segmentizes geography. Z and M are interpolated linearly, and
+/// a repeated point is dropped, unless the line would be left with one. An edge between
+/// antipodes, which has no one great circle, is an error.
+pub(crate) fn segmentize(
+    coords: Vec<Coord<f64>>,
+    max_length: f64,
+    radius: f64,
+) -> Result<Vec<Coord<f64>>, &'static str> {
+    let mut out: Vec<Coord<f64>> = Vec::with_capacity(coords.len());
+    let last_index = coords.len().saturating_sub(1);
+    for (index, end) in coords.into_iter().enumerate() {
+        let Some(start) = out.last().copied() else {
+            out.push(end);
+            continue;
+        };
+        if end == start {
+            if index == last_index && out.len() < 2 {
+                out.push(end);
+            }
+            continue;
+        }
+        let (a, b) = (
+            Spot::from_degrees(start.x, start.y),
+            Spot::from_degrees(end.x, end.y),
+        );
+        bisect(&mut out, (a, start), (b, end), max_length, radius)?;
+        out.push(end);
+    }
+    Ok(out)
+}
+
+/// Pushes the points that split the edge from `a` to `b` into parts no longer than `max_length`,
+/// not `a` and `b` themselves.
+fn bisect(
+    out: &mut Vec<Coord<f64>>,
+    (a, a_coord): (Spot, Coord<f64>),
+    (b, b_coord): (Spot, Coord<f64>),
+    max_length: f64,
+    radius: f64,
+) -> Result<(), &'static str> {
+    if radius * vincenty_angle(&a, &b) <= max_length {
+        return Ok(());
+    }
+    let sum = [
+        a.vector[0] + b.vector[0],
+        a.vector[1] + b.vector[1],
+        a.vector[2] + b.vector[2],
+    ];
+    let length = norm(&sum);
+    // Antipodes in floating point leave a sum of about 1e-16.
+    if length < 1e-12 {
+        return Err("Antipodal (180 degrees long) edge detected!");
+    }
+    // Divided component by component, which rounds as PostGIS's results show.
+    let middle = Spot::from_vector(normalize(&sum, length));
+    let half = |p: Option<f64>, q: Option<f64>| p.zip(q).map(|(p, q)| (p + q) / 2.0);
+    let middle_coord = Coord {
+        x: middle.lon * 180.0 / PI,
+        y: middle.lat * 180.0 / PI,
+        z: half(a_coord.z, b_coord.z),
+        m: half(a_coord.m, b_coord.m),
+    };
+    bisect(
+        out,
+        (a, a_coord),
+        (middle, middle_coord),
+        max_length,
+        radius,
+    )?;
+    out.push(middle_coord);
+    bisect(
+        out,
+        (middle, middle_coord),
+        (b, b_coord),
+        max_length,
+        radius,
+    )
+}
+
+/// The angle between two points by Vincenty's formula on their longitudes and latitudes, as
+/// PostGIS measures on the sphere.
+fn vincenty_angle(p: &Spot, q: &Spot) -> f64 {
+    let delta = q.lon - p.lon;
+    let (sin1, cos1) = p.lat.sin_cos();
+    let (sin2, cos2) = q.lat.sin_cos();
+    let (sin_delta, cos_delta) = delta.sin_cos();
+    let a = cos2 * sin_delta;
+    let b = cos1 * sin2 - sin1 * cos2 * cos_delta;
+    (a * a + b * b)
+        .sqrt()
+        .atan2(sin1 * sin2 + cos1 * cos2 * cos_delta)
+}
+
 fn zero(spot: Spot) -> Nearest {
     Nearest {
         angle: 0.0,
@@ -277,7 +373,7 @@ fn nearest_on_arc(p: &Spot, edge: &[Spot; 2]) -> Spot {
         // A degenerate edge, or one between antipodes, which has no one great circle.
         return nearer(p, a, b);
     }
-    let normal = scale(&normal, 1.0 / length);
+    let normal = normalize(&normal, length);
     let offset = dot(&p.vector, &normal);
     let projected = [
         p.vector[0] - offset * normal[0],
@@ -289,7 +385,7 @@ fn nearest_on_arc(p: &Spot, edge: &[Spot; 2]) -> Spot {
         // The point is a pole of the arc's great circle: every point of it is as far.
         return *a;
     }
-    let c = scale(&projected, 1.0 / projected_length);
+    let c = normalize(&projected, projected_length);
     if on_arc(&c, a, b, &normal) {
         Spot::from_vector(c)
     } else {
@@ -324,7 +420,7 @@ fn crossing(e: &[Spot; 2], f: &[Spot; 2]) -> Option<Spot> {
         // nearest-point search finds at distance zero.
         return None;
     }
-    let candidate = scale(&line, 1.0 / length);
+    let candidate = normalize(&line, length);
     [candidate, scale(&candidate, -1.0)]
         .into_iter()
         .find(|c| on_arc(c, &e[0], &e[1], &n1) && on_arc(c, &f[0], &f[1], &n2))
@@ -387,6 +483,11 @@ fn dot(u: &Vector, v: &Vector) -> f64 {
 
 fn norm(v: &Vector) -> f64 {
     dot(v, v).sqrt()
+}
+
+/// The vector divided by its `length`.
+fn normalize(v: &Vector, length: f64) -> Vector {
+    [v[0] / length, v[1] / length, v[2] / length]
 }
 
 fn scale(v: &Vector, factor: f64) -> Vector {
