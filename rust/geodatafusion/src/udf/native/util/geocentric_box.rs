@@ -34,6 +34,21 @@ impl GeocentricBox {
         ))
     }
 
+    /// The box of both.
+    pub(crate) fn union(&self, other: &Self) -> Self {
+        Self(std::array::from_fn(|axis| {
+            (
+                self.0[axis].0.min(other.0[axis].0),
+                self.0[axis].1.max(other.0[axis].1),
+            )
+        }))
+    }
+
+    /// The ranges of x, y and z.
+    pub(crate) fn ranges(&self) -> [(f64, f64); 3] {
+        self.0
+    }
+
     /// Whether the boxes share a point.
     pub(crate) fn overlaps(&self, other: &Self) -> bool {
         self.0

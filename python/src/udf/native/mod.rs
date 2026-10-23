@@ -223,6 +223,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<relationships::PyRelateMatch>()?;
 
     // srs
+    m.add_class::<srs::PyBestSRID>()?;
     m.add_class::<srs::PySetSRID>()?;
     m.add_class::<srs::PySRID>()?;
 

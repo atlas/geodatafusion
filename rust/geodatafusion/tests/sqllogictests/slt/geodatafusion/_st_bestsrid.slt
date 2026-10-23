@@ -1,0 +1,37 @@
+# _ST_BestSRID: each kind of projection, its thresholds, two geographies, NULL and geometry.
+
+# _ST_BestSRID: UTM zones north and south of the equator, by the centre of the geocentric box
+query IIII
+SELECT _ST_BestSRID('POINT(10 50)'::geography), _ST_BestSRID('POINT(10 -50)'::geography), _ST_BestSRID('POINT(-179 0)'::geography), _ST_BestSRID('LINESTRING(1.5 1, 6.5 1)'::geography)
+----
+999032 999132 999001 999031
+
+# Polar Lambert azimuthal equal-area beyond 70 degrees
+query IIII
+SELECT _ST_BestSRID('POINT(10 70.00001)'::geography), _ST_BestSRID('POINT(10 70)'::geography), _ST_BestSRID('POINT(10 -75)'::geography), _ST_BestSRID('LINESTRING(0 50, 1 89)'::geography)
+----
+999061 999061 999161 999061
+
+# Tiles, by band and column, up to their width
+query IIIII
+SELECT _ST_BestSRID('LINESTRING(0 0, 7 0)'::geography), _ST_BestSRID('LINESTRING(-10.5 1, 18.5 1)'::geography), _ST_BestSRID('LINESTRING(-11 1, 19 1)'::geography), _ST_BestSRID('LINESTRING(-18 45, 26 45)'::geography), _ST_BestSRID('LINESTRING(0 65, 46 65)'::geography)
+----
+999229 999229 999000 999247 999265
+
+# Height under 25 degrees for tiles; the width of a tall box grows with its height
+query III
+SELECT _ST_BestSRID('LINESTRING(0 0, 10 20)'::geography), _ST_BestSRID('LINESTRING(0 -4.5, 10 24.5)'::geography), _ST_BestSRID('LINESTRING(10 15.5, 10.0001 44.5)'::geography)
+----
+999229 999000 999032
+
+# World Mercator for the rest, and the box of two geographies
+query III
+SELECT _ST_BestSRID('LINESTRING(0 0, 30 0)'::geography), _ST_BestSRID('POINT(0 0)'::geography, 'POINT(50 50)'::geography), _ST_BestSRID('POINT(0 0)'::geography, 'POINT(1 1)'::geography)
+----
+999000 999000 999031
+
+# NULL, geometry, and the single-precision box at a zone's edge
+query IIII
+SELECT _ST_BestSRID(NULL::geography), _ST_BestSRID('POINT(10 50)'::geometry), _ST_BestSRID('POINT(132.0 69.575962)'::geography), _ST_BestSRID('SRID=4269;POINT(10 50)'::geography)
+----
+NULL 999032 999052 999032

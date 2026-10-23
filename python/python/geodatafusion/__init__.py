@@ -230,6 +230,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.RelateMatch()))
 
     # srs
+    ctx.register_udf(udf(native.BestSRID()))
     ctx.register_udf(udf(native.SetSRID()))
     ctx.register_udf(udf(native.SRID()))
 
