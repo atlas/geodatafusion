@@ -117,6 +117,9 @@ pub(crate) fn geodetic_argument(
 /// The geodesics of one spheroid.
 pub(crate) struct Geodesic {
     geodesic: geographiclib_rs::Geodesic,
+    /// The spheroid with the semi-major axis of the sphere's radius, on which PostGIS measures
+    /// areas without the spheroid.
+    sphere_area_geodesic: geographiclib_rs::Geodesic,
     /// The radius of the sphere PostGIS measures on without the spheroid.
     radius: f64,
     /// Whether the spheroid is a sphere, which PostGIS measures on as such.
@@ -132,9 +135,11 @@ impl Geodesic {
     /// The geodesics of the spheroid with semi-major axis `a` and flattening `f`.
     pub(crate) fn with_flattening(a: f64, f: f64) -> Self {
         let b = a - a * f;
+        let radius = (2.0 * a + b) / 3.0;
         Self {
             geodesic: geographiclib_rs::Geodesic::new(a, f),
-            radius: (2.0 * a + b) / 3.0,
+            sphere_area_geodesic: geographiclib_rs::Geodesic::new(radius, f),
+            radius,
             sphere: a == b,
         }
     }
@@ -229,32 +234,40 @@ impl Geodesic {
         perimeter
     }
 
-    /// The area in square metres of a polygon: its shell's less its holes'. A negative area,
-    /// of holes larger than their shell, is `None`.
-    pub(crate) fn area(&self, polygon: &impl PolygonTrait<T = f64>) -> Option<f64> {
-        let Some(shell) = polygon.exterior() else {
-            return Some(0.0);
+    /// The area in square metres of a polygon: its shell's less its holes', so negative for
+    /// holes larger than their shell.
+    ///
+    /// Without `use_spheroid`, PostGIS's results are the areas on a spheroid of the same
+    /// flattening with the sphere's radius for semi-major axis, (R / a)² times those on the
+    /// spheroid, rather than areas on the sphere; so they are here.
+    pub(crate) fn area(&self, polygon: &impl PolygonTrait<T = f64>, use_spheroid: bool) -> f64 {
+        let geodesic = if use_spheroid {
+            &self.geodesic
+        } else {
+            &self.sphere_area_geodesic
         };
-        let area = polygon
+        let Some(shell) = polygon.exterior() else {
+            return 0.0;
+        };
+        polygon
             .interiors()
-            .fold(self.ring_area(&shell), |area, hole| {
-                area - self.ring_area(&hole)
-            });
-        (area >= 0.0).then_some(area)
+            .fold(ring_area(geodesic, &shell), |area, hole| {
+                area - ring_area(geodesic, &hole)
+            })
     }
+}
 
-    /// The area in square metres inside a ring, on the spheroid, whichever way it turns.
-    fn ring_area(&self, ring: &impl LineStringTrait<T = f64>) -> f64 {
-        let mut polygon = PolygonArea::new(&self.geodesic, Winding::CounterClockwise);
-        // The polygon closes itself, so the ring's closing point is left out.
-        let count = ring.num_coords().saturating_sub(1);
-        // Unlike distances, areas take the degrees as they are.
-        for coord in ring.coords().take(count) {
-            polygon.add_point(coord.y(), coord.x());
-        }
-        let (_, area, _) = polygon.compute(true);
-        area.abs()
+/// The area in square metres inside a ring, whichever way it turns.
+fn ring_area(geodesic: &geographiclib_rs::Geodesic, ring: &impl LineStringTrait<T = f64>) -> f64 {
+    let mut polygon = PolygonArea::new(geodesic, Winding::CounterClockwise);
+    // The polygon closes itself, so the ring's closing point is left out.
+    let count = ring.num_coords().saturating_sub(1);
+    // Unlike distances, areas take the degrees as they are.
+    for coord in ring.coords().take(count) {
+        polygon.add_point(coord.y(), coord.x());
     }
+    let (_, area, _) = polygon.compute(true);
+    area.abs()
 }
 
 /// PostGIS's spheroid text, `SPHEROID["name",a,rf]` (or with parentheses), as `(a, rf)`, read as

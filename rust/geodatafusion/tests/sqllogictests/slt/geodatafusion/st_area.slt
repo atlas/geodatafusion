@@ -171,3 +171,30 @@ SELECT ST_Area('POLYGON((0 0,1 0,1 1,0 1,0 0),(0.5 0.5,2 0.5,2 2,0.5 0.5))'::geo
 
 query error
 SELECT ST_Area('SRID=3857;POLYGON((0 0,1 0,1 1,0 0))'::geometry, true)
+
+# Without the spheroid: PostGIS's areas on a spheroid with the sphere's radius
+query R
+SELECT ST_Area('POLYGON((0 0,1 0,1 1,0 0))'::geography, false)
+----
+6141105099.19
+
+query R
+SELECT ST_Area('POLYGON((0 0,1 0,1 1,0 0))'::geography, false) / ST_Area('POLYGON((0 0,1 0,1 1,0 0))'::geography)
+----
+0.997766041928
+
+query R
+SELECT ST_Area('SRID=4269;POLYGON((0 60,1 60,1 61,0 60))'::geography, false)
+----
+3101673153.28
+
+query R
+SELECT ST_Area('SRID=4047;POLYGON((0 0,1 0,1 1,0 0))'::geography, false)
+----
+6182483308.45
+
+# A polygon's holes may outweigh its shell if the other polygons make up for them
+query R
+SELECT ST_Area('MULTIPOLYGON(((0 0,1 0,1 1,0 1,0 0),(0.5 0.5,2 0.5,2 2,0.5 0.5)),((10 10,20 10,20 20,10 20,10 10)))'::geography)
+----
+1189428290860

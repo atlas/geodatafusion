@@ -16,7 +16,7 @@ geodatafusion/st_3dperimeter 12/12
 geodatafusion/st_addmeasure 16/16
 geodatafusion/st_addpoint 20/20
 geodatafusion/st_affine 17/17
-geodatafusion/st_area 33/33
+geodatafusion/st_area 38/38
 geodatafusion/st_asbinary 19/19
 geodatafusion/st_asencodedpolyline 21/21
 geodatafusion/st_asewkb 17/17
@@ -265,7 +265,7 @@ postgis_docs/st_addmeasure 4/4
 postgis_docs/st_addpoint 1/1
 postgis_docs/st_affine 2/2
 postgis_docs/st_angle 0/3
-postgis_docs/st_area 2/3
+postgis_docs/st_area 3/3
 postgis_docs/st_asbinary 2/2
 postgis_docs/st_asencodedpolyline 1/2
 postgis_docs/st_asewkb 2/2

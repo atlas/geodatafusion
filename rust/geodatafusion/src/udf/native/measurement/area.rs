@@ -30,7 +30,7 @@ static SIGNATURE: LazyLock<Signature> =
 /// Returns the area of a geometry.
 #[user_doc(
     doc_section(label = "Measurement Functions"),
-    description = "Returns the area of a polygonal geometry: the area of each polygon's shell minus the areas of its holes, summed over the parts of a collection. Points and lines have zero area, as does an empty geometry. Z and M are ignored. For geography the area is in square metres, on the SRID's spheroid, and a polygon whose holes are larger than its shell is an error, as in PostGIS. Geometry given use_spheroid is measured as geography. The sphere (use_spheroid false) isn't supported yet.",
+    description = "Returns the area of a polygonal geometry: the area of each polygon's shell minus the areas of its holes, summed over the parts of a collection. Points and lines have zero area, as does an empty geometry. Z and M are ignored. For geography the area is in square metres, on the SRID's spheroid, and a geometry whose holes outweigh their shells is an error, as in PostGIS (a polygon's may, if the others make up for them). Without use_spheroid, PostGIS's result, and so geodatafusion's, isn't the area on its sphere but on a spheroid of the same flattening whose semi-major axis is the sphere's radius: (R / a)² times the spheroid's. Geometry given use_spheroid is measured as geography.",
     syntax_example = "ST_Area(geom)",
     alternative_syntax = "ST_Area(geog, use_spheroid)",
     argument(name = "geom", description = "geometry"),
@@ -113,31 +113,32 @@ impl GeometryKernel for GeodeticAreaKernel<'_> {
         geom: &impl GeometryTrait<T = f64>,
         row: usize,
     ) -> GeoDataFusionResult<Option<f64>> {
-        match self.0.use_spheroid(row) {
-            None => Ok(None),
-            Some(true) => geodetic_area(geom, &self.0.geodesic).map(Some),
-            Some(false) => Err(exec_datafusion_err!(
-                "st_area: the area of geography on the sphere (use_spheroid false) isn't supported yet"
+        let Some(spheroid) = self.0.use_spheroid(row) else {
+            return Ok(None);
+        };
+        // A polygon's holes may outweigh its shell, but not the whole geometry's.
+        let area = geodetic_area(geom, &self.0.geodesic, spheroid);
+        if area < 0.0 {
+            return Err(exec_datafusion_err!(
+                "st_area: the area is negative: holes are larger than their shells"
             )
-            .into()),
+            .into());
         }
+        Ok(Some(area))
     }
 }
 
-/// The area of geography on the spheroid, summed as [`area`] sums it.
-fn geodetic_area(
-    geom: &impl GeometryTrait<T = f64>,
-    geodesic: &Geodesic,
-) -> GeoDataFusionResult<f64> {
+/// The area of geography, summed as [`area`] sums it.
+fn geodetic_area(geom: &impl GeometryTrait<T = f64>, geodesic: &Geodesic, spheroid: bool) -> f64 {
     match geom.as_type() {
-        GeometryType::Polygon(polygon) => polygon_geodetic_area(polygon, geodesic),
+        GeometryType::Polygon(polygon) => geodesic.area(polygon, spheroid),
         GeometryType::MultiPolygon(polygons) => polygons
             .polygons()
-            .map(|polygon| polygon_geodetic_area(&polygon, geodesic))
+            .map(|polygon| geodesic.area(&polygon, spheroid))
             .sum(),
         GeometryType::GeometryCollection(collection) => collection
             .geometries()
-            .map(|member| geodetic_area(&member, geodesic))
+            .map(|member| geodetic_area(&member, geodesic, spheroid))
             .sum(),
         GeometryType::Point(_)
         | GeometryType::LineString(_)
@@ -145,18 +146,8 @@ fn geodetic_area(
         | GeometryType::MultiLineString(_)
         | GeometryType::Line(_)
         | GeometryType::Rect(_)
-        | GeometryType::Triangle(_) => Ok(0.0),
+        | GeometryType::Triangle(_) => 0.0,
     }
-}
-
-fn polygon_geodetic_area(
-    polygon: &impl PolygonTrait<T = f64>,
-    geodesic: &Geodesic,
-) -> GeoDataFusionResult<f64> {
-    geodesic.area(polygon).ok_or_else(|| {
-        exec_datafusion_err!("st_area: the area is negative: a hole is larger than its shell")
-            .into()
-    })
 }
 
 pub(crate) fn area(geom: &impl GeometryTrait<T = f64>) -> f64 {
