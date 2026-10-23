@@ -256,6 +256,11 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    ST_ClipByBox2D done ahead of G2 batch 5 (requested), on GEOS with PostGIS's box checks around
    it, with `box2d`/`box3d` text input (`'BOX(1 2,5 6)'::box2d`) for it. Parity 4714/4909 ->
    4759/4954. `box2d::text` output is still to do.
+   G2 batch 5 done: geodetic distance involving lines and polygons (nearest points on the sphere,
+   with the Aviation Formulary's cancellation-free arc normals), the sphere area (PostGIS's is
+   (R / a)² times its spheroid area), and the validity flags with ST_IsValidDetail, through a
+   local FFI call of `GEOSisValidDetail_r` (G3 open question 5, answered as for PROJ). R10 no
+   longer applies: the predicates are GEOS's prepared ones. Parity 4759/4954 -> 4807/5000.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
