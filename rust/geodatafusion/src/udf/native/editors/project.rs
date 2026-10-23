@@ -1,7 +1,7 @@
 use std::f64::consts::PI;
 use std::sync::LazyLock;
 
-use arrow_array::{Array, Float64Array};
+use arrow_array::{Array, BooleanArray, Float64Array};
 use arrow_schema::{DataType, FieldRef};
 use datafusion::common::{exec_datafusion_err, internal_err};
 use datafusion::error::Result;
@@ -14,8 +14,10 @@ use geo_traits::{GeometryTrait, GeometryType, PointTrait};
 use wkt::types::{Coord, Point};
 
 use crate::error::GeoDataFusionResult;
+use crate::udf::native::util::geodesic::{Geodesic, GeodeticPair, geography_pair};
 use crate::util::args::optional_float_arg;
-use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
+use crate::util::field::{geometries_from_array, geometry_array, input_metadata, wkb_return_field};
+use crate::util::geography::{geography_argument, geography_spheroid, is_geography};
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
 use crate::util::owned::{OwnedColumn, dimension, owned_coord};
 use crate::util::signature::{Arg, coerce_args};
@@ -23,8 +25,8 @@ use crate::util::signature::{Arg, coerce_args};
 /// PostGIS:
 /// - ST_Project(geometry geom1, float distance, float azimuth)
 /// - ST_Project(geometry geom1, geometry geom2, float distance)
-///
-/// The geography forms wait for the geography type.
+/// - ST_Project(geography geog, float distance, float azimuth)
+/// - ST_Project(geography geog_from, geography geog_to, float distance)
 static ARGUMENTS: &[&[Arg]] = &[
     &[Arg::Geometry, Arg::Float, Arg::Float],
     &[Arg::Geometry, Arg::Geometry, Arg::Float],
@@ -39,7 +41,7 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// Returns a point projected from a start point by a distance and bearing (azimuth).
 #[user_doc(
     doc_section(label = "Geometry Editors"),
-    description = "Returns the POINT at distance from geom1 in the direction of azimuth, in radians clockwise from north, in the units of the SRS. The second form continues the line from geom1 through geom2 by distance past geom2, measured in 2D, and extends the Z and M geom1 has too (a missing one in geom2 counts as 0). As in PostGIS, an empty point gives NULL and the SRIDs aren't compared. The geography forms aren't supported yet.",
+    description = "Returns the POINT at distance from geom1 in the direction of azimuth, in radians clockwise from north, in the units of the SRS. The second form continues the line from geom1 through geom2 by distance past geom2, measured in 2D, and extends the Z and M geom1 has too (a missing one in geom2 counts as 0). As in PostGIS, an empty point gives NULL and the SRIDs aren't compared. For geography, the point is along the geodesic on the SRID's spheroid, distance in metres: a negative distance goes the other way, a NULL azimuth is 0, a distance beyond half the circumference of the spheroid's mean sphere is an error, and Z and M are kept. The second geography form, as PostGIS computes it, takes the azimuth from geog_from to geog_to and goes distance from geog_to with that azimuth (not along the geodesic through both); the same point twice gives NaN coordinates, which WKB, unlike PostGIS, reads as POINT EMPTY. An empty point or one that isn't a point is an error for geography.",
     syntax_example = "ST_Project(geom1, distance, azimuth)",
     alternative_syntax = "ST_Project(geom1, geom2, distance)",
     argument(name = "geom1", description = "geometry, a POINT"),
@@ -103,6 +105,9 @@ impl ScalarUDFImpl for Project {
 }
 
 fn project_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+    if args.arg_fields[..2].iter().any(|field| is_geography(field)) {
+        return geography_project_impl(args);
+    }
     let geometries = geometry_array(&args, 0)?;
     // Coercion makes a distance Float64 and a direction point a geometry.
     let direction = if args.arg_fields[1].data_type().is_numeric() {
@@ -192,6 +197,112 @@ impl GeometryKernel for Direction {
         };
         Ok(Some(Point::new(Some(projected), dim)))
     }
+}
+
+/// The geography forms: along geodesics on the spheroid.
+fn geography_project_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+    const NAME: &str = "st_project";
+    let (geometries, geodesic, direction) = if args.arg_fields[1].data_type().is_numeric() {
+        let (value, field, srid) = geography_argument(NAME, &args, 0)?;
+        let geometries = geometries_from_array(&value.to_array(args.number_rows)?, &field)?;
+        let direction = Direction::Azimuth {
+            distance: optional_float_arg(&args, 1, 0.0)?,
+            azimuth: optional_float_arg(&args, 2, 0.0)?,
+        };
+        (
+            geometries,
+            Geodesic::new(geography_spheroid(NAME, srid)?),
+            direction,
+        )
+    } else {
+        let use_spheroid = BooleanArray::from(vec![true; args.number_rows]);
+        let GeodeticPair { first, second } = geography_pair(NAME, &args, use_spheroid)?;
+        let direction = Direction::Towards {
+            point: OwnedColumn::try_new(&second.0, &second.1, args.number_rows)?,
+            distance: optional_float_arg(&args, 2, 0.0)?,
+        };
+        (first.geometries, first.geodesic, direction)
+    };
+    let kernel = GeodeticProject {
+        geodesic,
+        direction,
+    };
+    let result = map_geometry_to_wkb(geometries.as_ref(), &kernel, &args.return_field)?;
+    Ok(ColumnarValue::Array(result.to_array_ref()))
+}
+
+struct GeodeticProject {
+    geodesic: Geodesic,
+    direction: Direction,
+}
+
+impl GeometryKernel for GeodeticProject {
+    type Output = Point<f64>;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<Point<f64>>> {
+        let dim = dimension(geom.dim());
+        let start = geography_point(geom)?;
+        let (from, azimuth, distance) = match &self.direction {
+            Direction::Azimuth { distance, azimuth } => {
+                if distance.is_null(row) {
+                    return Ok(None);
+                }
+                // PostgreSQL passes a NULL azimuth on as 0: the function isn't strict.
+                let azimuth = if azimuth.is_null(row) {
+                    0.0
+                } else {
+                    azimuth.value(row)
+                };
+                (start, azimuth, distance.value(row))
+            }
+            Direction::Towards { point, distance } => {
+                let (Some(to), false) = (point.get(row), distance.is_null(row)) else {
+                    return Ok(None);
+                };
+                let to = geography_point(to)?;
+                if (to.x, to.y) == (start.x, start.y) {
+                    // No direction: PostGIS's azimuth is NaN, and so is the point.
+                    let nan = Coord {
+                        x: f64::NAN,
+                        y: f64::NAN,
+                        ..to
+                    };
+                    return Ok(Some(Point::new(Some(nan), dimension(geom.dim()))));
+                }
+                let azimuth = self.geodesic.azimuth((start.x, start.y), (to.x, to.y));
+                (to, azimuth, distance.value(row))
+            }
+        };
+        let Some((x, y)) = self.geodesic.project((from.x, from.y), azimuth, distance) else {
+            return Err(exec_datafusion_err!(
+                "st_project: Distance must not be greater than {}",
+                self.geodesic.half_circumference()
+            )
+            .into());
+        };
+        Ok(Some(Point::new(Some(Coord { x, y, ..from }), dim)))
+    }
+}
+
+/// The coordinate of a geography point, or PostGIS's error for anything else.
+fn geography_point(geom: &impl GeometryTrait<T = f64>) -> GeoDataFusionResult<Coord<f64>> {
+    let GeometryType::Point(point) = geom.as_type() else {
+        return Err(exec_datafusion_err!(
+            "st_project: ST_Project(geography) is only valid for point inputs"
+        )
+        .into());
+    };
+    let Some(coord) = point.coord() else {
+        return Err(exec_datafusion_err!(
+            "st_project: ST_Project(geography) cannot project from an empty start point"
+        )
+        .into());
+    };
+    Ok(owned_coord(&coord))
 }
 
 /// The mathematical angle (counter-clockwise from east) of an azimuth (clockwise from north),

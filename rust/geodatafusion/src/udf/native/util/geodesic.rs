@@ -16,7 +16,7 @@ use datafusion::common::exec_datafusion_err;
 use datafusion::logical_expr::{ColumnarValue, ScalarFunctionArgs};
 use geo_traits::{CoordTrait, GeometryTrait, LineStringTrait, PolygonTrait};
 use geoarrow_array::GeoArrowArray;
-use geographiclib_rs::{InverseGeodesic, PolygonArea, Winding};
+use geographiclib_rs::{DirectGeodesic, InverseGeodesic, PolygonArea, Winding};
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::util::geodetic_distance::{Nearest, nearest};
@@ -177,6 +177,31 @@ impl Geodesic {
         } else {
             azimuth
         }
+    }
+
+    /// The point `distance` metres from `p` along the geodesic leaving it at `azimuth`, in
+    /// radians clockwise from north, as PostGIS projects: a negative distance goes the other way,
+    /// and the azimuth, normalised to [0, 2π), and the coordinates go through radians and back.
+    /// `None` for a distance beyond half the sphere's circumference, which PostGIS refuses.
+    pub(crate) fn project(&self, p: (f64, f64), azimuth: f64, distance: f64) -> Option<(f64, f64)> {
+        let (azimuth, distance) = if distance < 0.0 {
+            (azimuth + PI, -distance)
+        } else {
+            (azimuth, distance)
+        };
+        if distance > PI * self.radius {
+            return None;
+        }
+        let azimuth = degrees(azimuth.rem_euclid(2.0 * PI));
+        let (lat, lon): (f64, f64) =
+            self.geodesic
+                .direct(round_trip(p.1), round_trip(p.0), azimuth, distance);
+        Some((round_trip(lon), round_trip(lat)))
+    }
+
+    /// Half the circumference of the sphere, the farthest PostGIS projects.
+    pub(crate) fn half_circumference(&self) -> f64 {
+        PI * self.radius
     }
 
     /// The length in metres of a line: the sum of its segments, each with its rise in Z added

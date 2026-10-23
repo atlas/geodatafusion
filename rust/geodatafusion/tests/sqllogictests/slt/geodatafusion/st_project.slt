@@ -144,3 +144,79 @@ SELECT d, ST_AsText(ST_Project(g, d, 0)) FROM (VALUES ('POINT(1 1)'::geometry, 1
 1 POINT(1 2)
 2 POINT(2 4)
 NULL NULL
+
+# Geography: along the geodesic on the spheroid
+query T
+SELECT ST_AsEWKT(ST_Project('POINT(0 0)'::geography, 100000, radians(45.0)))
+----
+SRID=4326;POINT(0.635231029125537 0.639472334729198)
+
+query T
+SELECT ST_AsEWKT(ST_Project('POINT(0 0)'::geography, -100000, radians(45.0)))
+----
+SRID=4326;POINT(-0.635231029125537 -0.639472334729198)
+
+query T
+SELECT ST_AsEWKT(ST_Project('POINT(0 0)'::geography, 100000, 7))
+----
+SRID=4326;POINT(0.590208774968072 0.681793725618498)
+
+query T
+SELECT ST_AsEWKT(ST_Project('POINT(0 0)'::geography, 0, 1))
+----
+SRID=4326;POINT(0 0)
+
+# A NULL azimuth is 0, a NULL distance NULL
+query T
+SELECT ST_AsEWKT(ST_Project('POINT(0 0)'::geography, 100000, NULL))
+----
+SRID=4326;POINT(0 0.904368722912763)
+
+query T
+SELECT ST_AsEWKT(ST_Project('POINT(0 0)'::geography, NULL::float8, 1))
+----
+NULL
+
+query T
+SELECT ST_AsEWKT(ST_Project('POINT ZM(0 0 5 6)'::geography, 100000, 1))
+----
+SRID=4326;POINT(0.755924449966198 0.48861852407856 5 6)
+
+query T
+SELECT ST_AsEWKT(ST_Project('SRID=4269;POINT(0 0)'::geography, 100000, 1))
+----
+SRID=4269;POINT(0.755924449966199 0.488618524094674)
+
+query T
+SELECT ST_AsEWKT(ST_Project('POINT(179.9 0)'::geography, 100000, radians(90)))
+----
+SRID=4326;POINT(-179.20168471588048 0)
+
+# Towards a point: its azimuth from the first, from the second
+query T
+SELECT ST_AsEWKT(ST_Project('POINT(0 0)'::geography, 'POINT(1 1)'::geography, 100000))
+----
+SRID=4326;POINT(1.637531598065037 1.637304624035336)
+
+query T
+SELECT ST_AsEWKT(ST_Project('POINT(0 0)'::geography, 'POINT(1 1)'::geography, -100000))
+----
+SRID=4326;POINT(0.362714285647321 0.362568321325679)
+
+query T
+SELECT ST_AsEWKT(ST_Project('POINT Z(0 0 1)'::geography, 'POINT Z(1 1 3)'::geography, 100000))
+----
+SRID=4326;POINT(1.637531598065037 1.637304624035336 3)
+
+
+query error
+SELECT ST_Project('POINT(0 0)'::geography, 30000000, 1)
+
+query error
+SELECT ST_Project('POINT EMPTY'::geography, 100000, 1)
+
+query error
+SELECT ST_Project('LINESTRING(0 0,1 1)'::geography, 100000, 1)
+
+query error
+SELECT ST_Project('POINT(0 0)'::geography, 'LINESTRING(1 1,2 2)'::geography, 100000)

@@ -34,6 +34,7 @@ const GEOGRAPHY_FUNCTIONS: &[&str] = &[
     "st_geohash",
     "st_length",
     "st_perimeter",
+    "st_project",
     "st_setsrid",
     "st_srid",
     "st_summary",
