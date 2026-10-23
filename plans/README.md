@@ -241,6 +241,18 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    random calls that all match (TWKB scales by a single precision factor, as PostGIS's output
    shows). Parity 4389/4600 -> 4533/4735. One ST_GeomFromTWKB doc record passes a text literal
    as `bytea`, which DataFusion casts byte for byte rather than reading `\x` hex.
+   G6 batch 4 done: the geography type (WKB with spherical edges, SRID 4326 unless a
+   longitude/latitude one is named, from a generated table of PostGIS's 1,152 such SRIDs and their
+   spheroids), `geography(...)` casts both ways with PostGIS's coordinate coercion,
+   ST_GeogFromText, ST_GeographyFromText and ST_GeogFromWKB, and an analyzer rule that rejects
+   geography for functions without a geography form. Then G2 batch 4: the geography forms of
+   ST_Area (spheroid), ST_Length, ST_Perimeter, ST_Distance and ST_DWithin (points), and
+   ST_Azimuth for both types, on GeographicLib with PostGIS's radians round trip; and G2 batch
+   3's ST_DistanceSphere, ST_DistanceSpheroid and ST_LengthSpheroid. Parity 4533/4735 ->
+   4714/4909. Left for G2 batch 5: the sphere area (PostGIS's isn't spherical excess) and
+   geodetic distance involving lines and polygons; the operators' geography forms; the geography
+   forms of G1/G3 functions (ST_Buffer, ST_Intersection, ST_Centroid, ST_Segmentize, ST_Project,
+   the linear referencing ones), which need `_ST_BestSRID` or geodetic editing.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
@@ -256,7 +268,7 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    what `INSERT` writes to a geometry column (G6 question 12). The shim is gone. Parity
    2074/2468 -> 2133/2526. Batch 2 done too: the box operators, `<->` (ST_Distance) and `<#>`,
    planned for geometry and box operands, on PostGIS's single-precision boxes; the harness parses
-   in the PostgreSQL dialect. Parity 2189/2555. Left: batch 4 (geography), `<<->>` and `|=|`,
+   in the PostgreSQL dialect. Parity 2189/2555. Left: batch 4 (geography, since done), `<<->>` and `|=|`,
    typmod geometry types (not enforced, G6 question 10).
 
 ## Decisions
