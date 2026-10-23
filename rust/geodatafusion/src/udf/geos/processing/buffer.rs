@@ -20,10 +20,15 @@ use wkt::Wkt;
 use wkt::types::{Dimension, Polygon};
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{BufferStyle, StyleKeys, from_geos, has_z, to_geos};
+use crate::udf::geos::util::{
+    BufferStyle, StyleKeys, from_geos, has_z, project, to_geos, unproject,
+};
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
+use crate::udf::native::util::best_srid::best_srid;
+use crate::udf::native::util::geocentric_box::GeocentricBox;
 use crate::util::args::{optional_float_arg, optional_text_arg};
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
+use crate::util::geography::{geography_srid, is_geography};
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
 use crate::util::signature::{Arg, coerce_args};
 
@@ -44,7 +49,7 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// Returns the area within a distance of a geometry.
 #[user_doc(
     doc_section(label = "Geometry Processing"),
-    description = "Computes a polygon covering all points within a given distance (radius) of a geometry. A negative radius shrinks polygons. The optional third argument is either the number of segments approximating a quarter circle (default 8), or a string of space-separated key=value style parameters: quad_segs, endcap=round|flat|butt|square, join=round|mitre|miter|bevel, mitre_limit (or miter_limit) and side=both|left|right for a one-sided buffer. An empty geometry gives an empty polygon. The result is 2D.",
+    description = "Computes a polygon covering all points within a given distance (radius) of a geometry. A negative radius shrinks polygons. The optional third argument is either the number of segments approximating a quarter circle (default 8), or a string of space-separated key=value style parameters: quad_segs, endcap=round|flat|butt|square, join=round|mitre|miter|bevel, mitre_limit (or miter_limit) and side=both|left|right for a one-sided buffer. An empty geometry gives an empty polygon. The result is 2D. For geography the radius is in metres: as in PostGIS, the geography is projected to the plane _ST_BestSRID chooses for it, buffered there, and projected back, which takes the proj feature.",
     syntax_example = "ST_Buffer(geom, radius, options)",
     argument(name = "geom", description = "geometry"),
     argument(name = "radius", description = "float8"),
@@ -119,6 +124,8 @@ fn buffer_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
     let kernel = BufferKernel {
         radius: optional_float_arg(&args, 1, 0.0)?,
         style,
+        geography: geography_srid(&args.arg_fields[0])
+            .filter(|_| is_geography(&args.arg_fields[0])),
     };
     let result = map_geometry_to_wkb(geometries.as_ref(), &kernel, &args.return_field)?;
     Ok(ColumnarValue::Array(result.to_array_ref()))
@@ -127,6 +134,8 @@ fn buffer_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
 struct BufferKernel {
     radius: Float64Array,
     style: Style,
+    /// The SRID of geography input, to buffer in the plane.
+    geography: Option<i32>,
 }
 
 impl GeometryKernel for BufferKernel {
@@ -159,7 +168,15 @@ impl GeometryKernel for BufferKernel {
             return Ok(Some(Wkt::Polygon(Polygon::empty(Dimension::XY))));
         }
         let width = style.width(self.radius.value(row));
-        let buffer = to_geos(geom)?.buffer_with_params(width, &style.buffer_params()?)?;
-        Ok(Some(from_geos(&buffer, want_z)?))
+        let params = style.buffer_params()?;
+        let Some(srid) = self.geography else {
+            let buffer = to_geos(geom)?.buffer_with_params(width, &params)?;
+            return Ok(Some(from_geos(&buffer, want_z)?));
+        };
+        let planar = best_srid(GeocentricBox::new(geom));
+        let projected = project("st_buffer", geom, srid, planar)?;
+        let buffer = to_geos(&projected)?.buffer_with_params(width, &params)?;
+        let buffer = from_geos(&buffer, want_z)?;
+        Ok(Some(unproject("st_buffer", &buffer, planar, srid)?))
     }
 }

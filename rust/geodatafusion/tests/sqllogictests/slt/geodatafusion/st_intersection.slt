@@ -106,3 +106,21 @@ SELECT ST_Intersection(a, b) FROM (VALUES ('POLYGON((0 0,2 0,2 2,0 2,0 0))'::geo
 NULL
 POINT(1.5 1.5)
 POLYGON((2 2,2 1,1 1,1 2,2 2))
+
+# Geography: intersected in the plane _ST_BestSRID chooses for both
+# In a Lambert azimuthal equal-area tile, rounded: PROJ 9.6.2 and 9.8.1 differ by 1e-8
+query T
+SELECT ST_AsText(ST_Intersection('POLYGON((0 0, 10 0, 10 10, 0 10, 0 0))'::geography, 'LINESTRING(-5 5, 15 5)'::geography), 7)
+----
+LINESTRING(0.0419227 5.1443001,10.0138427 5.1434464)
+
+query T
+SELECT ST_Intersection('POLYGON((0 0, 1 0, 1 1, 0 1, 0 0))'::geography, 'POLYGON((0.5 0.5, 1.5 0.5, 1.5 1.5, 0.5 1.5, 0.5 0.5))'::geography)
+----
+SRID=4326;POLYGON((1 1,1.00007567549 0.500019190379,0.5 0.5,0.500094616528 1.00003840169,1 1))
+
+# Geometry is cast to geography; EMPTY and NULL
+query TTT
+SELECT ST_AsText(ST_Intersection('POINT(1 1)'::geometry, 'POINT(1 1)'::geography)), ST_AsText(ST_Intersection('POINT EMPTY'::geography, 'POINT(1 1)'::geography)), ST_AsText(ST_Intersection('POINT(1 1)'::geography, NULL::geography))
+----
+POINT(1 1) POINT EMPTY NULL

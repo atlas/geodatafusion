@@ -33,7 +33,7 @@ geodatafusion/st_azimuth 19/19
 geodatafusion/st_boundary 32/32
 geodatafusion/st_boundingdiagonal 22/22
 geodatafusion/st_box2dfromgeohash 12/12
-geodatafusion/st_buffer 41/41
+geodatafusion/st_buffer 46/46
 geodatafusion/st_buildarea 12/12
 geodatafusion/st_centroid 31/31
 geodatafusion/st_chaikinsmoothing 24/24
@@ -103,7 +103,7 @@ geodatafusion/st_hasz 12/12
 geodatafusion/st_hexagon 20/20
 geodatafusion/st_interiorringn 16/16
 geodatafusion/st_interpolatepoint 16/16
-geodatafusion/st_intersection 20/20
+geodatafusion/st_intersection 23/23
 geodatafusion/st_intersects 28/28
 geodatafusion/st_inversetransformpipeline 5/5
 geodatafusion/st_isclosed 26/26
@@ -309,7 +309,7 @@ postgis_docs/st_coverageinvalidedges 0/1
 postgis_docs/st_coveragesimplify 0/1
 postgis_docs/st_coverageunion 1/1
 postgis_docs/st_coveredby 1/1
-postgis_docs/st_covers 1/2
+postgis_docs/st_covers 2/2
 postgis_docs/st_cpawithin 0/1
 postgis_docs/st_curven 0/1
 postgis_docs/st_curvetoline 0/4

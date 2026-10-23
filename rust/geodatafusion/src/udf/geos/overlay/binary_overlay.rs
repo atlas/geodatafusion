@@ -4,7 +4,7 @@ use std::sync::LazyLock;
 
 use arrow_array::{Array, Float64Array};
 use arrow_schema::{DataType, FieldRef};
-use datafusion::common::internal_err;
+use datafusion::common::{exec_err, internal_err};
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
@@ -17,13 +17,19 @@ use geos::{Geom, Geometry};
 use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::geos::util::{GeosColumn, from_geos, has_z, to_geos};
+use crate::udf::geos::util::{GeosColumn, from_geos, has_z, project, to_geos, unproject};
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
+use crate::udf::native::util::best_srid::best_srid;
+use crate::udf::native::util::geocentric_box::GeocentricBox;
 use crate::util::args::optional_float_arg;
-use crate::util::field::{common_metadata, geometry_array, input_metadata, wkb_return_field};
+use crate::util::field::{
+    common_metadata, geometries_from_array, geometry_array, input_metadata, wkb_return_field,
+};
+use crate::util::geography::{geography_argument, geography_metadata, is_geography};
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
-use crate::util::owned::to_owned_geometry;
+use crate::util::owned::{OwnedColumn, to_owned_geometry};
 use crate::util::signature::{Arg, coerce_args};
+use crate::util::srid::{SRID_UNKNOWN, crs_to_srid};
 
 /// PostGIS: ST_Intersection(geometry geom1, geometry geom2, float8 gridSize = -1), and the same
 /// for ST_Difference, ST_SymDifference and ST_Union.
@@ -41,7 +47,7 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// Returns a geometry representing the point-set intersection of two geometries: the portion of geom1 and geom2 they share.
 #[user_doc(
     doc_section(label = "Overlay Functions"),
-    description = "Returns a geometry representing the point-set intersection of two geometries: the portion of geom1 and geom2 they share. If the optional gridSize argument is given (and not negative), the inputs are snapped to a grid of that size and the result is computed on it. This function keeps Z and drops M.",
+    description = "Returns a geometry representing the point-set intersection of two geometries: the portion of geom1 and geom2 they share. If the optional gridSize argument is given (and not negative), the inputs are snapped to a grid of that size and the result is computed on it. This function keeps Z and drops M. For geography, as in PostGIS, both are projected to the plane _ST_BestSRID chooses for the two, intersected there, and projected back to geom1's SRID, which takes the proj feature; there is no gridSize. Geometry with geography is cast to geography.",
     syntax_example = "ST_Intersection(geom1, geom2, gridSize)",
     argument(name = "geom1", description = "geometry"),
     argument(name = "geom2", description = "geometry"),
@@ -76,10 +82,15 @@ impl ScalarUDFImpl for Intersection {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        Ok(wkb_return_field(
-            self.name(),
-            input_metadata(&args.arg_fields[0]),
-        ))
+        let (first, second) = (&args.arg_fields[0], &args.arg_fields[1]);
+        // Geometry with geography is cast to geography.
+        let metadata = if !is_geography(first) && is_geography(second) {
+            let srid = crs_to_srid(input_metadata(first).crs()).unwrap_or(SRID_UNKNOWN);
+            std::sync::Arc::new(geography_metadata(self.name(), srid)?)
+        } else {
+            input_metadata(first)
+        };
+        Ok(wkb_return_field(self.name(), metadata))
     }
 
     fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
@@ -87,6 +98,9 @@ impl ScalarUDFImpl for Intersection {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        if args.arg_fields[..2].iter().any(|field| is_geography(field)) {
+            return Ok(geodetic_intersection_impl(self.name(), args)?);
+        }
         Ok(overlay_impl(self.name(), args, Operation::Intersection)?)
     }
 
@@ -337,6 +351,63 @@ impl GeometryKernel for OverlayKernel {
         let grid_size = self.grid_size.value(row);
         let result = overlay(&geom, other_geos, self.operation, grid_size)?;
         Ok(Some(from_geos(&result, want_z)?))
+    }
+}
+
+/// The geography form of ST_Intersection: computed in the plane _ST_BestSRID chooses for both.
+fn geodetic_intersection_impl(
+    name: &str,
+    args: ScalarFunctionArgs,
+) -> GeoDataFusionResult<ColumnarValue> {
+    if args.args.len() > 2 {
+        return Ok(exec_err!("{name}: geography takes no gridSize")?);
+    }
+    let (first, first_field, srid) = geography_argument(name, &args, 0)?;
+    let (second, second_field, _) = geography_argument(name, &args, 1)?;
+    let geometries = geometries_from_array(&first.to_array(args.number_rows)?, &first_field)?;
+    let kernel = GeodeticIntersectionKernel {
+        other: OwnedColumn::try_new(&second, &second_field, args.number_rows)?,
+        srid,
+    };
+    let result = map_geometry_to_wkb(geometries.as_ref(), &kernel, &args.return_field)?;
+    Ok(ColumnarValue::Array(result.to_array_ref()))
+}
+
+struct GeodeticIntersectionKernel {
+    other: OwnedColumn,
+    /// The SRID of the result, geom1's.
+    srid: i32,
+}
+
+impl GeometryKernel for GeodeticIntersectionKernel {
+    type Output = Wkt<f64>;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        let Some(other) = self.other.get(row) else {
+            return Ok(None);
+        };
+        // The planar function's shortcuts for EMPTY inputs, which projecting doesn't change.
+        if is_geometry_topologically_empty(other) {
+            return Ok(Some(to_owned_geometry(other)));
+        }
+        if is_geometry_topologically_empty(geom) {
+            return Ok(Some(to_owned_geometry(geom)));
+        }
+        let want_z = has_z(geom) || has_z(other);
+        let bounds = match (GeocentricBox::new(geom), GeocentricBox::new(other)) {
+            (Some(a), Some(b)) => Some(a.union(&b)),
+            (a, b) => a.or(b),
+        };
+        let planar = best_srid(bounds);
+        let name = "st_intersection";
+        let a = to_geos(&project(name, geom, self.srid, planar)?)?;
+        let b = to_geos(&project(name, other, self.srid, planar)?)?;
+        let result = from_geos(&a.intersection(&b)?, want_z)?;
+        Ok(Some(unproject(name, &result, planar, self.srid)?))
     }
 }
 

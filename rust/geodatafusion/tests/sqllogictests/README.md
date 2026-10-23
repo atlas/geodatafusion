@@ -51,7 +51,10 @@ When the PostGIS image moves to a new GEOS, update `geos-src` and `geos-sys`, re
 `--all-features` also builds PROJ 9.6.2 from source (`proj-bundled`); the oracle has PROJ
 9.8.1. For the transformations in the records the two agree, but coordinates can still differ in
 the last bit between platforms (the C math library), so hand-written ST_Transform records return
-geometries, which are compared to 12 significant digits, rather than verbatim text.
+geometries, which are compared to 12 significant digits, rather than verbatim text. The inverse
+Lambert azimuthal equal-area projection, which the geography forms of ST_Buffer and
+ST_Intersection use for medium-sized and polar data, differs between the two by about 1e-8
+degrees, so those records round to 6 or 7 decimals.
 
 ST_AsMVTGeom clips polygons with Wagyu 0.5.0, the version the oracle's PostGIS bundles
 (`rust/geodatafusion-wagyu`). PostGIS converts tile coordinates to 32-bit integers with a C
