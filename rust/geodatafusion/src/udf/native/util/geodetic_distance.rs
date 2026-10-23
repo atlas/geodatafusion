@@ -16,7 +16,7 @@ use geo_traits::{
 };
 use wkt::types::Coord;
 
-type Vector = [f64; 3];
+pub(crate) type Vector = [f64; 3];
 
 /// A point on the sphere: longitude and latitude in radians, and its unit vector.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -28,7 +28,7 @@ pub(crate) struct Spot {
 
 impl Spot {
     /// The point at a longitude and latitude in degrees, turned into radians as PostGIS does.
-    fn from_degrees(lon: f64, lat: f64) -> Self {
+    pub(crate) fn from_degrees(lon: f64, lat: f64) -> Self {
         Self::new(lon * PI / 180.0, lat * PI / 180.0)
     }
 
@@ -42,7 +42,19 @@ impl Spot {
         }
     }
 
-    fn from_vector(vector: Vector) -> Self {
+    #[cfg_attr(
+        not(feature = "geos-3_11"),
+        expect(
+            dead_code,
+            reason = "only ST_Centroid, backed by GEOS, takes geography centroids"
+        )
+    )]
+    pub(crate) fn vector(&self) -> Vector {
+        self.vector
+    }
+
+    /// The point a unit vector points at.
+    pub(crate) fn from_vector(vector: Vector) -> Self {
         let [x, y, z] = vector;
         Self {
             lon: y.atan2(x),
@@ -481,12 +493,12 @@ fn dot(u: &Vector, v: &Vector) -> f64 {
     u[0] * v[0] + u[1] * v[1] + u[2] * v[2]
 }
 
-fn norm(v: &Vector) -> f64 {
+pub(crate) fn norm(v: &Vector) -> f64 {
     dot(v, v).sqrt()
 }
 
-/// The vector divided by its `length`.
-fn normalize(v: &Vector, length: f64) -> Vector {
+/// The vector divided by its `length`, component by component, as PostGIS normalises.
+pub(crate) fn normalize(v: &Vector, length: f64) -> Vector {
     [v[0] / length, v[1] / length, v[2] / length]
 }
 

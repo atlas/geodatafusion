@@ -3,7 +3,7 @@
 use std::sync::LazyLock;
 
 use arrow_schema::{DataType, FieldRef};
-use datafusion::common::internal_err;
+use datafusion::common::{exec_datafusion_err, internal_err};
 use datafusion::error::Result;
 use datafusion::logical_expr::{
     ColumnarValue, Documentation, ReturnFieldArgs, ScalarFunctionArgs, ScalarUDFImpl, Signature,
@@ -14,29 +14,33 @@ use geo_traits::GeometryTrait;
 use geoarrow_array::GeoArrowArray;
 use geos::Geom;
 use wkt::Wkt;
+use wkt::types::{Coord, Dimension, GeometryCollection, Point};
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::geos::util::{empty_point_like, from_geos, to_geos};
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
+use crate::udf::native::util::geodesic::{GeodeticArgument, geodetic_argument};
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
 use crate::util::signature::{Arg, coerce_args};
 
-/// PostGIS: ST_Centroid(geometry g1).
-static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry]];
+/// PostGIS: ST_Centroid(geometry g1) and ST_Centroid(geography g1, boolean use_spheroid = true).
+static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry], &[Arg::Geometry, Arg::Boolean]];
 
 static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
     Signature::user_defined(Volatility::Immutable)
-        .with_parameter_names(vec!["g1"])
+        .with_parameter_names(vec!["g1", "use_spheroid"])
         .expect("parameter names are valid for a user-defined signature")
 });
 
 /// Returns the geometric centre of a geometry.
 #[user_doc(
     doc_section(label = "Geometry Processing"),
-    description = "Computes a point which is the geometric centre of mass of a geometry: of its area for polygonal geometries, its length for lineal ones, and its points for puntal ones; a collection's centroid comes from its highest-dimension members. An empty input gives an empty point. The result is 2D.",
+    description = "Computes a point which is the geometric centre of mass of a geometry: of its area for polygonal geometries, its length for lineal ones, and its points for puntal ones; a collection's centroid comes from its highest-dimension members. An empty input gives an empty point. The result is 2D. For geography the centroid is PostGIS's: points averaged as unit vectors; lines' segments weighted by their lengths; polygons as triangles from the shell's first point to every edge, holes' included, each weighted by its unsigned area, so holes add rather than subtract, as in PostGIS. Lengths and areas are on the SRID's spheroid, or on its mean sphere if use_spheroid is false. Collections are an error, and an empty geography gives an empty collection, as in PostGIS.",
     syntax_example = "ST_Centroid(g1)",
-    argument(name = "g1", description = "geometry")
+    alternative_syntax = "ST_Centroid(g1, use_spheroid)",
+    argument(name = "g1", description = "geometry or geography"),
+    argument(name = "use_spheroid", description = "boolean, default true")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct Centroid;
@@ -87,6 +91,12 @@ impl ScalarUDFImpl for Centroid {
 }
 
 fn centroid_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+    if let Some(geodetic) = geodetic_argument("st_centroid", &args, 0, 1)? {
+        let kernel = GeodeticCentroidKernel(&geodetic);
+        let result =
+            map_geometry_to_wkb(geodetic.geometries.as_ref(), &kernel, &args.return_field)?;
+        return Ok(ColumnarValue::Array(result.to_array_ref()));
+    }
     let geometries = geometry_array(&args, 0)?;
     let kernel = CentroidKernel;
     let result = map_geometry_to_wkb(geometries.as_ref(), &kernel, &args.return_field)?;
@@ -109,5 +119,39 @@ impl GeometryKernel for CentroidKernel {
         }
         // The result is 2D in PostGIS.
         Ok(Some(from_geos(&to_geos(geom)?.get_centroid()?, false)?))
+    }
+}
+
+struct GeodeticCentroidKernel<'a>(&'a GeodeticArgument);
+
+impl GeometryKernel for GeodeticCentroidKernel<'_> {
+    type Output = Wkt<f64>;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        let Some(spheroid) = self.0.use_spheroid(row) else {
+            return Ok(None);
+        };
+        let centroid = self
+            .0
+            .geodesic
+            .centroid(geom, spheroid)
+            .map_err(|e| exec_datafusion_err!("st_centroid: {e}"))?;
+        Ok(Some(match centroid {
+            Some((x, y)) => Wkt::Point(Point::new(
+                Some(Coord {
+                    x,
+                    y,
+                    z: None,
+                    m: None,
+                }),
+                Dimension::XY,
+            )),
+            // PostGIS gives an empty collection for empty geography.
+            None => Wkt::GeometryCollection(GeometryCollection::empty(Dimension::XY)),
+        }))
     }
 }

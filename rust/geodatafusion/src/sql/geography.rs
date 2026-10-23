@@ -29,6 +29,7 @@ const GEOGRAPHY_FUNCTIONS: &[&str] = &[
     "st_assvg",
     "st_astext",
     "st_azimuth",
+    "st_centroid",
     "st_distance",
     "st_dwithin",
     "st_geohash",

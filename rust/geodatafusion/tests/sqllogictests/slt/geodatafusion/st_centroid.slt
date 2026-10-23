@@ -96,3 +96,70 @@ SELECT ST_Centroid(g) FROM (VALUES ('MULTIPOINT((0 0),(10 0),(5 8))'::geometry),
 NULL
 POINT(1 2)
 POINT(5 2.66666666667)
+
+# Geography
+query T
+SELECT ST_AsText(ST_Centroid('POINT(5 5)'::geography), 12)
+----
+POINT(5 5)
+
+query T
+SELECT ST_AsText(ST_Centroid('MULTIPOINT((0 0),(10 10))'::geography), 12)
+----
+POINT(4.961631226703 5.019000697861)
+
+query T
+SELECT ST_AsText(ST_Centroid('LINESTRING(0 0,10 10)'::geography), 12)
+----
+POINT(4.961631226703 5.019000697861)
+
+# Segments weighted by their length on the spheroid, or the sphere
+query T
+SELECT ST_AsText(ST_Centroid('LINESTRING(0 0,10 0,10 10)'::geography), 12)
+----
+POINT(7.486956719453 2.494096127639)
+
+query T
+SELECT ST_AsText(ST_Centroid('LINESTRING(0 0,10 0,10 10)'::geography, false), 12)
+----
+POINT(7.495231278463 2.502378678126)
+
+query T
+SELECT ST_AsText(ST_Centroid('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography), 12)
+----
+POINT(5.000055940397 5.006107963108)
+
+query T
+SELECT ST_AsText(ST_Centroid('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography, false), 12)
+----
+POINT(5.000139741551 5.006023845037)
+
+# Holes add to the weight, as in PostGIS
+query T
+SELECT ST_AsText(ST_Centroid('POLYGON((0 0,10 0,10 10,0 10,0 0),(2 2,4 2,4 4,2 4,2 2))'::geography), 12)
+----
+POINT(4.688889405388 4.695893734115)
+
+# All polygons' triangles start at the first polygon's first point
+query T
+SELECT ST_AsText(ST_Centroid('MULTIPOLYGON(((0 0,1 0,1 1,0 0)),((10 10,11 10,11 11,10 10)))'::geography), 12)
+----
+POINT(6.847954670209 6.586130883211)
+
+query T
+SELECT ST_AsText(ST_Centroid('MULTIPOINT Z((0 0 1),(10 10 3))'::geography), 12)
+----
+POINT(4.961631226703 5.019000697861)
+
+query T
+SELECT ST_AsText(ST_Centroid('POINT EMPTY'::geography), 12)
+----
+GEOMETRYCOLLECTION EMPTY
+
+query T
+SELECT ST_AsText(ST_Centroid('POINT(5 5)'::geography, NULL), 12)
+----
+NULL
+
+query error
+SELECT ST_Centroid('GEOMETRYCOLLECTION(POINT(0 0),LINESTRING(0 0,1 1))'::geography)

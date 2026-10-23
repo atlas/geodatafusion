@@ -14,12 +14,17 @@ use arrow_array::{Array, BooleanArray};
 use arrow_schema::FieldRef;
 use datafusion::common::exec_datafusion_err;
 use datafusion::logical_expr::{ColumnarValue, ScalarFunctionArgs};
-use geo_traits::{CoordTrait, GeometryTrait, LineStringTrait, PolygonTrait};
+use geo_traits::{
+    CoordTrait, GeometryTrait, GeometryType, LineStringTrait, MultiLineStringTrait,
+    MultiPointTrait, MultiPolygonTrait, PointTrait, PolygonTrait,
+};
 use geoarrow_array::GeoArrowArray;
 use geographiclib_rs::{DirectGeodesic, InverseGeodesic, PolygonArea, Winding};
 
 use crate::error::GeoDataFusionResult;
-use crate::udf::native::util::geodetic_distance::{Nearest, nearest};
+use crate::udf::native::util::geodetic_distance::{
+    Nearest, Spot, Vector, nearest, norm, normalize,
+};
 use crate::util::args::optional_bool_arg;
 use crate::util::field::geometries_from_array;
 use crate::util::geography::{geography_argument, geography_spheroid, is_geography};
@@ -298,6 +303,181 @@ fn ring_area(geodesic: &geographiclib_rs::Geodesic, ring: &impl LineStringTrait<
     }
     let (_, area, _) = polygon.compute(true);
     area.abs()
+}
+
+#[cfg_attr(
+    not(feature = "geos-3_11"),
+    expect(
+        dead_code,
+        reason = "only ST_Centroid, backed by GEOS, takes geography centroids"
+    )
+)]
+impl Geodesic {
+    /// The centroid of geography, as PostGIS computes it, as longitude and latitude in degrees;
+    /// `Ok(None)` if it has no points, and PostGIS's error for a collection.
+    ///
+    /// A point is its own centroid; points are averaged as unit vectors. Lines sum the two ends of
+    /// each segment, weighted by its length. Polygons sum unit-vector triangle centroids, weighted
+    /// by the triangles' unsigned areas: triangles from the first polygon's first point to every
+    /// edge of every ring, holes included, so holes add to the weight. Zero weights give NaN. Lengths and areas are on the spheroid, or with `use_spheroid`
+    /// false on the sphere, where triangle areas are spherical excess.
+    pub(crate) fn centroid(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        use_spheroid: bool,
+    ) -> Result<Option<(f64, f64)>, &'static str> {
+        let mut sum = [0.0; 3];
+        let mut any = false;
+        let mut add = |vector: Vector, weight: f64| {
+            any = true;
+            for (total, value) in sum.iter_mut().zip(vector) {
+                *total += weight * value;
+            }
+        };
+        let vector =
+            |coord: &dyn CoordTrait<T = f64>| Spot::from_degrees(coord.x(), coord.y()).vector();
+        match geom.as_type() {
+            // A point is its own centroid.
+            GeometryType::Point(point) => return Ok(point.coord().map(|coord| xy(&coord))),
+            GeometryType::MultiPoint(points) => {
+                for point in points.points() {
+                    if let Some(coord) = point.coord() {
+                        add(vector(&coord), 1.0);
+                    }
+                }
+            }
+            GeometryType::LineString(line) => self.add_line(&mut add, line, use_spheroid),
+            GeometryType::MultiLineString(lines) => {
+                for line in lines.line_strings() {
+                    self.add_line(&mut add, &line, use_spheroid);
+                }
+            }
+            GeometryType::Polygon(polygon) => {
+                if let Some(origin) = shell_start(polygon) {
+                    self.add_polygon(&mut add, polygon, origin, use_spheroid);
+                }
+            }
+            // Every polygon's triangles start at the first polygon's first point.
+            GeometryType::MultiPolygon(polygons) => {
+                if let Some(origin) = polygons
+                    .polygons()
+                    .find_map(|polygon| shell_start(&polygon))
+                {
+                    for polygon in polygons.polygons() {
+                        self.add_polygon(&mut add, &polygon, origin, use_spheroid);
+                    }
+                }
+            }
+            _ => return Err("ST_Centroid(geography) unhandled geography type"),
+        }
+        if !any {
+            return Ok(None);
+        }
+        // Zero weights, of segments or triangles without length or area, leave PostGIS dividing
+        // by zero: NaN.
+        let length = norm(&sum);
+        if length == 0.0 {
+            return Ok(Some((f64::NAN, f64::NAN)));
+        }
+        let centroid = Spot::from_vector(normalize(&sum, length));
+        Ok(Some((degrees(centroid.lon), degrees(centroid.lat))))
+    }
+
+    fn add_line(
+        &self,
+        add: &mut impl FnMut(Vector, f64),
+        line: &impl LineStringTrait<T = f64>,
+        use_spheroid: bool,
+    ) {
+        let coords: Vec<(f64, f64)> = line.coords().map(|coord| xy(&coord)).collect();
+        for pair in coords.windows(2) {
+            let (a, b) = (
+                Spot::from_degrees(pair[0].0, pair[0].1).vector(),
+                Spot::from_degrees(pair[1].0, pair[1].1).vector(),
+            );
+            let middle = [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
+            add(middle, self.distance(pair[0], pair[1], use_spheroid));
+        }
+    }
+
+    fn add_polygon(
+        &self,
+        add: &mut impl FnMut(Vector, f64),
+        polygon: &impl PolygonTrait<T = f64>,
+        origin: (f64, f64),
+        use_spheroid: bool,
+    ) {
+        let o = Spot::from_degrees(origin.0, origin.1);
+        for ring in polygon.exterior().into_iter().chain(polygon.interiors()) {
+            let coords: Vec<(f64, f64)> = ring.coords().map(|coord| xy(&coord)).collect();
+            for pair in coords.windows(2) {
+                let (q, r) = (
+                    Spot::from_degrees(pair[0].0, pair[0].1),
+                    Spot::from_degrees(pair[1].0, pair[1].1),
+                );
+                let (v0, v1, v2) = (o.vector(), q.vector(), r.vector());
+                let total = [
+                    v0[0] + v1[0] + v2[0],
+                    v0[1] + v1[1] + v2[1],
+                    v0[2] + v1[2] + v2[2],
+                ];
+                let length = norm(&total);
+                if length == 0.0 {
+                    continue;
+                }
+                let area = if use_spheroid {
+                    self.triangle_area([origin, pair[0], pair[1]])
+                } else {
+                    spherical_excess([o, q, r])
+                };
+                add(normalize(&total, length), area.abs());
+            }
+        }
+    }
+
+    /// The signed area of a triangle on the spheroid, its corners in degrees.
+    fn triangle_area(&self, corners: [(f64, f64); 3]) -> f64 {
+        let mut polygon = PolygonArea::new(&self.geodesic, Winding::CounterClockwise);
+        for (lon, lat) in corners {
+            polygon.add_point(lat, lon);
+        }
+        let (_, area, _) = polygon.compute(true);
+        area
+    }
+}
+
+#[cfg_attr(
+    not(feature = "geos-3_11"),
+    expect(
+        dead_code,
+        reason = "only ST_Centroid, backed by GEOS, takes geography centroids"
+    )
+)]
+/// The spherical excess of a triangle on the unit sphere, signed by its turn: the sum over its
+/// edges of the area between the edge and the equator, by the tangent half-angle formula.
+fn spherical_excess(corners: [Spot; 3]) -> f64 {
+    let mut excess = 0.0;
+    for (p, q) in [
+        (corners[0], corners[1]),
+        (corners[1], corners[2]),
+        (corners[2], corners[0]),
+    ] {
+        let (t1, t2) = ((p.lat / 2.0).tan(), (q.lat / 2.0).tan());
+        excess += 2.0 * (((q.lon - p.lon) / 2.0).tan() * (t1 + t2)).atan2(1.0 + t1 * t2);
+    }
+    excess
+}
+
+/// The first point of a polygon's shell, if it has one.
+#[cfg_attr(
+    not(feature = "geos-3_11"),
+    expect(
+        dead_code,
+        reason = "only ST_Centroid, backed by GEOS, takes geography centroids"
+    )
+)]
+fn shell_start(polygon: &impl PolygonTrait<T = f64>) -> Option<(f64, f64)> {
+    polygon.exterior()?.coords().next().map(|coord| xy(&coord))
 }
 
 /// PostGIS's spheroid text, `SPHEROID["name",a,rf]` (or with parentheses), as `(a, rf)`, read as

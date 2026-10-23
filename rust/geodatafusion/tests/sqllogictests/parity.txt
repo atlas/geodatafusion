@@ -34,7 +34,7 @@ geodatafusion/st_boundingdiagonal 22/22
 geodatafusion/st_box2dfromgeohash 12/12
 geodatafusion/st_buffer 41/41
 geodatafusion/st_buildarea 12/12
-geodatafusion/st_centroid 18/18
+geodatafusion/st_centroid 31/31
 geodatafusion/st_chaikinsmoothing 24/24
 geodatafusion/st_clipbybox2d 27/27
 geodatafusion/st_closestpoint 38/38
