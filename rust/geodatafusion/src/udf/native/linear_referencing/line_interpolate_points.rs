@@ -14,9 +14,12 @@ use wkt::Wkt;
 use wkt::types::{MultiPoint, Point};
 
 use crate::error::GeoDataFusionResult;
+use crate::udf::native::linear_referencing::util::geodetic::GeodeticLine;
 use crate::udf::native::linear_referencing::util::walk::{Length, interpolate};
+use crate::udf::native::util::geodesic::{GeodeticArgument, geodetic_argument};
 use crate::util::args::{optional_bool_arg, optional_float_arg};
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
+use crate::util::geography::is_geography;
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
 use crate::util::owned::{dimension, owned_line_string};
 use crate::util::signature::{Arg, coerce_args};
@@ -26,6 +29,7 @@ use crate::util::signature::{Arg, coerce_args};
 static ARGUMENTS: &[&[Arg]] = &[
     &[Arg::Geometry, Arg::Float],
     &[Arg::Geometry, Arg::Float, Arg::Boolean],
+    &[Arg::Geometry, Arg::Float, Arg::Boolean, Arg::Boolean],
 ];
 
 static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
@@ -37,7 +41,7 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// Returns points interpolated along a line at a fractional interval.
 #[user_doc(
     doc_section(label = "Linear Referencing"),
-    description = "Returns the points at every a_fraction (0 to 1) of the 2D length of a LINESTRING, interpolating Z and M: a MULTIPOINT, or a POINT if there is one. With repeat false, or a fraction of 0, only the first point is returned. The fractions are added up as PostGIS adds them, so they carry its rounding. An empty line gives POINT EMPTY.",
+    description = "Returns the points at every a_fraction (0 to 1) of the 2D length of a LINESTRING, interpolating Z and M: a MULTIPOINT, or a POINT if there is one. With repeat false, or a fraction of 0, only the first point is returned. The fractions are added up as PostGIS adds them, so they carry its rounding. An empty line gives POINT EMPTY. The geography form is ST_LineInterpolatePoints(a_linestring, a_fraction, use_spheroid, repeat), with its points as ST_LineInterpolatePoint finds them for geography; an empty geography line gives NULL.",
     syntax_example = "ST_LineInterpolatePoints(a_linestring, a_fraction, repeat)",
     argument(name = "a_linestring", description = "geometry"),
     argument(name = "a_fraction", description = "float8 from 0 to 1"),
@@ -93,6 +97,19 @@ impl ScalarUDFImpl for LineInterpolatePoints {
 }
 
 fn line_interpolate_points_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+    // The geography form puts use_spheroid before repeat.
+    if is_geography(&args.arg_fields[0]) || args.args.len() > 3 {
+        let geodetic = geodetic_argument("st_lineinterpolatepoints", &args, 0, 2)?
+            .ok_or_else(|| exec_datafusion_err!("st_lineinterpolatepoints: expected geography"))?;
+        let kernel = GeodeticKernel {
+            geodetic: &geodetic,
+            fraction: optional_float_arg(&args, 1, 0.0)?,
+            repeat: optional_bool_arg(&args, 3, true)?,
+        };
+        let result =
+            map_geometry_to_wkb(geodetic.geometries.as_ref(), &kernel, &args.return_field)?;
+        return Ok(ColumnarValue::Array(result.to_array_ref()));
+    }
     let geometries = geometry_array(&args, 0)?;
     let kernel = LineInterpolatePointsKernel {
         fraction: optional_float_arg(&args, 1, 0.0)?,
@@ -151,6 +168,58 @@ impl GeometryKernel for LineInterpolatePointsKernel {
         Ok(Some(match <[_; 1]>::try_from(points) {
             Ok([point]) => Wkt::Point(point),
             Err(points) => Wkt::MultiPoint(MultiPoint::new(points, dim)),
+        }))
+    }
+}
+
+/// The geography form.
+struct GeodeticKernel<'a> {
+    geodetic: &'a GeodeticArgument,
+    fraction: Float64Array,
+    repeat: BooleanArray,
+}
+
+impl GeometryKernel for GeodeticKernel<'_> {
+    type Output = Wkt<f64>;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        let Some(spheroid) = self.geodetic.use_spheroid(row) else {
+            return Ok(None);
+        };
+        if self.fraction.is_null(row) || self.repeat.is_null(row) {
+            return Ok(None);
+        }
+        let fraction = self.fraction.value(row);
+        if !(0.0..=1.0).contains(&fraction) {
+            return Err(exec_datafusion_err!(
+                "st_lineinterpolatepoints: second arg is not within [0,1]"
+            )
+            .into());
+        }
+        let GeometryType::LineString(line) = geom.as_type() else {
+            return Err(
+                exec_datafusion_err!("st_lineinterpolatepoints: first arg is not a line").into(),
+            );
+        };
+        let dim = dimension(geom.dim());
+        let (coords, _) = owned_line_string(line, dim).into_inner();
+        if coords.is_empty() {
+            return Ok(None);
+        }
+        let line = GeodeticLine::new(&self.geodetic.geodesic, coords, spheroid);
+        let mut points: Vec<Point<f64>> = line
+            .points_every(fraction, self.repeat.value(row))
+            .into_iter()
+            .map(|coord| Point::new(Some(coord), dim))
+            .collect();
+        Ok(Some(if points.len() == 1 {
+            Wkt::Point(points.remove(0))
+        } else {
+            Wkt::MultiPoint(MultiPoint::new(points, dim))
         }))
     }
 }

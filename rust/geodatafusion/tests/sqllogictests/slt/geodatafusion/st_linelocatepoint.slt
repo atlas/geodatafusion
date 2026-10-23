@@ -96,3 +96,31 @@ query T
 SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geometry, 'POINT(12 4)'::geometry)))
 ----
 POINT(10 3.999999999999999)
+
+# Geography: the nearest point on the sphere, lengths on the spheroid
+query T
+SELECT round((ST_LineLocatePoint('LINESTRING(0 0,10 10)'::geography, 'POINT(5 4)'::geography))::numeric, 9)::text
+----
+0.450595203
+
+
+query T
+SELECT round((ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geography, 'POINT(11 5)'::geography))::numeric, 9)::text
+----
+0.750845790
+
+query T
+SELECT round((ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geography, 'POINT(-1 -1)'::geography))::numeric, 9)::text
+----
+0.000000000
+
+query T
+SELECT round((ST_LineLocatePoint('LINESTRING(0 0,10 0,10 10)'::geography, 'POINT(20 20)'::geography))::numeric, 9)::text
+----
+1.000000000
+
+query error
+SELECT ST_LineLocatePoint('MULTILINESTRING((0 0,1 1))'::geography, 'POINT(1 0)'::geography)
+
+query error
+SELECT ST_LineLocatePoint('LINESTRING(0 0,10 10)'::geography, 'LINESTRING(1 0,2 0)'::geography)

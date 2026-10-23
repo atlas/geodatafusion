@@ -204,6 +204,42 @@ impl Geodesic {
         Some((round_trip(lon), round_trip(lat)))
     }
 
+    /// The point `distance` metres from `p` towards `q`: along the geodesic on the spheroid, or
+    /// along the great circle on the sphere, each from `p`'s azimuth, as PostGIS's geography
+    /// linear referencing goes.
+    pub(crate) fn along(
+        &self,
+        p: (f64, f64),
+        q: (f64, f64),
+        distance: f64,
+        use_spheroid: bool,
+    ) -> (f64, f64) {
+        if use_spheroid && !self.sphere {
+            let azimuth = self.azimuth(p, q);
+            return self
+                .project(p, azimuth, distance)
+                .unwrap_or((f64::NAN, f64::NAN));
+        }
+        let (lon1, lat1) = (radians(p.0), radians(p.1));
+        let (lon2, lat2) = (radians(q.0), radians(q.1));
+        // The initial bearing on the sphere, then the destination by it.
+        let delta = lon2 - lon1;
+        let bearing = (delta.sin() * lat2.cos())
+            .atan2(lat1.cos() * lat2.sin() - lat1.sin() * lat2.cos() * delta.cos());
+        let angle = distance / self.radius;
+        let lat = (lat1.sin() * angle.cos() + lat1.cos() * angle.sin() * bearing.cos()).asin();
+        let mut lon = lon1
+            + (bearing.sin() * angle.sin() * lat1.cos())
+                .atan2(angle.cos() - lat1.sin() * lat.sin());
+        // Back into (-180, 180], as PostGIS normalises.
+        if lon > PI {
+            lon -= 2.0 * PI;
+        } else if lon <= -PI {
+            lon += 2.0 * PI;
+        }
+        (degrees(lon), degrees(lat))
+    }
+
     /// The radius of the sphere PostGIS measures on without the spheroid.
     pub(crate) fn radius(&self) -> f64 {
         self.radius

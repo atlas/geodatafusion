@@ -12,14 +12,19 @@ use geo_traits::{CoordTrait, GeometryTrait, GeometryType, LineStringTrait};
 use wkt::Wkt;
 
 use crate::error::GeoDataFusionResult;
+use crate::udf::native::linear_referencing::util::geodetic::GeodeticLine;
+use crate::udf::native::util::geodesic::{GeodeticArgument, GeodeticPair, geodetic_pair};
 use crate::util::field::{common_metadata, geometry_array};
 use crate::util::kernel::{GeometryKernel, map_geometry};
-use crate::util::owned::OwnedColumn;
+use crate::util::owned::{OwnedColumn, owned_coord};
 use crate::util::signature::{Arg, coerce_args};
 
-/// PostGIS: ST_LineLocatePoint(geometry a_linestring, geometry a_point). The geography form
-/// waits for the geography type.
-static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry, Arg::Geometry]];
+/// PostGIS: ST_LineLocatePoint(geometry a_linestring, geometry a_point) and
+/// ST_LineLocatePoint(geography a_linestring, geography a_point, boolean use_spheroid = true).
+static ARGUMENTS: &[&[Arg]] = &[
+    &[Arg::Geometry, Arg::Geometry],
+    &[Arg::Geometry, Arg::Geometry, Arg::Boolean],
+];
 
 static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
     Signature::user_defined(Volatility::Immutable)
@@ -30,7 +35,7 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// Returns the fractional location of the closest point on a line to a point.
 #[user_doc(
     doc_section(label = "Linear Referencing"),
-    description = "Returns where on a LINESTRING the point closest to a_point lies, as a fraction (0 to 1) of the line's 2D length; the first of equally close segments wins. As in PostGIS, an empty line or point gives 0 and a line of no length 1. The geography form isn't supported yet.",
+    description = "Returns where on a LINESTRING the point closest to a_point lies, as a fraction (0 to 1) of the line's 2D length; the first of equally close segments wins. As in PostGIS, an empty line or point gives 0 and a line of no length 1. For geography, the nearest point is found on the sphere and the lengths are on the SRID's spheroid, or its mean sphere if use_spheroid is false, as in PostGIS; the first argument must be a LINESTRING and the second a POINT. On the sphere, PostGIS's results are wrong for lines of more than one segment (mostly 0, or the preceding segments' share); geodatafusion's are the fraction itself.",
     syntax_example = "ST_LineLocatePoint(a_linestring, a_point)",
     argument(name = "a_linestring", description = "geometry"),
     argument(name = "a_point", description = "geometry"),
@@ -82,6 +87,14 @@ fn line_locate_point_impl(
     name: &str,
     args: ScalarFunctionArgs,
 ) -> GeoDataFusionResult<ColumnarValue> {
+    if let Some(GeodeticPair { first, second }) = geodetic_pair(name, &args, Some(2))? {
+        let kernel = GeodeticKernel {
+            first: &first,
+            point: OwnedColumn::try_new(&second.0, &second.1, args.number_rows)?,
+        };
+        let result: Float64Array = map_geometry(first.geometries.as_ref(), &kernel)?;
+        return Ok(ColumnarValue::Array(Arc::new(result)));
+    }
     common_metadata(name, &args, &[0, 1])?;
     let geometries = geometry_array(&args, 0)?;
     let kernel = LineLocatePointKernel {
@@ -151,5 +164,38 @@ impl GeometryKernel for LineLocatePointKernel {
         };
         let before: f64 = lengths[..index].iter().sum();
         Ok(Some((before + lengths[index] * t) / total))
+    }
+}
+
+/// The geography form.
+struct GeodeticKernel<'a> {
+    first: &'a GeodeticArgument,
+    point: OwnedColumn,
+}
+
+impl GeometryKernel for GeodeticKernel<'_> {
+    type Output = f64;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<f64>> {
+        let (Some(point), Some(spheroid)) = (self.point.get(row), self.first.use_spheroid(row))
+        else {
+            return Ok(None);
+        };
+        let GeometryType::LineString(line) = geom.as_type() else {
+            return Err(exec_datafusion_err!("st_linelocatepoint: 1st arg is not a line").into());
+        };
+        let Wkt::Point(point) = point else {
+            return Err(exec_datafusion_err!("st_linelocatepoint: 2nd arg is not a point").into());
+        };
+        let Some(point) = point.coord() else {
+            return Ok(Some(0.0));
+        };
+        let coords = line.coords().map(|coord| owned_coord(&coord)).collect();
+        let line = GeodeticLine::new(&self.first.geodesic, coords, spheroid);
+        Ok(Some(line.locate((point.x, point.y))))
     }
 }

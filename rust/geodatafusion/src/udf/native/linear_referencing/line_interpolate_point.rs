@@ -15,27 +15,33 @@ use geo_traits::{GeometryTrait, GeometryType};
 use wkt::types::Point;
 
 use crate::error::GeoDataFusionResult;
+use crate::udf::native::linear_referencing::util::geodetic::GeodeticLine;
 use crate::udf::native::linear_referencing::util::walk::{Length, interpolate};
+use crate::udf::native::util::geodesic::{GeodeticArgument, geodetic_argument};
 use crate::util::args::optional_float_arg;
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
 use crate::util::owned::{dimension, owned_line_string};
 use crate::util::signature::{Arg, coerce_args};
 
-/// PostGIS: ST_LineInterpolatePoint(geometry a_linestring, float8 a_fraction), and the same for
-/// ST_3DLineInterpolatePoint. The geography form waits for the geography type.
-static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry, Arg::Float]];
+/// PostGIS: ST_LineInterpolatePoint(geometry a_linestring, float8 a_fraction), the same for
+/// ST_3DLineInterpolatePoint, and ST_LineInterpolatePoint(geography a_linestring, float8
+/// a_fraction, boolean use_spheroid = true).
+static ARGUMENTS: &[&[Arg]] = &[
+    &[Arg::Geometry, Arg::Float],
+    &[Arg::Geometry, Arg::Float, Arg::Boolean],
+];
 
 static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
     Signature::user_defined(Volatility::Immutable)
-        .with_parameter_names(vec!["a_linestring", "a_fraction"])
+        .with_parameter_names(vec!["a_linestring", "a_fraction", "use_spheroid"])
         .expect("parameter names are valid for a user-defined signature")
 });
 
 /// Returns a point interpolated along a line at a fractional location.
 #[user_doc(
     doc_section(label = "Linear Referencing"),
-    description = "Returns the POINT at a_fraction (0 to 1) of the 2D length of a LINESTRING, interpolating Z and M. An empty line gives POINT EMPTY. The geography form isn't supported yet.",
+    description = "Returns the POINT at a_fraction (0 to 1) of the 2D length of a LINESTRING, interpolating Z and M. An empty line gives POINT EMPTY. For geography, lengths are on the SRID's spheroid and the point is along the segment's geodesic, or on its mean sphere along the great circle if use_spheroid is false, as in PostGIS; an empty line gives NULL. Unlike PostGIS, whose geography Z is garbage, Z and M are interpolated linearly.",
     syntax_example = "ST_LineInterpolatePoint(a_linestring, a_fraction)",
     argument(name = "a_linestring", description = "geometry"),
     argument(name = "a_fraction", description = "float8 from 0 to 1"),
@@ -152,6 +158,15 @@ fn line_interpolate_point_impl(
     args: ScalarFunctionArgs,
     length: Length,
 ) -> GeoDataFusionResult<ColumnarValue> {
+    if let Some(geodetic) = geodetic_argument("st_lineinterpolatepoint", &args, 0, 2)? {
+        let kernel = GeodeticKernel {
+            geodetic: &geodetic,
+            fraction: optional_float_arg(&args, 1, 0.0)?,
+        };
+        let result =
+            map_geometry_to_wkb(geodetic.geometries.as_ref(), &kernel, &args.return_field)?;
+        return Ok(ColumnarValue::Array(result.to_array_ref()));
+    }
     let geometries = geometry_array(&args, 0)?;
     let kernel = LineInterpolatePointKernel {
         fraction: optional_float_arg(&args, 1, 0.0)?,
@@ -200,5 +215,44 @@ impl GeometryKernel for LineInterpolatePointKernel {
             interpolate(&coords, fraction, self.length),
             dim,
         )))
+    }
+}
+
+/// The geography form.
+struct GeodeticKernel<'a> {
+    geodetic: &'a GeodeticArgument,
+    fraction: Float64Array,
+}
+
+impl GeometryKernel for GeodeticKernel<'_> {
+    type Output = Point<f64>;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<Point<f64>>> {
+        let (Some(spheroid), false) = (self.geodetic.use_spheroid(row), self.fraction.is_null(row))
+        else {
+            return Ok(None);
+        };
+        let fraction = self.fraction.value(row);
+        if !(0.0..=1.0).contains(&fraction) {
+            return Err(exec_datafusion_err!(
+                "st_lineinterpolatepoint: second arg is not within [0,1]"
+            )
+            .into());
+        }
+        let GeometryType::LineString(line) = geom.as_type() else {
+            return Err(
+                exec_datafusion_err!("st_lineinterpolatepoint: first arg is not a line").into(),
+            );
+        };
+        let dim = dimension(geom.dim());
+        let (coords, _) = owned_line_string(line, dim).into_inner();
+        let line = GeodeticLine::new(&self.geodetic.geodesic, coords, spheroid);
+        Ok(line
+            .point_at(fraction)
+            .map(|coord| Point::new(Some(coord), dim)))
     }
 }

@@ -14,14 +14,18 @@ use wkt::Wkt;
 use wkt::types::{Coord, Dimension, GeometryCollection, LineString, MultiLineString, Point};
 
 use crate::error::GeoDataFusionResult;
+use crate::udf::native::linear_referencing::util::geodetic::GeodeticLine;
 use crate::udf::native::linear_referencing::util::walk::{Length, line_length, substring};
+use crate::udf::native::util::geodesic::{GeodeticArgument, geodetic_argument};
 use crate::util::args::optional_float_arg;
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
+use crate::util::geography::is_geography;
 use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
 use crate::util::owned::{dimension, owned_line_string};
 use crate::util::signature::{Arg, coerce_args};
 
-/// PostGIS: ST_LineSubstring(geometry a_linestring, float8 startfraction, float8 endfraction).
+/// PostGIS: ST_LineSubstring(geometry a_linestring, float8 startfraction, float8 endfraction), and
+/// the same for geography.
 /// The geography form waits for the geography type.
 static ARGUMENTS: &[&[Arg]] = &[&[Arg::Geometry, Arg::Float, Arg::Float]];
 
@@ -34,7 +38,7 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// Returns the part of a line between two fractional locations.
 #[user_doc(
     doc_section(label = "Linear Referencing"),
-    description = "Returns the part of a LINESTRING between startfraction and endfraction (0 to 1) of its 2D length, interpolating Z and M at the ends, without repeated points; a POINT if that leaves one. For a MULTILINESTRING the fractions are of the total length, and the result is a MULTILINESTRING of the pieces, or a GEOMETRYCOLLECTION if some piece is a point. An empty line gives NULL. The geography form isn't supported yet.",
+    description = "Returns the part of a LINESTRING between startfraction and endfraction (0 to 1) of its 2D length, interpolating Z and M at the ends, without repeated points; a POINT if that leaves one. For a MULTILINESTRING the fractions are of the total length, and the result is a MULTILINESTRING of the pieces, or a GEOMETRYCOLLECTION if some piece is a point. An empty line gives NULL. For geography, lengths and the end points are as ST_LineInterpolatePoint finds them on the spheroid, as in PostGIS; only LINESTRINGs are taken, startfraction must not be above endfraction, and Z and M are interpolated linearly (PostGIS's are garbage).",
     syntax_example = "ST_LineSubstring(a_linestring, startfraction, endfraction)",
     argument(name = "a_linestring", description = "geometry"),
     argument(name = "startfraction", description = "float8 from 0 to 1"),
@@ -90,6 +94,18 @@ impl ScalarUDFImpl for LineSubstring {
 }
 
 fn line_substring_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+    if is_geography(&args.arg_fields[0]) {
+        let geodetic = geodetic_argument("st_linesubstring", &args, 0, usize::MAX)?
+            .ok_or_else(|| exec_datafusion_err!("st_linesubstring: expected geography"))?;
+        let kernel = GeodeticKernel {
+            geodetic: &geodetic,
+            start: optional_float_arg(&args, 1, 0.0)?,
+            end: optional_float_arg(&args, 2, 1.0)?,
+        };
+        let result =
+            map_geometry_to_wkb(geodetic.geometries.as_ref(), &kernel, &args.return_field)?;
+        return Ok(ColumnarValue::Array(result.to_array_ref()));
+    }
     let geometries = geometry_array(&args, 0)?;
     let kernel = LineSubstringKernel {
         start: optional_float_arg(&args, 1, 0.0)?,
@@ -205,5 +221,62 @@ fn multi_substring(
         Some(Wkt::GeometryCollection(GeometryCollection::new(
             pieces, dim,
         )))
+    }
+}
+
+/// The geography form, on the spheroid.
+struct GeodeticKernel<'a> {
+    geodetic: &'a GeodeticArgument,
+    start: Float64Array,
+    end: Float64Array,
+}
+
+impl GeometryKernel for GeodeticKernel<'_> {
+    type Output = Wkt<f64>;
+
+    fn eval(
+        &self,
+        geom: &impl GeometryTrait<T = f64>,
+        row: usize,
+    ) -> GeoDataFusionResult<Option<Wkt<f64>>> {
+        if self.start.is_null(row) || self.end.is_null(row) {
+            return Ok(None);
+        }
+        let (start, end) = (self.start.value(row), self.end.value(row));
+        if !(0.0..=1.0).contains(&start) {
+            return Err(exec_datafusion_err!(
+                "st_linesubstring: second argument is not within [0,1]"
+            )
+            .into());
+        }
+        if !(0.0..=1.0).contains(&end) {
+            return Err(exec_datafusion_err!(
+                "st_linesubstring: third argument is not within [0,1]"
+            )
+            .into());
+        }
+        if start > end {
+            return Err(exec_datafusion_err!(
+                "st_linesubstring: second argument must be smaller than third argument"
+            )
+            .into());
+        }
+        let GeometryType::LineString(line) = geom.as_type() else {
+            return Err(
+                exec_datafusion_err!("st_linesubstring: first argument is not a line").into(),
+            );
+        };
+        let dim = dimension(geom.dim());
+        let (coords, _) = owned_line_string(line, dim).into_inner();
+        if coords.is_empty() {
+            return Ok(None);
+        }
+        let line = GeodeticLine::new(&self.geodetic.geodesic, coords, true);
+        let mut coords = line.substring(start, end);
+        Ok(Some(if start == end {
+            Wkt::Point(Point::new(Some(coords.remove(0)), dim))
+        } else {
+            Wkt::LineString(LineString::new(coords, dim))
+        }))
     }
 }

@@ -78,3 +78,24 @@ SELECT ST_LineInterpolatePoints('LINESTRING(0 0,10 0,10 10)'::geometry, 1.5)
 
 query error
 SELECT ST_LineInterpolatePoints('POINT(1 1)'::geometry, 0.5)
+
+# Geography: use_spheroid comes before repeat
+query T
+SELECT ST_AsText(ST_LineInterpolatePoints('LINESTRING(0 0,10 10)'::geography, 0.3), 9)
+----
+MULTIPOINT((2.972277628 3.01417971),(5.96094221 6.019998994),(8.982560171 9.008945967))
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoints('LINESTRING(0 0,10 10)'::geography, 0.3, true, false), 9)
+----
+POINT(2.972277628 3.01417971)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoints('LINESTRING(0 0,10 0,10 10)'::geography, 0.25, false), 9)
+----
+MULTIPOINT((5 3.057732553e-16),(10 0),(10 5),(10 10))
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoints('LINESTRING(0 0,10 10)'::geography, 1), 9)
+----
+POINT(10 10)

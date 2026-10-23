@@ -374,6 +374,29 @@ fn vincenty_angle(p: &Spot, q: &Spot) -> f64 {
         .atan2(sin1 * sin2 + cos1 * cos2 * cos_delta)
 }
 
+/// The segment of a line, as longitude and latitude in degrees, nearest to `point` on the sphere,
+/// and its point nearest to it, in degrees; the first segment of several as near. `None` for a
+/// line without segments.
+pub(crate) fn nearest_on_line(
+    line: &[(f64, f64)],
+    point: (f64, f64),
+) -> Option<(usize, (f64, f64))> {
+    let p = Spot::from_degrees(point.0, point.1);
+    let mut best: Option<(f64, usize, Spot)> = None;
+    for (index, pair) in line.windows(2).enumerate() {
+        let edge = [
+            Spot::from_degrees(pair[0].0, pair[0].1),
+            Spot::from_degrees(pair[1].0, pair[1].1),
+        ];
+        let q = nearest_on_arc(&p, &edge);
+        let distance = angle(&p.vector, &q.vector);
+        if best.is_none_or(|(least, _, _)| distance < least) {
+            best = Some((distance, index, q));
+        }
+    }
+    best.map(|(_, index, q)| (index, q.degrees()))
+}
+
 fn zero(spot: Spot) -> Nearest {
     Nearest {
         angle: 0.0,

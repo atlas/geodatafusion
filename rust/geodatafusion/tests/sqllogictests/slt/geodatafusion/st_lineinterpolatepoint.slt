@@ -103,3 +103,40 @@ SELECT f, ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geomet
 0.1 POINT(2 0)
 0.6 POINT(10 2)
 NULL NULL
+
+# Geography: along geodesics on the spheroid, or great circles on the sphere
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geography, 0.5), 9)
+----
+POINT(9.967031494 0)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geography, 0.5, false), 9)
+----
+POINT(10 0)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geography, 0.75), 9)
+----
+POINT(10 4.983785408)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 10)'::geography, 0.25), 9)
+----
+POINT(2.476203857 2.512170169)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geography, 1), 9)
+----
+POINT(10 10)
+
+query T
+SELECT ST_AsText(ST_LineInterpolatePoint('LINESTRING EMPTY'::geography, 0.5))
+----
+NULL
+
+query error
+SELECT ST_LineInterpolatePoint('LINESTRING(0 0,10 0,10 10)'::geography, 1.5)
+
+query error
+SELECT ST_LineInterpolatePoint('MULTILINESTRING((0 0,1 1))'::geography, 0.5)
