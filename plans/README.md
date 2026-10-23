@@ -176,7 +176,7 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    ST_Distance, ST_Length (100%), ST_Simplify (99.98%) and ST_SimplifyVW (98.89%, the rest
    heap ties) native, with ST_DWithin new; ST_IsValid on `geo` (100%), on its own kernel.
    `geoarrow-expr-geo` is gone (D6). Parity 1867/2275, every hand-written record passing.
-   Left: ST_ClipByBox2D (G6 `box2d`). G5 batches 0c and 1 done: the collect machinery
+   Left: ST_ClipByBox2D (G6 `box2d`; since done). G5 batches 0c and 1 done: the collect machinery
    (`util/collect.rs`, on `array_agg`), the scalar/aggregate pairs ST_Collect/ST_Collect_Agg,
    ST_MakeLine/ST_MakeLine_Agg and ST_Union/ST_Union_Agg (D8), ST_MemUnion, ST_Polygonize and
    ST_CoverageUnion, with the `_agg` names defined in the PostGIS engine from PostGIS's own
@@ -253,6 +253,9 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    geodetic distance involving lines and polygons; the operators' geography forms; the geography
    forms of G1/G3 functions (ST_Buffer, ST_Intersection, ST_Centroid, ST_Segmentize, ST_Project,
    the linear referencing ones), which need `_ST_BestSRID` or geodetic editing.
+   ST_ClipByBox2D done ahead of G2 batch 5 (requested), on GEOS with PostGIS's box checks around
+   it, with `box2d`/`box3d` text input (`'BOX(1 2,5 6)'::box2d`) for it. Parity 4714/4909 ->
+   4759/4954. `box2d::text` output is still to do.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
