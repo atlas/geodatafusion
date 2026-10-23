@@ -31,3 +31,9 @@ FROM (VALUES ('POINT(1 2)'::geometry), ('LINESTRING(0 0,1 1)'::geometry)) AS t(g
 ----
 2263
 2263
+
+# Geography
+query I
+SELECT ST_SRID('SRID=4269;POINT(1 2)'::geography)
+----
+4269

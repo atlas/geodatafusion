@@ -5,6 +5,7 @@ pub(crate) mod collect;
 pub(crate) mod collinear;
 pub(crate) mod ewkt;
 pub(crate) mod field;
+pub(crate) mod geography;
 pub(crate) mod kernel;
 pub(crate) mod ordinates;
 #[cfg_attr(
@@ -19,5 +20,6 @@ pub(crate) mod set_returning;
 pub(crate) mod signature;
 pub(crate) mod srid;
 mod srid_authorities;
+mod srid_lonlat;
 #[cfg(test)]
 pub(crate) mod test;

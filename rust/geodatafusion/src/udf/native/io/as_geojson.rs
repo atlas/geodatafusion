@@ -18,13 +18,15 @@ use crate::udf::native::bounding_box::util::bounds::BoundingRect;
 use crate::udf::native::io::util::number::{write_fixed, write_number};
 use crate::util::args::optional_int_arg;
 use crate::util::field::{geometry_array, input_metadata};
+use crate::util::geography::is_geography;
 use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::ordinates::z;
 use crate::util::owned::to_owned_geometry;
 use crate::util::signature::{Arg, coerce_args};
-use crate::util::srid::{SRID_UNKNOWN, crs_to_srid, srid_authority_name};
+use crate::util::srid::{SRID_GEOGRAPHY_DEFAULT, SRID_UNKNOWN, crs_to_srid, srid_authority_name};
 
-/// PostGIS: ST_AsGeoJSON(geometry geom, integer maxdecimaldigits = 9, integer options = 8).
+/// PostGIS: ST_AsGeoJSON(geometry geom, integer maxdecimaldigits = 9, integer options = 8) and
+/// ST_AsGeoJSON(geography geog, integer maxdecimaldigits = 9, integer options = 0).
 static ARGUMENTS: &[&[Arg]] = &[
     &[Arg::Geometry],
     &[Arg::Geometry, Arg::Integer],
@@ -40,6 +42,7 @@ static SIGNATURE: LazyLock<Signature> = LazyLock::new(|| {
 /// PostGIS's defaults for ST_AsGeoJSON.
 const DEFAULT_MAX_DECIMAL_DIGITS: i32 = 9;
 const DEFAULT_OPTIONS: i32 = 8;
+const DEFAULT_GEOGRAPHY_OPTIONS: i32 = 0;
 
 /// The `options` bits.
 const OPTION_BBOX: i32 = 1;
@@ -50,11 +53,11 @@ const OPTION_SHORT_CRS_UNLESS_4326: i32 = 8;
 /// Return a geometry as a GeoJSON element.
 #[user_doc(
     doc_section(label = "Geometry Output"),
-    description = "Returns the geometry as a GeoJSON geometry object, with coordinates written with at most maxdecimaldigits decimals (default 9) and without M. options is a bitmask: 1 adds a bbox, 2 a short CRS name (EPSG:4326), 4 a long one (urn:ogc:def:crs:EPSG::4326), and 8, the default, a short one unless the SRID is 4326. A geometry without an SRID gets no CRS. Nested GEOMETRYCOLLECTIONs are an error, as in PostGIS. The record form of PostGIS's ST_AsGeoJSON isn't supported.",
+    description = "Returns the geometry as a GeoJSON geometry object, with coordinates written with at most maxdecimaldigits decimals (default 9) and without M. options is a bitmask: 1 adds a bbox, 2 a short CRS name (EPSG:4326), 4 a long one (urn:ogc:def:crs:EPSG::4326), and 8, the default, a short one unless the SRID is 4326. A geometry without an SRID gets no CRS. For geography the default options are 0, and a CRS is named as 4326 whatever the SRID, as in PostGIS. Nested GEOMETRYCOLLECTIONs are an error, as in PostGIS. The record form of PostGIS's ST_AsGeoJSON isn't supported.",
     syntax_example = "ST_AsGeoJSON(geom, maxdecimaldigits, options)",
     argument(name = "geom", description = "geometry"),
     argument(name = "maxdecimaldigits", description = "integer, default 9"),
-    argument(name = "options", description = "integer, default 8"),
+    argument(name = "options", description = "integer, default 8 (0 for geography)"),
     related_udf(name = "st_geomfromgeojson")
 )]
 #[derive(Debug, Eq, PartialEq, Hash)]
@@ -100,11 +103,18 @@ impl ScalarUDFImpl for AsGeoJSON {
 
 fn as_geojson_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
     let geometries = geometry_array(&args, 0)?;
-    let metadata = input_metadata(&args.arg_fields[0]);
+    let field = &args.arg_fields[0];
+    // PostGIS's geography form names 4326 whatever the SRID, and defaults to no CRS.
+    let (srid, default_options) = if is_geography(field) {
+        (SRID_GEOGRAPHY_DEFAULT, DEFAULT_GEOGRAPHY_OPTIONS)
+    } else {
+        let srid = crs_to_srid(input_metadata(field).crs()).unwrap_or(SRID_UNKNOWN);
+        (srid, DEFAULT_OPTIONS)
+    };
     let kernel = AsGeoJSONKernel {
-        srid: crs_to_srid(metadata.crs()).unwrap_or(SRID_UNKNOWN),
+        srid,
         max_decimal_digits: optional_int_arg(&args, 1, DEFAULT_MAX_DECIMAL_DIGITS)?,
-        options: optional_int_arg(&args, 2, DEFAULT_OPTIONS)?,
+        options: optional_int_arg(&args, 2, default_options)?,
     };
     let result: StringArray = map_geometry(geometries.as_ref(), &kernel)?;
     Ok(ColumnarValue::Array(Arc::new(result)))

@@ -11,6 +11,7 @@ use geo_traits::GeometryTrait;
 
 use crate::error::GeoDataFusionResult;
 use crate::util::field::{geometry_array, input_metadata};
+use crate::util::geography::{geography_srid, is_geography};
 use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::signature::single_geometry;
 use crate::util::srid::{SRID_UNKNOWN, crs_to_srid};
@@ -18,7 +19,7 @@ use crate::util::srid::{SRID_UNKNOWN, crs_to_srid};
 /// Returns the spatial reference identifier for a geometry.
 #[user_doc(
     doc_section(label = "Spatial Reference System Functions"),
-    description = "Returns the spatial reference identifier for a geometry. geodatafusion stores one CRS per column, so every row has the column's SRID. A CRS that doesn't name an SRID gives 0.",
+    description = "Returns the spatial reference identifier for a geometry. geodatafusion stores one CRS per column, so every row has the column's SRID. A CRS that doesn't name an SRID gives 0, and geography without a CRS 4326.",
     syntax_example = "ST_SRID(g1)",
     argument(name = "g1", description = "geometry"),
     related_udf(name = "st_setsrid")
@@ -62,7 +63,13 @@ impl ScalarUDFImpl for SRID {
 }
 
 fn srid_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
-    let srid = crs_to_srid(input_metadata(&args.arg_fields[0]).crs()).unwrap_or(SRID_UNKNOWN);
+    let field = &args.arg_fields[0];
+    let srid = if is_geography(field) {
+        geography_srid(field)
+    } else {
+        crs_to_srid(input_metadata(field).crs())
+    };
+    let srid = srid.unwrap_or(SRID_UNKNOWN);
     let geometries = geometry_array(&args, 0)?;
     let result: Int32Array = map_geometry(geometries.as_ref(), &SridKernel { srid })?;
     Ok(ColumnarValue::Array(Arc::new(result)))

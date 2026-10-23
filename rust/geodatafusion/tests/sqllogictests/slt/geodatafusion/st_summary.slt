@@ -158,3 +158,14 @@ query T
 SELECT ST_Summary(NULL::geometry)
 ----
 NULL
+
+# Geography
+query T
+SELECT ST_Summary('LINESTRING Z(1 2 3,3 4 5)'::geography)
+----
+LineString[ZGS] with 2 points
+
+query T
+SELECT ST_Summary('GEOMETRYCOLLECTION(POINT(1 2),LINESTRING(1 2,3 4))'::geography)
+----
+GeometryCollection[BGS] with 2 elements:\n  Point[GS]\n  LineString[GS] with 2 points

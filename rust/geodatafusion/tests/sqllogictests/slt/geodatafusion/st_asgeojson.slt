@@ -327,3 +327,24 @@ SELECT ST_AsGeoJSON(g) FROM (VALUES ('POINT(1 2)'::geometry), (NULL::geometry), 
 NULL
 {"type":"LineString","coordinates":[[0,0],[1,1]]}
 {"type":"Point","coordinates":[1,2]}
+
+# Geography
+query T
+SELECT ST_AsGeoJSON('SRID=4269;POINT(1 2)'::geography)
+----
+{"type":"Point","coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=4269;POINT(1 2)'::geography, 9, 2)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"EPSG:4326"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('SRID=4269;POINT(1 2)'::geography, 9, 4)
+----
+{"type":"Point","crs":{"type":"name","properties":{"name":"urn:ogc:def:crs:EPSG::4326"}},"coordinates":[1,2]}
+
+query T
+SELECT ST_AsGeoJSON('LINESTRING(-100 60,100 60)'::geography, 3, 1)
+----
+{"type":"LineString","bbox":[-100.000,60.000,100.000,60.000],"coordinates":[[-100,60],[100,60]]}

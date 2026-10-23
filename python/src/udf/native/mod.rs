@@ -225,6 +225,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
 
     // types
     m.add_class::<types::PyGeometry>()?;
+    m.add_class::<types::PyGeography>()?;
 
     Ok(())
 }

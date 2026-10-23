@@ -15,6 +15,7 @@ use geo_traits::{
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::accessors::is_empty::is_geometry_topologically_empty;
 use crate::util::field::{geometry_array, input_metadata};
+use crate::util::geography::is_geography;
 use crate::util::kernel::{GeometryKernel, map_geometry};
 use crate::util::owned::{
     line_string_to_owned, point_to_owned, polygon_to_owned, to_owned_geometry,
@@ -25,7 +26,7 @@ use crate::util::srid::crs_to_srid;
 /// Returns a text summary of the contents of a geometry.
 #[user_doc(
     doc_section(label = "Geometry Accessors"),
-    description = "Returns a text summary of a geometry: its type, flags and size, with one line per member of a collection and per polygon ring. The flags are Z and M for the dimension, S when the geometry has an SRID, and B where PostGIS would store a bounding box with the geometry: at the top level, unless it is empty, a point, a two-point line, or a MULTIPOINT or MULTILINESTRING of one such member.",
+    description = "Returns a text summary of a geometry: its type, flags and size, with one line per member of a collection and per polygon ring. The flags are Z and M for the dimension, G for geography, S when the geometry has an SRID, and B where PostGIS would store a bounding box with the geometry: at the top level, unless it is empty, a point, a two-point line, or a MULTIPOINT or MULTILINESTRING of one such member.",
     syntax_example = "ST_Summary(g)",
     argument(name = "g", description = "geometry"),
     related_udf(name = "st_geometrytype"),
@@ -70,8 +71,12 @@ impl ScalarUDFImpl for Summary {
 
 fn summary_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
     let geometries = geometry_array(&args, 0)?;
+    let field = &args.arg_fields[0];
+    let geodetic = is_geography(field);
     let kernel = SummaryKernel {
-        has_srid: crs_to_srid(input_metadata(&args.arg_fields[0]).crs()) != Some(0),
+        // Geography always has an SRID: 4326 without a CRS.
+        has_srid: geodetic || crs_to_srid(input_metadata(field).crs()) != Some(0),
+        geodetic,
     };
     let result: StringArray = map_geometry(geometries.as_ref(), &kernel)?;
     Ok(ColumnarValue::Array(Arc::new(result)))
@@ -80,6 +85,8 @@ fn summary_impl(args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> 
 struct SummaryKernel {
     /// Whether the column has an SRID; one per column.
     has_srid: bool,
+    /// Whether the column is geography.
+    geodetic: bool,
 }
 
 impl GeometryKernel for SummaryKernel {
@@ -132,6 +139,9 @@ impl SummaryKernel {
         }
         if bbox {
             flags.push('B');
+        }
+        if self.geodetic {
+            flags.push('G');
         }
         if self.has_srid {
             flags.push('S');

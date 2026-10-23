@@ -1,0 +1,209 @@
+# The geography type and its casts: text, bytea and geometry input, SRIDs, coordinates brought
+# into range, casts out, geography columns, and functions without a geography form.
+
+# Text input: WKT, EWKT and hex-encoded EWKB, with SRID 4326 by default
+query T
+SELECT 'POINT(1 2)'::geography
+----
+SRID=4326;POINT(1 2)
+
+query T
+SELECT 'SRID=4269;POINT(1 2)'::geography
+----
+SRID=4269;POINT(1 2)
+
+query T
+SELECT 'SRID=0;POINT(1 2)'::geography
+----
+SRID=4326;POINT(1 2)
+
+query T
+SELECT '0101000020AD100000000000000000F03F0000000000000040'::geography
+----
+SRID=4269;POINT(1 2)
+
+query T
+SELECT CAST('LINESTRING Z(1 2 3,4 5 6)' AS geography)
+----
+SRID=4326;LINESTRING Z (1 2 3,4 5 6)
+
+query T
+SELECT 'POINT EMPTY'::geography
+----
+SRID=4326;POINT EMPTY
+
+query I
+SELECT ST_SRID('POINT(1 2)'::geography)
+----
+4326
+
+query I
+SELECT ST_SRID('SRID=104992;POINT(1 2)'::geography)
+----
+104992
+
+# Only longitude/latitude SRIDs
+query error
+SELECT 'SRID=3857;POINT(1 2)'::geography
+
+query error
+SELECT 'SRID=3857;POINT(1 2)'::geometry::geography
+
+# Coordinates out of range are brought into it, longitudes by whole turns, latitudes folded back
+# over the poles
+query T
+SELECT ST_AsText('POINT(181 2)'::geography)
+----
+POINT(-179 2)
+
+query T
+SELECT ST_AsText('POINT(-540 0)'::geography)
+----
+POINT(180 0)
+
+query T
+SELECT ST_AsText('POINT(10 100)'::geography)
+----
+POINT(10 80)
+
+query T
+SELECT ST_AsText('POINT(200 -200)'::geography)
+----
+POINT(-160 20)
+
+query T
+SELECT ST_AsText('POINT(-180 190)'::geography)
+----
+POINT(180 -10)
+
+query T
+SELECT ST_AsText('LINESTRING ZM(-180 0 500 7,720.5 -91 -500 8)'::geography)
+----
+LINESTRING ZM (-180 0 500 7,0.5 -89 -500 8)
+
+query T
+SELECT ST_AsText(ST_MakePoint(1e10, 0)::geography)
+----
+POINT(-80 0)
+
+# Geometry to geography and back
+query T
+SELECT 'POINT(1 2)'::geometry::geography
+----
+SRID=4326;POINT(1 2)
+
+query T
+SELECT 'SRID=4269;POINT(181 2)'::geometry::geography
+----
+SRID=4269;POINT(-179 2)
+
+query T
+SELECT 'SRID=4269;POINT(1 2)'::geography::geometry
+----
+SRID=4269;POINT(1 2)
+
+query T
+SELECT ST_Point(-71.104, 42.315, 4326)::geography
+----
+SRID=4326;POINT(-71.104 42.315)
+
+# Casts out
+query T
+SELECT 'POINT(1 2)'::geography::text
+----
+0101000020E6100000000000000000F03F0000000000000040
+
+query T
+SELECT 'POINT(1 2)'::geography::bytea
+----
+\x0101000020e6100000000000000000f03f0000000000000040
+
+# Type modifiers: the SRID is 4326 unless named, and a value's must match
+query T
+SELECT 'POINT(1 2)'::geography(Point)
+----
+SRID=4326;POINT(1 2)
+
+query T
+SELECT 'SRID=4269;POINT(1 2)'::geography(Point, 4269)
+----
+SRID=4269;POINT(1 2)
+
+query error
+SELECT 'POINT(1 2)'::geography(Point, 4269)
+
+query error
+SELECT 'SRID=4269;POINT(1 2)'::geography(Point)
+
+query error
+SELECT 'POINT(1 2)'::geography(Point, 3857)
+
+# NULL
+query T
+SELECT NULL::geography
+----
+NULL
+
+query I
+SELECT ST_SRID(NULL::geography)
+----
+NULL
+
+# VALUES: the rows' SRID is the column's
+query T
+SELECT ST_AsEWKT(g) FROM (VALUES ('SRID=4269;POINT(1 2)'::geography), ('SRID=4269;POINT(3 4)'::geography)) AS t(g)
+----
+SRID=4269;POINT(1 2)
+SRID=4269;POINT(3 4)
+
+# Geography columns
+statement ok
+CREATE TABLE geography_test (g geography)
+
+statement ok
+INSERT INTO geography_test VALUES ('POINT(1 2)'), ('SRID=4326;POINT(200 3)')
+
+query T
+SELECT ST_AsEWKT(g) FROM geography_test
+----
+SRID=4326;POINT(1 2)
+SRID=4326;POINT(-160 3)
+
+statement ok
+DROP TABLE geography_test
+
+statement ok
+CREATE TABLE geography_typmod_test (g geography(Point, 4269))
+
+statement ok
+INSERT INTO geography_typmod_test VALUES ('SRID=4269;POINT(1 2)')
+
+query error
+INSERT INTO geography_typmod_test VALUES ('POINT(1 2)')
+
+query T
+SELECT ST_AsEWKT(g) FROM geography_typmod_test
+----
+SRID=4269;POINT(1 2)
+
+statement ok
+DROP TABLE geography_typmod_test
+
+# Functions without a geography form are errors, as in PostgreSQL
+query error
+SELECT ST_X('POINT(1 2)'::geography)
+
+query error
+SELECT ST_NPoints('LINESTRING(1 2,3 4)'::geography)
+
+query error
+SELECT ST_Translate('POINT(1 2)'::geography, 1, 1)
+
+query error
+SELECT ST_Envelope(g) FROM (VALUES ('POINT(1 2)'::geography)) AS t(g)
+
+# The geometry functions take the geometry
+query R
+SELECT ST_X('POINT(1 2)'::geography::geometry)
+----
+1

@@ -13,19 +13,22 @@ use datafusion::logical_expr::{
 };
 use datafusion_macros::user_doc;
 use geo_traits::{CoordTrait, RectTrait};
-use geoarrow_array::array::WkbArray;
+use geoarrow_array::array::{WkbArray, from_arrow_array};
 use geoarrow_array::builder::WkbBuilder;
 use geoarrow_array::cast::{AsGeoArrowArray, to_wkb};
 use geoarrow_array::{GeoArrowArray, GeoArrowArrayAccessor};
-use geoarrow_schema::{GeoArrowType, Metadata, WkbType};
+use geoarrow_schema::{Edges, GeoArrowType, Metadata, WkbType};
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::io::util::wkb::ewkb_srid;
 use crate::udf::native::util::box_geometry::box_geometry;
 use crate::util::ewkt::{ewkt_srid_prefix, parse_ewkt};
 use crate::util::field::{geometry_array, input_metadata, wkb_return_field};
+use crate::util::geography::{coerce_into_range, geography_metadata, geography_srid, is_geography};
+use crate::util::kernel::{GeometryKernel, map_geometry_to_wkb};
+use crate::util::owned::map_coords;
 use crate::util::signature::{Arg, coerce_args};
-use crate::util::srid::{SRID_UNKNOWN, crs_to_srid, srid_to_crs};
+use crate::util::srid::{SRID_GEOGRAPHY_DEFAULT, SRID_UNKNOWN, crs_to_srid, srid_to_crs};
 
 /// PostGIS: geometry(text), geometry(bytea) and geometry(box2d), geometry(box3d) and
 /// geometry(geometry), which a cast to a `geometry` column type calls with its type modifier.
@@ -79,27 +82,7 @@ impl ScalarUDFImpl for Geometry {
     }
 
     fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
-        let input = &args.arg_fields[0];
-        let input_srid = if is_geometry(input) {
-            let metadata = input_metadata(input);
-            match crs_to_srid(metadata.crs()) {
-                // A CRS without an SRID can't be compared with a type modifier, so it's kept.
-                None if self.srid == SRID_UNKNOWN => {
-                    return Ok(wkb_return_field(self.name(), metadata));
-                }
-                srid => srid.unwrap_or(SRID_UNKNOWN),
-            }
-        } else {
-            args.scalar_arguments
-                .first()
-                .and_then(|literal| literal_srid(*literal))
-                .unwrap_or(SRID_UNKNOWN)
-        };
-        let srid = column_srid(self.name(), input_srid, self.srid)?;
-        Ok(wkb_return_field(
-            self.name(),
-            Arc::new(Metadata::new(srid_to_crs(srid), None)),
-        ))
+        cast_return_field(self.name(), &args, self.srid, Target::Geometry)
     }
 
     fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
@@ -107,12 +90,130 @@ impl ScalarUDFImpl for Geometry {
     }
 
     fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
-        Ok(geometry_impl(self.name(), args)?)
+        Ok(cast_impl(self.name(), args, Target::Geometry, true)?)
     }
 
     fn documentation(&self) -> Option<&Documentation> {
         self.doc()
     }
+}
+
+/// PostGIS: geography(text), geography(bytea) and geography(geometry), and geography(geography),
+/// which a cast to a `geography` column type calls with its type modifier.
+static GEOGRAPHY_ARGUMENTS: &[&[Arg]] = &[&[Arg::Text], &[Arg::Bytea], &[Arg::Geometry]];
+
+/// Converts a value to a geography: what `::geography` casts call.
+#[user_doc(
+    doc_section(label = "Data Types"),
+    description = "Converts text, bytea or a geometry to a geography, as the ::geography cast does: geometry on longitude/latitude, with edges along great circles. Text may be WKT, EWKT or hex-encoded EWKB, and bytea is EWKB. The SRID is the embedded one or the geometry's, and 4326 without one; it must be a longitude/latitude SRID. As in PostGIS, coordinates beyond the range of longitude and latitude are brought into it: longitudes by whole turns, latitudes folded back over the poles. Unlike PostGIS, an embedded SRID must be the same in every row, because geodatafusion stores one CRS per column, and the geometry type of a type modifier is not checked.",
+    syntax_example = "geography(geog)",
+    argument(name = "geog", description = "text, bytea or geometry")
+)]
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct Geography {
+    /// The SRID of the cast's target type, `geography(type, srid)`; unknown without one.
+    srid: i32,
+}
+
+impl Geography {
+    pub fn new() -> Self {
+        Self { srid: SRID_UNKNOWN }
+    }
+
+    /// The conversion of a cast to `geography(type, srid)`.
+    #[cfg(feature = "sql")]
+    pub(crate) fn with_srid(srid: i32) -> Self {
+        Self { srid }
+    }
+}
+
+impl Default for Geography {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl ScalarUDFImpl for Geography {
+    fn name(&self) -> &str {
+        "geography"
+    }
+
+    fn signature(&self) -> &Signature {
+        &SIGNATURE
+    }
+
+    fn return_type(&self, _arg_types: &[DataType]) -> Result<DataType> {
+        internal_err!("return_field_from_args should be called instead")
+    }
+
+    fn return_field_from_args(&self, args: ReturnFieldArgs) -> Result<FieldRef> {
+        cast_return_field(self.name(), &args, self.srid, Target::Geography)
+    }
+
+    fn coerce_types(&self, arg_types: &[DataType]) -> Result<Vec<DataType>> {
+        coerce_args(self.name(), arg_types, GEOGRAPHY_ARGUMENTS)
+    }
+
+    fn invoke_with_args(&self, args: ScalarFunctionArgs) -> Result<ColumnarValue> {
+        Ok(cast_impl(self.name(), args, Target::Geography, true)?)
+    }
+
+    fn documentation(&self) -> Option<&Documentation> {
+        self.doc()
+    }
+}
+
+/// What a cast converts to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum Target {
+    Geometry,
+    Geography,
+}
+
+/// The field of a cast's result: the SRID is the type modifier's, the embedded one, or the
+/// input's (see [`column_srid`]); geography's is 4326 without one, and must be longitude/latitude.
+pub(crate) fn cast_return_field(
+    name: &str,
+    args: &ReturnFieldArgs,
+    typmod_srid: i32,
+    target: Target,
+) -> Result<FieldRef> {
+    let input = &args.arg_fields[0];
+    let input_srid = if is_geography(input) {
+        geography_srid(input)
+    } else if is_geometry(input) {
+        crs_to_srid(input_metadata(input).crs())
+    } else {
+        Some(
+            args.scalar_arguments
+                .first()
+                .and_then(|literal| literal_srid(*literal))
+                .unwrap_or(SRID_UNKNOWN),
+        )
+    };
+    let Some(input_srid) = input_srid else {
+        // A CRS without an SRID can't be compared with a type modifier, or checked to be
+        // longitude/latitude, so it's kept.
+        if typmod_srid == SRID_UNKNOWN {
+            let crs = input_metadata(input).crs().clone();
+            let edges = (target == Target::Geography).then_some(Edges::Spherical);
+            return Ok(wkb_return_field(name, Arc::new(Metadata::new(crs, edges))));
+        }
+        return plan_err!(
+            "{name}: Geometry SRID (none) does not match column SRID ({typmod_srid})"
+        );
+    };
+    // Geography without an SRID is 4326 before it meets the type modifier, as in PostGIS.
+    let input_srid = match (target, input_srid) {
+        (Target::Geography, SRID_UNKNOWN) => SRID_GEOGRAPHY_DEFAULT,
+        (_, srid) => srid,
+    };
+    let srid = column_srid(name, input_srid, typmod_srid)?;
+    let metadata = match target {
+        Target::Geometry => Metadata::new(srid_to_crs(srid), None),
+        Target::Geography => geography_metadata(name, srid)?,
+    };
+    Ok(wkb_return_field(name, Arc::new(metadata)))
 }
 
 /// Whether a field holds geometries rather than text or bytes to parse.
@@ -155,7 +256,41 @@ fn column_srid(name: &str, geometry_srid: i32, typmod_srid: i32) -> Result<i32> 
     Ok(typmod_srid)
 }
 
-fn geometry_impl(name: &str, args: ScalarFunctionArgs) -> GeoDataFusionResult<ColumnarValue> {
+/// Converts the argument, as [`cast_return_field`] planned. Text is (E)WKT, or hex-encoded EWKB if
+/// `hex` allows it.
+pub(crate) fn cast_impl(
+    name: &str,
+    args: ScalarFunctionArgs,
+    target: Target,
+    hex: bool,
+) -> GeoDataFusionResult<ColumnarValue> {
+    let return_field = Arc::clone(&args.return_field);
+    let result = convert(name, args, hex)?;
+    if target == Target::Geometry {
+        return Ok(ColumnarValue::Array(result));
+    }
+    let geometries = from_arrow_array(&result, &return_field)?;
+    let coerced = map_geometry_to_wkb(geometries.as_ref(), &CoerceIntoRange, &return_field)?;
+    Ok(ColumnarValue::Array(coerced.into_array_ref()))
+}
+
+/// Geography's coordinates brought into the range of longitude and latitude.
+struct CoerceIntoRange;
+
+impl GeometryKernel for CoerceIntoRange {
+    type Output = wkt::Wkt<f64>;
+
+    fn eval(
+        &self,
+        geom: &impl geo_traits::GeometryTrait<T = f64>,
+        _row: usize,
+    ) -> GeoDataFusionResult<Option<wkt::Wkt<f64>>> {
+        Ok(Some(map_coords(geom, &coerce_into_range)))
+    }
+}
+
+/// The value converted to WKB with the type of the return field.
+fn convert(name: &str, args: ScalarFunctionArgs, hex: bool) -> GeoDataFusionResult<Arc<dyn Array>> {
     let GeoArrowType::Wkb(output_type) = GeoArrowType::from_arrow_field(&args.return_field)? else {
         return Err(internal_datafusion_err!("{name}: unexpected return field").into());
     };
@@ -172,11 +307,11 @@ fn geometry_impl(name: &str, args: ScalarFunctionArgs) -> GeoDataFusionResult<Co
                     .transpose()?;
                 builder.push_geometry(geometry.as_ref())?;
             }
-            return Ok(ColumnarValue::Array(builder.finish().into_array_ref()));
+            return Ok(builder.finish().into_array_ref());
         }
         let wkb = to_wkb::<i32>(geometries.as_ref())?;
         let array = WkbArray::new(wkb.inner().clone(), output_type.metadata().clone());
-        return Ok(ColumnarValue::Array(array.into_array_ref()));
+        return Ok(array.into_array_ref());
     }
     let column_srid = crs_to_srid(output_type.metadata().crs()).unwrap_or(SRID_UNKNOWN);
     let values = args.args[0].to_array(args.number_rows)?;
@@ -186,7 +321,13 @@ fn geometry_impl(name: &str, args: ScalarFunctionArgs) -> GeoDataFusionResult<Co
             let texts = args.args[0]
                 .cast_to(&DataType::Utf8, None)?
                 .to_array(args.number_rows)?;
-            parse_texts(name, texts.as_string::<i32>(), output_type, column_srid)?
+            parse_texts(
+                name,
+                texts.as_string::<i32>(),
+                output_type,
+                column_srid,
+                hex,
+            )?
         }
         _ => {
             let buffers = args.args[0]
@@ -202,7 +343,7 @@ fn geometry_impl(name: &str, args: ScalarFunctionArgs) -> GeoDataFusionResult<Co
             builder.finish().into_array_ref()
         }
     };
-    Ok(ColumnarValue::Array(array))
+    Ok(array)
 }
 
 fn box_to_geometry(rect: &impl RectTrait<T = f64>) -> Result<wkt::Wkt<f64>> {
@@ -215,12 +356,13 @@ fn box_to_geometry(rect: &impl RectTrait<T = f64>) -> Result<wkt::Wkt<f64>> {
     box_geometry(&min, &max)
 }
 
-/// Parses PostGIS's text input: hex-encoded EWKB, or else (E)WKT.
+/// Parses PostGIS's text input: hex-encoded EWKB if `hex` allows it, or else (E)WKT.
 fn parse_texts(
     name: &str,
     texts: &arrow_array::StringArray,
     output_type: WkbType,
     column_srid: i32,
+    hex: bool,
 ) -> GeoDataFusionResult<Arc<dyn Array>> {
     let mut builder = WkbBuilder::<i32>::new(output_type);
     for text in texts {
@@ -228,7 +370,7 @@ fn parse_texts(
             builder.push_geometry(None::<&wkt::Wkt<f64>>)?;
             continue;
         };
-        if is_hex_ewkb(text) {
+        if hex && is_hex_ewkb(text) {
             let buffer = decode_hex(text).map_err(|e| exec_datafusion_err!("{name}: {e}"))?;
             push_ewkb(name, &mut builder, &buffer, column_srid)?;
             continue;

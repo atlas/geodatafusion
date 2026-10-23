@@ -120,3 +120,9 @@ SELECT ST_GeoHash(g) FROM (VALUES ('POINT(-126 48)'::geometry), (NULL::geometry)
 NULL
 NULL
 c0w3hf1s70w3hf1s70w3
+
+# Geography
+query T
+SELECT ST_GeoHash('POINT(1 2)'::geography, 6)
+----
+s02equ

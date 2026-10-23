@@ -63,3 +63,14 @@ FROM (VALUES ('POINT(1 2)'::geometry), (NULL::geometry), ('LINESTRING EMPTY'::ge
 NULL
 SRID=4326;LINESTRING EMPTY
 SRID=4326;POINT(1 2)
+
+# Geography
+query T
+SELECT ST_AsEWKT(ST_SetSRID('POINT(1 2)'::geography, 4269))
+----
+SRID=4269;POINT(1 2)
+
+query T
+SELECT ST_Summary(ST_SetSRID('POINT(1 2)'::geography, 4269))
+----
+Point[GS]

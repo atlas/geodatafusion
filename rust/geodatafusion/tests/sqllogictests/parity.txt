@@ -4,8 +4,9 @@
 # improvements are recorded.
 geodatafusion/box2d 16/16
 geodatafusion/box3d 16/16
+geodatafusion/geography 45/45
 geodatafusion/geometry 64/64
-geodatafusion/geometrytype 18/18
+geodatafusion/geometrytype 19/19
 geodatafusion/operators 29/29
 geodatafusion/st_3dextent 10/10
 geodatafusion/st_3dlength 12/12
@@ -16,16 +17,16 @@ geodatafusion/st_addmeasure 16/16
 geodatafusion/st_addpoint 20/20
 geodatafusion/st_affine 17/17
 geodatafusion/st_area 21/21
-geodatafusion/st_asbinary 17/17
+geodatafusion/st_asbinary 19/19
 geodatafusion/st_asencodedpolyline 21/21
 geodatafusion/st_asewkb 17/17
-geodatafusion/st_asewkt 35/35
-geodatafusion/st_asgeojson 64/64
+geodatafusion/st_asewkt 36/36
+geodatafusion/st_asgeojson 68/68
 geodatafusion/st_ashexewkb 17/17
 geodatafusion/st_aslatlontext 53/53
 geodatafusion/st_asmvtgeom 122/122
-geodatafusion/st_assvg 25/25
-geodatafusion/st_astext 28/28
+geodatafusion/st_assvg 26/26
+geodatafusion/st_astext 30/30
 geodatafusion/st_astwkb 34/34
 geodatafusion/st_boundary 32/32
 geodatafusion/st_boundingdiagonal 22/22
@@ -78,7 +79,7 @@ geodatafusion/st_forcecollection 21/21
 geodatafusion/st_forcepolygonccw 14/14
 geodatafusion/st_forcepolygoncw 14/14
 geodatafusion/st_forcerhr 14/14
-geodatafusion/st_geohash 23/23
+geodatafusion/st_geohash 24/24
 geodatafusion/st_geomcollfromtext 10/10
 geodatafusion/st_geomcollfromwkb 8/8
 geodatafusion/st_geometryn 23/23
@@ -183,7 +184,7 @@ geodatafusion/st_scale 26/26
 geodatafusion/st_scroll 20/20
 geodatafusion/st_segmentize 26/26
 geodatafusion/st_setpoint 14/14
-geodatafusion/st_setsrid 11/11
+geodatafusion/st_setsrid 13/13
 geodatafusion/st_sharedpaths 9/9
 geodatafusion/st_shiftlongitude 11/11
 geodatafusion/st_shortestline 38/38
@@ -193,9 +194,9 @@ geodatafusion/st_simplifyvw 31/31
 geodatafusion/st_snap 12/12
 geodatafusion/st_snaptogrid 41/41
 geodatafusion/st_square 20/20
-geodatafusion/st_srid 5/5
+geodatafusion/st_srid 6/6
 geodatafusion/st_startpoint 16/16
-geodatafusion/st_summary 31/31
+geodatafusion/st_summary 33/33
 geodatafusion/st_swapordinates 18/18
 geodatafusion/st_symdifference 20/20
 geodatafusion/st_tileenvelope 31/31
@@ -426,7 +427,7 @@ postgis_docs/st_orientedenvelope 2/2
 postgis_docs/st_overlaps 3/3
 postgis_docs/st_patchn 0/1
 postgis_docs/st_perimeter 2/4
-postgis_docs/st_point 3/6
+postgis_docs/st_point 6/6
 postgis_docs/st_pointfromgeohash 3/3
 postgis_docs/st_pointfromtext 2/2
 postgis_docs/st_pointfromwkb 2/2

@@ -8,9 +8,13 @@ use geoarrow_schema::crs::{Crs, CrsType};
 use serde_json::Value;
 
 use crate::util::srid_authorities::SRID_AUTHORITIES;
+use crate::util::srid_lonlat::SRID_LONLAT;
 
 /// PostGIS's "unknown" SRID, stored as no CRS.
 pub(crate) const SRID_UNKNOWN: i32 = 0;
+
+/// The SRID of a geography without one: WGS 84 longitude/latitude.
+pub(crate) const SRID_GEOGRAPHY_DEFAULT: i32 = 4326;
 
 /// The largest SRID PostGIS stores; larger values are folded into the reserved range.
 const SRID_MAXIMUM: i64 = 999_999;
@@ -60,6 +64,23 @@ fn authority(srid: i32) -> Option<Authority> {
 /// formats that name the CRS (GeoJSON, GML) need it.
 pub(crate) fn srid_authority_name(srid: i32) -> Option<&'static str> {
     authority(srid).map(Authority::name)
+}
+
+/// A spheroid, by its semi-major and semi-minor axes in metres.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct Spheroid {
+    pub(crate) a: f64,
+    pub(crate) b: f64,
+}
+
+/// The spheroid of a longitude/latitude SRID in PostGIS, or `None` for any other SRID, which
+/// geography doesn't accept.
+pub(crate) fn lonlat_spheroid(srid: i32) -> Option<Spheroid> {
+    let index = SRID_LONLAT.partition_point(|(_, last, _, _)| *last < srid);
+    SRID_LONLAT
+        .get(index)
+        .filter(|(first, _, _, _)| *first <= srid)
+        .map(|&(_, _, a, b)| Spheroid { a, b })
 }
 
 /// The GeoArrow CRS for a PostGIS SRID: no CRS for [`SRID_UNKNOWN`], `EPSG:n` or `ESRI:n` for
@@ -189,6 +210,17 @@ mod test {
             crs_to_srid(&Crs::from_wkt2_2019("GEOGCRS[...]".to_string())),
             None
         );
+    }
+
+    #[test]
+    fn test_lonlat_spheroid() {
+        let wgs84 = lonlat_spheroid(4326).unwrap();
+        assert_eq!(wgs84.a, 6378137.0);
+        assert_eq!(wgs84.b, 6378137.0 - 6378137.0 / 298.257223563);
+        assert!(lonlat_spheroid(4269).is_some());
+        assert!(lonlat_spheroid(104992).is_some());
+        assert_eq!(lonlat_spheroid(3857), None);
+        assert_eq!(lonlat_spheroid(0), None);
     }
 
     #[test]

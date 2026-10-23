@@ -232,6 +232,7 @@ def register_all_native(ctx: SessionContext):
 
     # types
     ctx.register_udf(udf(native.Geometry()))
+    ctx.register_udf(udf(native.Geography()))
 
 
 def register_all(ctx: SessionContext):

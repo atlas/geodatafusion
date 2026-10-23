@@ -8,11 +8,11 @@ use datafusion::error::Result;
 use datafusion::logical_expr::expr::{Cast, ScalarFunction};
 use datafusion::logical_expr::expr_rewriter::FunctionRewrite;
 use datafusion::logical_expr::{Expr, ExprSchemable, ScalarUDF, ScalarUDFImpl};
-use geoarrow_schema::{BoxType, Dimension, Metadata, WkbType};
+use geoarrow_schema::{BoxType, Dimension, Edges, Metadata, WkbType};
 
 use crate::udf::native::bounding_box::{Box2D, Box3D};
 use crate::udf::native::io::{AsEWKB, AsHEXEWKB};
-use crate::udf::native::types::Geometry;
+use crate::udf::native::types::{Geography, Geometry};
 use crate::util::srid::{SRID_UNKNOWN, crs_to_srid};
 
 /// Turns casts to and from the spatial types into calls, before type coercion.
@@ -20,6 +20,7 @@ use crate::util::srid::{SRID_UNKNOWN, crs_to_srid};
 /// | Cast | Becomes |
 /// |---|---|
 /// | `x::geometry[(type, srid)]` | `geometry(x)`, checking the SRID against the type's |
+/// | `x::geography[(type, srid)]` | `geography(x)`, likewise |
 /// | `x::box2d`, `x::box3d` | `box2d(x)`, `box3d(x)` |
 /// | `geom::text` | `st_ashexewkb(geom)`, PostGIS's `text(geometry)` |
 /// | `geom::bytea` | `st_asewkb(geom)` |
@@ -59,9 +60,12 @@ impl FunctionRewrite for GeoCastRewrite {
 }
 
 /// The function converting a value to a spatial target type.
-fn cast_to(target: &Field) -> Option<Arc<ScalarUDF>> {
+pub(super) fn cast_to(target: &Field) -> Option<Arc<ScalarUDF>> {
     if let Ok(wkb_type) = target.try_extension_type::<WkbType>() {
         let srid = typmod_srid(wkb_type.metadata());
+        if wkb_type.metadata().edges() == Some(Edges::Spherical) {
+            return Some(udf(Geography::with_srid(srid)));
+        }
         return Some(udf(Geometry::with_srid(srid)));
     }
     let box_type = target.try_extension_type::<BoxType>().ok()?;
@@ -71,7 +75,7 @@ fn cast_to(target: &Field) -> Option<Arc<ScalarUDF>> {
     })
 }
 
-/// The type planner gives `geometry(type, srid)` the SRID's CRS.
+/// The type planner gives `geometry(type, srid)` and `geography(type, srid)` the SRID's CRS.
 fn typmod_srid(metadata: &Metadata) -> i32 {
     crs_to_srid(metadata.crs()).unwrap_or(SRID_UNKNOWN)
 }

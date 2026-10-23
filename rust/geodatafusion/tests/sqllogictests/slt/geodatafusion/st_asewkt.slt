@@ -185,3 +185,9 @@ query T
 SELECT ST_AsEWKT('POINT M EMPTY'::geometry)
 ----
 POINTM EMPTY
+
+# Geography
+query T
+SELECT ST_AsEWKT('POINT(1.123456789012345678 2)'::geography, 3)
+----
+SRID=4326;POINT(1.123 2)

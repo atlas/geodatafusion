@@ -5,8 +5,9 @@ use datafusion::common::plan_err;
 use datafusion::error::Result;
 use datafusion::logical_expr::planner::TypePlanner;
 use datafusion::sql::sqlparser::ast::{self, ObjectNamePart};
-use geoarrow_schema::{BoxType, Dimension, Metadata, WkbType};
+use geoarrow_schema::{BoxType, Dimension, Edges, Metadata, WkbType};
 
+use crate::util::geography::geography_metadata;
 use crate::util::srid::{SRID_UNKNOWN, clamp_srid, srid_to_crs};
 
 /// The geometry types a `geometry(type, srid)` type modifier may name, as PostGIS spells them
@@ -30,12 +31,14 @@ const GEOMETRY_TYPES: &[&str] = &[
     "tin",
 ];
 
-/// Plans PostGIS's `geometry`, `box2d` and `box3d` SQL types.
+/// Plans PostGIS's `geometry`, `geography`, `box2d` and `box3d` SQL types.
 ///
 /// | SQL | Field |
 /// |---|---|
 /// | `geometry`, `geometry(type)` | `Binary`, `geoarrow.wkb`, no CRS |
 /// | `geometry(type, srid)` | as above, with the SRID's CRS |
+/// | `geography` | as `geometry`, with spherical edges: SRID 4326 unless the values name another |
+/// | `geography(type[, srid])` | as above, with the SRID's CRS (4326 by default), which must be longitude/latitude |
 /// | `box2d`, `box3d` | `geoarrow.box`, XY or XYZ |
 ///
 /// A session has one type planner, so this one hands any other type to an optional fallback.
@@ -97,6 +100,18 @@ fn plan_spatial_type(name: &ast::ObjectName, modifiers: &[String]) -> Result<Opt
         "geometry" => {
             let srid = geometry_typmod_srid(modifiers)?;
             let metadata = Arc::new(Metadata::new(srid_to_crs(srid), None));
+            Field::new("", DataType::Binary, true).with_extension_type(WkbType::new(metadata))
+        }
+        // Without a type modifier, a geography column takes its values' SRID, 4326 by default;
+        // with one, the SRID is 4326 unless it names another.
+        "geography" => {
+            let crs = if modifiers.is_empty() {
+                Default::default()
+            } else {
+                let srid = geometry_typmod_srid(modifiers)?;
+                geography_metadata("geography", srid)?.crs().clone()
+            };
+            let metadata = Arc::new(Metadata::new(crs, Some(Edges::Spherical)));
             Field::new("", DataType::Binary, true).with_extension_type(WkbType::new(metadata))
         }
         "box2d" if modifiers.is_empty() => box_field(Dimension::XY),
@@ -172,6 +187,17 @@ mod test {
         assert_eq!(crs("geometry(MultiPolygonZM, 0)"), Crs::default());
         assert!(plan("geometry(Pointy, 4326)").is_err());
         assert!(plan("geometry(Point, x)").is_err());
+    }
+
+    #[test]
+    fn test_geography_typmod() {
+        let field = plan("geography").unwrap().unwrap();
+        let wkb_type = field.try_extension_type::<WkbType>().unwrap();
+        assert_eq!(wkb_type.metadata().edges(), Some(Edges::Spherical));
+        assert_eq!(wkb_type.metadata().crs(), &Crs::default());
+        assert_eq!(crs("geography(Point, 4269)"), srid_to_crs(4269));
+        assert_eq!(crs("geography(Point)"), srid_to_crs(4326));
+        assert!(plan("geography(Point, 3857)").is_err());
     }
 
     #[test]

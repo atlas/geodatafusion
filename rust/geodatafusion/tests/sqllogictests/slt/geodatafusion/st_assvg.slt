@@ -133,3 +133,9 @@ query T
 SELECT ST_AsSVG(geom => 'LINESTRING(1 2,3 4)'::geometry, maxdecimaldigits => 0, rel => 1)
 ----
 M 1 -2 l 2 -2
+
+# Geography
+query T
+SELECT ST_AsSVG('LINESTRING(1 2,3 4)'::geography, 1)
+----
+M 1 -2 l 2 -2

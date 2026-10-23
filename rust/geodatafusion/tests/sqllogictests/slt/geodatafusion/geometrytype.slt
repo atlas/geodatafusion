@@ -95,3 +95,9 @@ SELECT GeometryType(g) FROM (VALUES ('POINT M (1 2 3)'::geometry), (NULL::geomet
 LINESTRING
 NULL
 POINTM
+
+# Geography
+query T
+SELECT GeometryType('POINT(1 2)'::geography)
+----
+POINT

@@ -149,3 +149,14 @@ FROM (VALUES ('POINT(1.25 2.75)'::geometry), (NULL::geometry), ('LINESTRING(0 0,
 LINESTRING(0 0,1 2)
 NULL
 POINT(1.2 2.8)
+
+# Geography
+query T
+SELECT ST_AsText('POINT(1.123456789012345678 2)'::geography)
+----
+POINT(1.123456789012346 2)
+
+query T
+SELECT ST_AsText('POINT(1.123456789012345678 2)'::geography, 3)
+----
+POINT(1.123 2)
