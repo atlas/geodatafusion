@@ -78,6 +78,16 @@ SELECT ST_XMin(NULL::geometry)
 ----
 NULL
 
+query R
+SELECT ST_XMin(NULL)
+----
+NULL
+
+query R
+SELECT ST_XMin(NULL::box2d)
+----
+NULL
+
 # A column, including NULL
 query R rowsort
 SELECT ST_XMin(g) FROM (VALUES ('LINESTRING Z (1 2 3,4 5 6)'::geometry), (NULL::geometry), ('POINT EMPTY'::geometry)) AS t(g)

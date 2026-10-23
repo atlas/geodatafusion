@@ -21,7 +21,7 @@ use crate::util::srid::{SRID_UNKNOWN, crs_to_srid};
 
 /// Decodes geometry argument `index`, whatever its GeoArrow encoding. Untagged `Binary` is read
 /// as WKB and untagged strings as PostGIS (E)WKT (see [`geometries_from_array`]). A NULL literal
-/// gives an all-NULL WKB array.
+/// gives an all-NULL WKB array, whatever type the signature coerced it to.
 pub(crate) fn geometry_array(
     args: &ScalarFunctionArgs,
     index: usize,
@@ -30,7 +30,8 @@ pub(crate) fn geometry_array(
         return Err(internal_datafusion_err!("argument {index} doesn't exist").into());
     };
     let array = arg.to_array(args.number_rows)?;
-    if array.data_type() == &DataType::Null {
+    let untyped_null = field.extension_type_name().is_none() && array.null_count() == array.len();
+    if array.data_type() == &DataType::Null || untyped_null {
         let nulls = BinaryArray::new_null(array.len());
         return Ok(Arc::new(WkbArray::new(nulls, Default::default())));
     }
