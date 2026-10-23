@@ -1,12 +1,16 @@
 mod box_operators;
+mod geography_operators;
 
 pub use box_operators::{
     GeometryAbove, GeometryBelow, GeometryContains, GeometryDistanceBox, GeometryLeft,
     GeometryOverAbove, GeometryOverBelow, GeometryOverLeft, GeometryOverRight, GeometryOverlaps,
     GeometryOverlapsNd, GeometryRight, GeometrySame, GeometryWithin,
 };
+pub use geography_operators::{GeographyDistanceKnn, GeographyOverlaps};
 
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
+    session_context.register_udf(GeographyDistanceKnn.into());
+    session_context.register_udf(GeographyOverlaps.into());
     session_context.register_udf(GeometryAbove.into());
     session_context.register_udf(GeometryBelow.into());
     session_context.register_udf(GeometryContains.into());

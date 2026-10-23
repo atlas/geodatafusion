@@ -7,7 +7,7 @@ geodatafusion/box3d 22/22
 geodatafusion/geography 45/45
 geodatafusion/geometry 64/64
 geodatafusion/geometrytype 19/19
-geodatafusion/operators 29/29
+geodatafusion/operators 41/41
 geodatafusion/st_3dextent 10/10
 geodatafusion/st_3dlength 12/12
 geodatafusion/st_3dlineinterpolatepoint 8/8

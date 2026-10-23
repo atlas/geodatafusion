@@ -77,7 +77,7 @@ pub(crate) fn serialized_box(geom: &impl GeometryTrait<T = f64>) -> Option<[f64;
 }
 
 /// The largest single-precision float not above `value`.
-fn round_down(value: f64) -> f64 {
+pub(crate) fn round_down(value: f64) -> f64 {
     let rounded = value as f32;
     if rounded as f64 <= value {
         rounded as f64
@@ -87,7 +87,7 @@ fn round_down(value: f64) -> f64 {
 }
 
 /// The smallest single-precision float not below `value`.
-fn round_up(value: f64) -> f64 {
+pub(crate) fn round_up(value: f64) -> f64 {
     let rounded = value as f32;
     if rounded as f64 >= value {
         rounded as f64

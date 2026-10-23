@@ -9,9 +9,10 @@ use datafusion::sql::sqlparser::ast::BinaryOperator;
 
 use crate::udf::native::measurement::Distance;
 use crate::udf::native::operators::{
-    GeometryAbove, GeometryBelow, GeometryContains, GeometryDistanceBox, GeometryLeft,
-    GeometryOverAbove, GeometryOverBelow, GeometryOverLeft, GeometryOverRight, GeometryOverlaps,
-    GeometryOverlapsNd, GeometryRight, GeometrySame, GeometryWithin,
+    GeographyDistanceKnn, GeographyOverlaps, GeometryAbove, GeometryBelow, GeometryContains,
+    GeometryDistanceBox, GeometryLeft, GeometryOverAbove, GeometryOverBelow, GeometryOverLeft,
+    GeometryOverRight, GeometryOverlaps, GeometryOverlapsNd, GeometryRight, GeometrySame,
+    GeometryWithin,
 };
 use crate::util::geography::is_geography;
 
@@ -25,9 +26,11 @@ use crate::util::geography::is_geography;
 /// | `<<\|`, `&<\|`, `\|>>`, `\|&>` | `geometry_below`, `geometry_overbelow`, `geometry_above`, `geometry_overabove` |
 /// | `<->`, `<#>` | `st_distance`, `geometry_distance_box` |
 ///
+/// With a geography operand, `&&` is `geography_overlaps` and `<->` `geography_distance_knn`,
+/// and the others don't exist, as in PostGIS.
+///
 /// An operator is planned only when an operand is a geometry or a box, so the operators DataFusion
-/// already has (`&&` on arrays, `~` on strings, `<<` on integers) keep their meaning. Geography
-/// operands are a plan error until the operators' geography forms are written. Only the
+/// already has (`&&` on arrays, `~` on strings, `<<` on integers) keep their meaning. Only the
 /// PostgreSQL dialect parses most of them: `SET datafusion.sql_parser.dialect = 'PostgreSQL'`.
 #[derive(Debug)]
 pub(crate) struct GeoExprPlanner;
@@ -44,11 +47,16 @@ impl ExprPlanner for GeoExprPlanner {
         if !is_spatial(&expr.left, schema)? && !is_spatial(&expr.right, schema)? {
             return Ok(PlannerResult::Original(expr));
         }
-        // PostGIS's geography operators measure on the sphere, which the functions behind these
-        // don't.
-        if is_geography_operand(&expr.left, schema)? || is_geography_operand(&expr.right, schema)? {
-            return plan_err!("operator {} doesn't take geography yet", expr.op);
-        }
+        let function = if is_geography_operand(&expr.left, schema)?
+            || is_geography_operand(&expr.right, schema)?
+        {
+            geography_function(&expr.op).map_or_else(
+                || plan_err!("operator does not exist: geography {} geography", expr.op),
+                Ok,
+            )?
+        } else {
+            function
+        };
         Ok(PlannerResult::Planned(Expr::ScalarFunction(
             ScalarFunction::new_udf(function, vec![expr.left, expr.right]),
         )))
@@ -76,6 +84,15 @@ fn operator_function(op: &BinaryOperator) -> Option<Arc<ScalarUDF>> {
         Custom(op) if op == "<#>" => udf(GeometryDistanceBox),
         _ => return None,
     })
+}
+
+/// The function behind an operator's geography form; PostGIS has only these two.
+fn geography_function(op: &BinaryOperator) -> Option<Arc<ScalarUDF>> {
+    match op {
+        BinaryOperator::PGOverlap => Some(udf(GeographyOverlaps)),
+        BinaryOperator::LtDashGt => Some(udf(GeographyDistanceKnn)),
+        _ => None,
+    }
 }
 
 fn is_spatial(expr: &Expr, schema: &DFSchema) -> Result<bool> {

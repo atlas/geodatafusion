@@ -23,7 +23,7 @@ use geographiclib_rs::{DirectGeodesic, InverseGeodesic, PolygonArea, Winding};
 
 use crate::error::GeoDataFusionResult;
 use crate::udf::native::util::geodetic_distance::{
-    Nearest, Spot, Vector, nearest, norm, normalize,
+    Nearest, Spot, Vector, coincide, nearest, norm, normalize,
 };
 use crate::util::args::optional_bool_arg;
 use crate::util::field::geometries_from_array;
@@ -278,6 +278,9 @@ impl Geodesic {
         use_spheroid: bool,
     ) -> Option<f64> {
         let Nearest { points: [p, q], .. } = nearest(a, b)?;
+        if coincide(&p, &q) {
+            return Some(0.0);
+        }
         Some(self.distance_radians((p.lon, p.lat), (q.lon, q.lat), use_spheroid))
     }
 

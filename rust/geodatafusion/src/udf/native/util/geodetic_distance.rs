@@ -5,7 +5,9 @@
 //! projection onto the arc's plane, if that falls on the arc, or else the nearer end. Arcs that
 //! cross are at distance zero, and so is anything inside a polygon. Inside means a winding number
 //! other than zero around the point, which is the side of the ring away from the point's
-//! antipode; for rings smaller than a hemisphere that is the side they enclose.
+//! antipode; for rings smaller than a hemisphere that is the side they enclose. Nearest points
+//! whose longitudes and latitudes differ by at most 5e-14 radians are the same to PostGIS, at
+//! distance zero.
 
 use std::f64::consts::PI;
 
@@ -42,13 +44,6 @@ impl Spot {
         }
     }
 
-    #[cfg_attr(
-        not(feature = "geos-3_11"),
-        expect(
-            dead_code,
-            reason = "only ST_Centroid, backed by GEOS, takes geography centroids"
-        )
-    )]
     pub(crate) fn vector(&self) -> Vector {
         self.vector
     }
@@ -199,7 +194,7 @@ impl Shapes {
     }
 }
 
-fn spot(coord: &impl CoordTrait<T = f64>) -> Spot {
+pub(crate) fn spot(coord: &impl CoordTrait<T = f64>) -> Spot {
     Spot::from_degrees(coord.x(), coord.y())
 }
 
@@ -224,7 +219,10 @@ pub(crate) fn nearest(
         }
     }
     let mut best: Option<Nearest> = None;
-    let mut consider = |candidate: Nearest| {
+    let mut consider = |mut candidate: Nearest| {
+        if coincide(&candidate.points[0], &candidate.points[1]) {
+            candidate.angle = 0.0;
+        }
         if best.is_none_or(|best| candidate.angle < best.angle) {
             best = Some(candidate);
         }
@@ -397,6 +395,13 @@ pub(crate) fn nearest_on_line(
     best.map(|(_, index, q)| (index, q.degrees()))
 }
 
+/// Whether two points are the same to PostGIS: their longitudes and latitudes in radians differ
+/// by at most 5e-14, about 0.3 micrometres.
+pub(crate) fn coincide(p: &Spot, q: &Spot) -> bool {
+    const TOLERANCE: f64 = 5e-14;
+    (p.lon - q.lon).abs() <= TOLERANCE && (p.lat - q.lat).abs() <= TOLERANCE
+}
+
 fn zero(spot: Spot) -> Nearest {
     Nearest {
         angle: 0.0,
@@ -442,7 +447,7 @@ fn nearer(p: &Spot, a: &Spot, b: &Spot) -> Spot {
 }
 
 /// Whether `c`, on the great circle of `a` and `b` with `normal`, lies between them.
-fn on_arc(c: &Vector, a: &Spot, b: &Spot, normal: &Vector) -> bool {
+pub(crate) fn on_arc(c: &Vector, a: &Spot, b: &Spot, normal: &Vector) -> bool {
     dot(&cross(&a.vector, c), normal) >= 0.0 && dot(&cross(c, &b.vector), normal) >= 0.0
 }
 
@@ -470,7 +475,7 @@ fn crossing(e: &[Spot; 2], f: &[Spot; 2]) -> Option<Spot> {
 /// The normal of the great circle from `a` to `b`: `a × b`, computed from the longitudes and
 /// latitudes without the cancellation the cross product of nearly equal vectors suffers, as in
 /// the Aviation Formulary of Ed Williams (whose longitudes are positive west, hence the signs).
-fn arc_normal(a: &Spot, b: &Spot) -> Vector {
+pub(crate) fn arc_normal(a: &Spot, b: &Spot) -> Vector {
     let (sum, half) = ((a.lon + b.lon) / 2.0, (a.lon - b.lon) / 2.0);
     let (sin_sum, cos_sum) = sum.sin_cos();
     let (sin_half, cos_half) = half.sin_cos();

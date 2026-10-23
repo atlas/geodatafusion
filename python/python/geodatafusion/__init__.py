@@ -202,6 +202,8 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.ShortestLine()))
 
     # operators
+    ctx.register_udf(udf(native.GeographyDistanceKnn()))
+    ctx.register_udf(udf(native.GeographyOverlaps()))
     ctx.register_udf(udf(native.GeometryAbove()))
     ctx.register_udf(udf(native.GeometryBelow()))
     ctx.register_udf(udf(native.GeometryContains()))

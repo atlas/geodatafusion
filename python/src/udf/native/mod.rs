@@ -195,6 +195,8 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<measurement::PyShortestLine>()?;
 
     // operators
+    m.add_class::<operators::PyGeographyDistanceKnn>()?;
+    m.add_class::<operators::PyGeographyOverlaps>()?;
     m.add_class::<operators::PyGeometryAbove>()?;
     m.add_class::<operators::PyGeometryBelow>()?;
     m.add_class::<operators::PyGeometryContains>()?;

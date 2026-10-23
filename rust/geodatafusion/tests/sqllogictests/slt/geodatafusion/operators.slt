@@ -1,5 +1,5 @@
 # The bounding box operators and <->, <#>: EMPTY, NULL, boxes, single-precision boxes, Z and M,
-# SRIDs, and the same operators on other types.
+# SRIDs, the geography forms of && and <->, and the same operators on other types.
 
 # Each operator on overlapping and separate boxes
 query TTTT
@@ -155,6 +155,68 @@ query RR
 SELECT 'POINT EMPTY'::geometry <#> 'POINT(3 4)'::geometry, 'POINT EMPTY'::geometry <#> 'POINT EMPTY'::geometry
 ----
 340282346639000000000000000000000000000 340282346639000000000000000000000000000
+
+# && on geography compares geocentric boxes: an edge bulges toward the pole between its ends
+query TTTT
+SELECT 'LINESTRING(-10 60, 10 60)'::geography && 'POINT(0 60.378348)'::geography, 'LINESTRING(-10 60, 10 60)'::geometry && 'POINT(0 60.378348)'::geometry, 'LINESTRING(-10 60, 10 60)'::geography && 'POINT(0 60)'::geography, geography_overlaps('POINT(1 2)'::geography, 'POINT(1 2)'::geography)
+----
+true false false true
+
+# A polygon's box reaches the pole its rings go around, even one it doesn't enclose; a line's doesn't
+query TTTT
+SELECT 'POLYGON((0 80,90 80,180 80,-90 80,0 80))'::geography && 'POINT(0 90)'::geography, 'POLYGON((0 70,90 70,180 70,-90 70,0 70),(0 85,-90 85,180 85,90 85,0 85))'::geography && 'POINT(0 90)'::geography, 'LINESTRING(0 80,90 80,180 80,-90 80,0 80)'::geography && 'POINT(0 90)'::geography, 'POLYGON((0 80,90 80,180 80,-90 80,0 80))'::geography && 'POINT(0 -90)'::geography
+----
+true true false false
+
+# The same for the other axes, per polygon
+query TTT
+SELECT 'POLYGON((-10 -10,10 -10,10 10,-10 10,-10 -10))'::geography && 'POINT(0 0)'::geography, 'POLYGON((-100 -50,100 -50,100 50,-100 50,-100 -50))'::geography && 'POINT(180 0)'::geography, 'MULTIPOLYGON(((85 -5,95 -5,95 5,85 5,85 -5)),((-95 -5,-85 -5,-85 5,-95 5,-95 -5)))'::geography && 'POINT(0 0)'::geography
+----
+true true false
+
+# Single-precision boxes, EMPTY, NULL, geometry cast to geography, and SRIDs not checked
+query TTTTTT
+SELECT 'POINT(0 0)'::geography && 'POINT(0 0.0000001)'::geography, 'POINT EMPTY'::geography && 'POINT(0 0)'::geography, NULL::geography && 'POINT(0 0)'::geography, 'POLYGON((-100 -50,100 -50,100 50,-100 50,-100 -50))'::geography && 'POINT(0 0)'::geometry, 'POINT(0 0)'::geometry && 'POINT(0 0)'::geography, 'SRID=4269;POINT(0 0)'::geography && 'POINT(0 0)'::geography
+----
+false false NULL false true true
+
+# <-> on geography is the distance on the sphere, not rounded
+query RRRR
+SELECT 'POINT(0 0)'::geography <-> 'POINT(1 1)'::geography, 'LINESTRING(0 0, 10 0)'::geography <-> 'POINT(5 1)'::geography, 'POLYGON((0 0,10 0,10 10,0 10,0 0))'::geography <-> 'POINT(5 5)'::geography, geography_distance_knn('POINT(0 0)'::geography, 'POINT(1 0)'::geography)
+----
+157249.597769 111195.079735 0 111195.079735
+
+query RRR
+SELECT 'SRID=4269;POINT(0 0)'::geography <-> 'SRID=4269;POINT(1 1)'::geography, 'POINT EMPTY'::geography <-> 'POINT(1 1)'::geography, 'POINT(0 0)'::geometry <-> 'POINT(1 1)'::geography
+----
+157249.597768 NULL 157249.597769
+
+query error
+SELECT 'SRID=4269;POINT(0 0)'::geography <-> 'POINT(1 1)'::geography
+
+# Points within 5e-14 radians in longitude and latitude are the same
+query RRRR
+SELECT 'POINT(0 0)'::geography <-> 'POINT(0 0.000000000002)'::geography, 'POINT(0 0)'::geography <-> 'POINT(0 0.000000000003)'::geography, 'LINESTRING(0 79, 0 81)'::geography <-> 'POINT(0.000000000002 80)'::geography, 'LINESTRING(0 79, 0 81)'::geography <-> 'POINT(0.000000000003 80)'::geography
+----
+0 0.000000333585239204 0 0.0000000579871655561
+
+query RR
+SELECT ST_Distance('POINT(0 0)'::geography, 'POINT(0 0.000000000002)'::geography), ST_Distance('POINT(0 0)'::geography, 'POINT(0 0.000000000004)'::geography)
+----
+0 0.00000044
+
+query I rowsort
+SELECT id FROM (VALUES (1, 'POINT(50 50)'::geography), (2, 'POINT(1 1)'::geography), (3, 'POINT(10 10)'::geography)) AS t(id, g) ORDER BY g <-> 'POINT(0 0)'::geography LIMIT 2
+----
+2
+3
+
+# The other operators don't take geography
+query error
+SELECT 'POINT(0 0)'::geography << 'POINT(1 1)'::geography
+
+query error
+SELECT 'POINT(0 0)'::geography ~= 'POINT(0 0)'::geometry
 
 # The operators keep their meaning for other types
 query IIT
