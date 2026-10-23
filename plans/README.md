@@ -261,6 +261,15 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    (R / a)² times its spheroid area), and the validity flags with ST_IsValidDetail, through a
    local FFI call of `GEOSisValidDetail_r` (G3 open question 5, answered as for PROJ). R10 no
    longer applies: the predicates are GEOS's prepared ones. Parity 4759/4954 -> 4807/5000.
+   Geography done: every geography form PostGIS has but the GML and KML output (G4, late) and
+   its internal helpers. Geodetic editing for ST_Project, ST_Segmentize, ST_Centroid,
+   ST_ClosestPoint, ST_ShortestLine and the linear referencing functions; the operators `&&`
+   (geocentric boxes, with PostGIS's pole extension by the box) and `<->` (sphere distance);
+   ST_Intersects, ST_Covers and ST_CoveredBy on the sphere; and `_ST_BestSRID`, fitted to PostGIS
+   on 9,000 random calls, with its internal SRIDs in ST_Transform, for the planar ST_Buffer and
+   ST_Intersection (proj feature). PostGIS bugs documented rather than reproduced: garbage
+   geography Z in linear referencing, a wrong sphere ST_LineLocatePoint, a line's last vertex
+   sometimes not covered. Parity 4807/5000 -> 4929/5116.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,

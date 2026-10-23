@@ -69,7 +69,7 @@ ST_HausdorffDistance and ST_FrechetDistance (the `densifyFrac` overloads need GE
 | ST_InverseTransformPipeline | The `proj` crate only transforms forward (`convert`). |
 | ST_Transform of geometries with Z | The `proj` crate is 2D only (`convert` passes `z: 0.0`). PostGIS transforms Z (`SRID=4326;POINT Z` → 4978 gives a geocentric Z). |
 | postgis_srs* | Need `proj_get_crs_info_list_from_database`, which the `proj` crate doesn't expose. |
-| Geography overloads (ST_Buffer(geography), ST_Intersection(geography), …) | Need the geography type (G6) and `_ST_BestSRID` + PROJ. |
+| Geography overloads (ST_Buffer(geography), ST_Intersection(geography), …) | Done: projected to the SRID `_ST_BestSRID` chooses, with PROJ (proj feature). |
 | ST_CoverageClean (G5) | The oracle's PostGIS was compiled against GEOS 3.13, so it raises an error. No expected output can be recorded. |
 | Curved geometries in every function | Not in GeoArrow. |
 
@@ -777,7 +777,7 @@ input row is returned with `push_input`, keeping M. Doc tests are `passed/total`
 | ST_Node | `node` | 3.6 | PostGIS raises `Noding geometries of dimension != 1 is unsupported` itself. | S | 0/2 |
 | ST_ClipByBox2D | `clip_by_rect(xmin, ymin, xmax, ymax)` | 3.6 | `box2d` argument (G6). Disjoint → empty (`POLYGON EMPTY`), Z kept. The result may be invalid (documented). | M | — |
 | ST_Split | none (`GEOSSplit` is 3.15 and differs). Port of `lwgeom_split` on `intersection`/`difference`/`union`/`polygonize`. | 3.6 | Always returns a GEOMETRYCOLLECTION. Part order must match PostGIS. | L | 0/3 |
-| ST_Buffer | `buffer_with_params(width, &BufferParams)` | 3.6 | Overloads: options text (default `''`) and `quad_segs` integer. Keys are case-sensitive and unknown keys error (`Invalid buffer parameter: ENDCAP`). Values: `endcap=round\|flat\|butt\|square`, `join=round\|mitre\|miter\|bevel`, `mitre_limit`/`miter_limit`, `quad_segs` parsed with `atoi` (`abc` → 0), `side=both\|left\|right` (single-sided, right negates the radius). Empty → `POLYGON EMPTY`. Negative radius on point/line → `POLYGON EMPTY`. NaN radius → GEOS error. Z dropped by GEOS. Geography/text overloads deferred. | M | 0/14 |
+| ST_Buffer | `buffer_with_params(width, &BufferParams)` | 3.6 | Overloads: options text (default `''`) and `quad_segs` integer. Keys are case-sensitive and unknown keys error (`Invalid buffer parameter: ENDCAP`). Values: `endcap=round\|flat\|butt\|square`, `join=round\|mitre\|miter\|bevel`, `mitre_limit`/`miter_limit`, `quad_segs` parsed with `atoi` (`abc` → 0), `side=both\|left\|right` (single-sided, right negates the radius). Empty → `POLYGON EMPTY`. Negative radius on point/line → `POLYGON EMPTY`. NaN radius → GEOS error. Z dropped by GEOS. Geography done (planar, through `_ST_BestSRID`); text overload deferred. | M | 0/14 |
 | ST_OffsetCurve | `offset_curve(width, quadsegs, join, mitre)` | 3.6 | Non-lineal → error (`input is not linear`). Empty → input. MultiLineStrings are offset per part and collected. Options: `quad_segs`, `join`, `mitre_limit` (shares `BufferStyle`). Result direction changed in GEOS 3.11. | M | 0/6 |
 | ST_MakeValid | `make_valid`, `make_valid_with_params(&MakeValidParams)` (`v3_10_0`) | 3.10 | Params `method=linework\|structure`, `keepcollapsed=true\|false`. Unknown keys are ignored, a bad method errors. Empty is *not* passed through (`POLYGON M EMPTY` → `POLYGON EMPTY`). Collapsed lines → `POINT`. | M | 0/4 |
 | ST_ReducePrecision | `set_precision(grid, Precision::ValidOutput)` | 3.9 | Empty → input (`POINT M EMPTY` kept). Z kept. | S | 0/5 |
