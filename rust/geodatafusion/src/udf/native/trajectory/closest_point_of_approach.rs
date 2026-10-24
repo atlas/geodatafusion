@@ -97,6 +97,7 @@ impl ScalarUDFImpl for ClosestPointOfApproach {
     doc_section(label = "Trajectory Functions"),
     description = "Returns the smallest distance between two trajectories, linestrings with M, while both are moving: at their closest point of approach (see ST_ClosestPointOfApproach, also for invalid trajectories). Distances are 3D if either has Z, a missing Z counting as 0. Returns NULL if the M ranges don't overlap.",
     syntax_example = "ST_DistanceCPA(track1, track2)",
+    alternative_syntax = "track1 |=| track2",
     argument(name = "track1", description = "geometry"),
     argument(name = "track2", description = "geometry"),
     related_udf(name = "st_closestpointofapproach"),

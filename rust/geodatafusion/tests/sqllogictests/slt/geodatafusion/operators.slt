@@ -1,4 +1,4 @@
-# The bounding box operators and <->, <#>, <<->>: EMPTY, NULL, boxes, single-precision boxes, Z and M,
+# The bounding box operators and <->, <#>, <<->>, |=|: EMPTY, NULL, boxes, single-precision boxes, Z and M,
 # SRIDs, the geography forms of && and <->, and the same operators on other types.
 
 # Each operator on overlapping and separate boxes
@@ -273,6 +273,38 @@ NULL
 # <<->> doesn't take geography
 query error
 SELECT 'POINT(0 0)'::geography <<->> 'POINT(1 1)'::geography
+
+# |=| is ST_DistanceCPA
+query R
+SELECT 'LINESTRING M (0 0 0,10 0 10)'::geometry |=| 'LINESTRING M (0 5 0,10 5 10)'::geometry
+----
+5
+
+query R
+SELECT 'LINESTRING M (0 0 0,10 0 10)'::geometry |=| 'LINESTRING M (10 0 10,0 0 0)'::geometry
+----
+0
+
+query T
+SELECT ('LINESTRING ZM (0 0 0 0,10 0 0 10)'::geometry |=| 'LINESTRING ZM (0 5 5 0,10 5 5 10)'::geometry)::text
+----
+7.0710678118654755
+
+query R
+SELECT 'LINESTRING M (0 0 0,10 0 10)'::geometry |=| 'LINESTRING M (0 5 20,10 5 30)'::geometry
+----
+NULL
+
+query R
+SELECT NULL::geometry |=| 'LINESTRING M (0 5 0,10 5 10)'::geometry
+----
+NULL
+
+query error
+SELECT 'LINESTRING(0 0,10 0)'::geometry |=| 'LINESTRING(0 5,10 5)'::geometry
+
+query error
+SELECT 'POINT M (0 0 0)'::geometry |=| 'LINESTRING M (0 5 0,10 5 10)'::geometry
 
 # && on geography compares geocentric boxes: an edge bulges toward the pole between its ends
 query TTTT

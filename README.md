@@ -275,7 +275,7 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 | `~`     | `geometry_contains`             | ✅          | Returns TRUE if A's bounding box contains B's.                                                                                               |
 | `~=`    | `geometry_same`                 | ✅          | Returns TRUE if A's bounding box is the same as B's.                                                                                         |
 | `<->`   | `st_distance`                   | ✅          | Returns the 2D distance between A and B.                                                                                                     |
-| `\|=\|` |                                 |             | Returns the distance between A and B trajectories at their closest point of approach.                                                        |
+| `\|=\|` | `st_distancecpa`                | ✅          | Returns the distance between A and B trajectories at their closest point of approach.                                                        |
 | `<#>`   | `geometry_distance_box`         | ✅          | Returns the 2D distance between A and B bounding boxes.                                                                                      |
 | `<<->>` | `geometry_distance_centroid_nd` | ✅          | Returns the n-D distance between A and B geometries or bounding boxes.                                                                       |
 

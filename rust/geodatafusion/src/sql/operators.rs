@@ -14,6 +14,7 @@ use crate::udf::native::operators::{
     GeometryOverBelow, GeometryOverLeft, GeometryOverRight, GeometryOverlaps, GeometryOverlapsNd,
     GeometryRight, GeometrySame, GeometryWithin,
 };
+use crate::udf::native::trajectory::DistanceCPA;
 use crate::util::geography::is_geography;
 
 /// Plans PostGIS's operators as calls of the functions behind them.
@@ -25,6 +26,7 @@ use crate::util::geography::is_geography;
 /// | `<<`, `&<`, `>>`, `&>` | `geometry_left`, `geometry_overleft`, `geometry_right`, `geometry_overright` |
 /// | `<<\|`, `&<\|`, `\|>>`, `\|&>` | `geometry_below`, `geometry_overbelow`, `geometry_above`, `geometry_overabove` |
 /// | `<->`, `<#>`, `<<->>` | `st_distance`, `geometry_distance_box`, `geometry_distance_centroid_nd` |
+/// | `\|=\|` | `st_distancecpa` |
 ///
 /// With a geography operand, `&&` is `geography_overlaps` and `<->` `geography_distance_knn`,
 /// and the others don't exist, as in PostGIS.
@@ -83,6 +85,7 @@ fn operator_function(op: &BinaryOperator) -> Option<Arc<ScalarUDF>> {
         LtDashGt => udf(Distance::new()),
         Custom(op) if op == "<#>" => udf(GeometryDistanceBox),
         Custom(op) if op == "<<->>" => udf(GeometryDistanceCentroidNd),
+        Custom(op) if op == "|=|" => udf(DistanceCPA::new()),
         _ => return None,
     })
 }

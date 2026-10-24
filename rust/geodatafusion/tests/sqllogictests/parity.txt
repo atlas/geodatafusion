@@ -10,7 +10,7 @@ geodatafusion/box3d_out 15/15
 geodatafusion/geography 45/45
 geodatafusion/geometry 64/64
 geodatafusion/geometrytype 19/19
-geodatafusion/operators 64/64
+geodatafusion/operators 71/71
 geodatafusion/st_3dclosestpoint 33/33
 geodatafusion/st_3ddfullywithin 25/25
 geodatafusion/st_3ddistance 36/36
