@@ -234,6 +234,9 @@ def register_all_native(ctx: SessionContext):
 
     # relationships
     ctx.register_udf(udf(native.DWithin()))
+    ctx.register_udf(udf(native.DFullyWithin3D()))
+    ctx.register_udf(udf(native.DWithin3D()))
+    ctx.register_udf(udf(native.Intersects3D()))
     ctx.register_udf(udf(native.RelateMatch()))
 
     # srs

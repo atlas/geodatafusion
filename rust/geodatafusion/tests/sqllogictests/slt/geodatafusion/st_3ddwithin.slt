@@ -1,0 +1,134 @@
+# Edge cases for ST_3DDWithin, not covered by the PostGIS docs examples.
+
+# NULL and EMPTY
+query T
+SELECT ST_3DDWithin(NULL::geometry, 'POINT(1 1 1)'::geometry, 5)
+----
+NULL
+
+query T
+SELECT ST_3DDWithin('POINT EMPTY'::geometry, 'POINT(1 1 1)'::geometry, 5)
+----
+false
+
+query T
+SELECT ST_3DDWithin('POINT(0 0 0)'::geometry, 'POINT(1 1 1)'::geometry, NULL)
+----
+NULL
+
+# Points, lines and polygons, with and without Z
+query T
+SELECT ST_3DDWithin('POINT(0 0 0)'::geometry, 'LINESTRING(3 4 0,6 8 0)'::geometry, 5)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POINT(0 0 0)'::geometry, 'LINESTRING(3 4 0,6 8 0)'::geometry, 4.999999)
+----
+false
+
+query T
+SELECT ST_3DDWithin('POINT(0 2 0)'::geometry, 'LINESTRING(0 0 1,0 2 3)'::geometry, 5)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POINT(0 2 0)'::geometry, 'LINESTRING(0 0 1,0 2 3)'::geometry, 4.999999)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POINT(0 1 2)'::geometry, 'LINESTRING(0 0 1,0 2 3)'::geometry, 5)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POINT(0 1 2)'::geometry, 'LINESTRING(0 0 1,0 2 3)'::geometry, 4.999999)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POINT(0 0)'::geometry, 'LINESTRING(0 0 1,0 2 3)'::geometry, 5)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POINT(0 0)'::geometry, 'LINESTRING(0 0 1,0 2 3)'::geometry, 4.999999)
+----
+true
+
+query T
+SELECT ST_3DDWithin('LINESTRING(0 0 0,1 1 1)'::geometry, 'LINESTRING(0 1 0,1 0 1)'::geometry, 5)
+----
+true
+
+query T
+SELECT ST_3DDWithin('LINESTRING(0 0 0,1 1 1)'::geometry, 'LINESTRING(0 1 0,1 0 1)'::geometry, 4.999999)
+----
+true
+
+query T
+SELECT ST_3DDWithin('LINESTRING(0 0 0,1 1 1)'::geometry, 'LINESTRING(0 1 0,1 0 1.000001)'::geometry, 5)
+----
+true
+
+query T
+SELECT ST_3DDWithin('LINESTRING(0 0 0,1 1 1)'::geometry, 'LINESTRING(0 1 0,1 0 1.000001)'::geometry, 4.999999)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'POINT(4 3 5)'::geometry, 5)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'POINT(4 3 5)'::geometry, 4.999999)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'POINT(4 3 1)'::geometry, 5)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'POINT(4 3 1)'::geometry, 4.999999)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POLYGON((0 0 0,10 0 0,10 10 0,0 10 0,0 0 0))'::geometry, 'POLYGON((5 -5 -5,5 5 -5,5 5 5,5 -5 5,5 -5 -5))'::geometry, 5)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POLYGON((0 0 0,10 0 0,10 10 0,0 10 0,0 0 0))'::geometry, 'POLYGON((5 -5 -5,5 5 -5,5 5 5,5 -5 5,5 -5 -5))'::geometry, 4.999999)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POINT(1 1 2)'::geometry, 'LINESTRING(1 5 2,2 7 20,1 9 100,14 12 3)'::geometry, 10)
+----
+true
+
+query T
+SELECT ST_3DDWithin('POINT(1 1 2)'::geometry, 'LINESTRING(1 5 2,2 7 20,1 9 100,14 12 3)'::geometry, 100)
+----
+true
+
+# A negative distance is an error
+query error
+SELECT ST_3DDWithin('POINT(0 0 0)'::geometry, 'POINT(3 4 0)'::geometry, -1)
+
+# Mixed SRIDs are an error
+query error
+SELECT ST_3DDWithin('SRID=4326;POINT(0 0 1)'::geometry, 'POINT(3 4 0)'::geometry, 5)
+
+# A column of distances, with NULL
+query T rowsort
+SELECT ST_3DDWithin('POINT(0 0 0)'::geometry, 'POINT(3 4 12)'::geometry, d) FROM (VALUES (13.0), (12.9), (NULL)) AS t(d)
+----
+NULL
+false
+true

@@ -285,7 +285,7 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 
 | Name                     | Implemented | Description                                                                                                                             |
 | ------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| ST_3DIntersects          |             | Tests if two geometries spatially intersect in 3D - only for points, linestrings, polygons, polyhedral surface (area).                  |
+| ST_3DIntersects          | ✅          | Tests if two geometries spatially intersect in 3D - only for points, linestrings, polygons, polyhedral surface (area).                  |
 | ST_Contains              | ✅          | Tests if every point of B lies in A, and their interiors have a point in common.                                                        |
 | ST_ContainsProperly      | ✅          | Tests if every point of B lies in the interior of A.                                                                                    |
 | ST_CoveredBy             | ✅          | Tests if every point of A lies in B.                                                                                                    |
@@ -306,8 +306,8 @@ The operators need the PostgreSQL dialect (`SET datafusion.sql_parser.dialect = 
 
 | Name                     | Implemented | Description                                                                                                                             |
 | ------------------------ | ----------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| ST_3DDFullyWithin        |             | Tests if two 3D geometries are entirely within a given 3D distance.                                                                     |
-| ST_3DDWithin             |             | Tests if two 3D geometries are within a given 3D distance.                                                                              |
+| ST_3DDFullyWithin        | ✅          | Tests if two 3D geometries are entirely within a given 3D distance.                                                                     |
+| ST_3DDWithin             | ✅          | Tests if two 3D geometries are within a given 3D distance.                                                                              |
 | ST_DFullyWithin          |             | Tests if a geometry is entirely inside a distance of another.                                                                           |
 | ST_DWithin               | ✅          | Tests if two geometries are within a given distance.                                                                                    |
 | ST_PointInsideCircle     |             | Tests if a point geometry is inside a circle defined by a center and radius.                                                            |

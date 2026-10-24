@@ -12,8 +12,11 @@ geodatafusion/geometry 64/64
 geodatafusion/geometrytype 19/19
 geodatafusion/operators 41/41
 geodatafusion/st_3dclosestpoint 33/33
+geodatafusion/st_3ddfullywithin 25/25
 geodatafusion/st_3ddistance 36/36
+geodatafusion/st_3ddwithin 26/26
 geodatafusion/st_3dextent 10/10
+geodatafusion/st_3dintersects 14/14
 geodatafusion/st_3dlength 12/12
 geodatafusion/st_3dlineinterpolatepoint 8/8
 geodatafusion/st_3dlongestline 33/33
@@ -261,8 +264,8 @@ postgis_docs/postgis_srs_search 0/1
 postgis_docs/st_3dclosestpoint 3/3
 postgis_docs/st_3ddfullywithin 0/1
 postgis_docs/st_3ddistance 2/2
-postgis_docs/st_3ddwithin 0/1
-postgis_docs/st_3dintersects 0/2
+postgis_docs/st_3ddwithin 1/1
+postgis_docs/st_3dintersects 1/2
 postgis_docs/st_3dlength 1/1
 postgis_docs/st_3dlineinterpolatepoint 1/1
 postgis_docs/st_3dlongestline 3/3

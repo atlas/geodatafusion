@@ -227,6 +227,9 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
 
     // relationships
     m.add_class::<relationships::PyDWithin>()?;
+    m.add_class::<relationships::PyDFullyWithin3D>()?;
+    m.add_class::<relationships::PyDWithin3D>()?;
+    m.add_class::<relationships::PyIntersects3D>()?;
     m.add_class::<relationships::PyRelateMatch>()?;
 
     // srs
