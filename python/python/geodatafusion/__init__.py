@@ -215,6 +215,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.GeometryBelow()))
     ctx.register_udf(udf(native.GeometryContains()))
     ctx.register_udf(udf(native.GeometryDistanceBox()))
+    ctx.register_udf(udf(native.GeometryDistanceCentroidNd()))
     ctx.register_udf(udf(native.GeometryLeft()))
     ctx.register_udf(udf(native.GeometryOverAbove()))
     ctx.register_udf(udf(native.GeometryOverBelow()))

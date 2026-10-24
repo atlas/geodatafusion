@@ -10,9 +10,9 @@ use datafusion::sql::sqlparser::ast::BinaryOperator;
 use crate::udf::native::measurement::Distance;
 use crate::udf::native::operators::{
     GeographyDistanceKnn, GeographyOverlaps, GeometryAbove, GeometryBelow, GeometryContains,
-    GeometryDistanceBox, GeometryLeft, GeometryOverAbove, GeometryOverBelow, GeometryOverLeft,
-    GeometryOverRight, GeometryOverlaps, GeometryOverlapsNd, GeometryRight, GeometrySame,
-    GeometryWithin,
+    GeometryDistanceBox, GeometryDistanceCentroidNd, GeometryLeft, GeometryOverAbove,
+    GeometryOverBelow, GeometryOverLeft, GeometryOverRight, GeometryOverlaps, GeometryOverlapsNd,
+    GeometryRight, GeometrySame, GeometryWithin,
 };
 use crate::util::geography::is_geography;
 
@@ -24,7 +24,7 @@ use crate::util::geography::is_geography;
 /// | `~`, `@`, `~=` | `geometry_contains`, `geometry_within`, `geometry_same` |
 /// | `<<`, `&<`, `>>`, `&>` | `geometry_left`, `geometry_overleft`, `geometry_right`, `geometry_overright` |
 /// | `<<\|`, `&<\|`, `\|>>`, `\|&>` | `geometry_below`, `geometry_overbelow`, `geometry_above`, `geometry_overabove` |
-/// | `<->`, `<#>` | `st_distance`, `geometry_distance_box` |
+/// | `<->`, `<#>`, `<<->>` | `st_distance`, `geometry_distance_box`, `geometry_distance_centroid_nd` |
 ///
 /// With a geography operand, `&&` is `geography_overlaps` and `<->` `geography_distance_knn`,
 /// and the others don't exist, as in PostGIS.
@@ -82,6 +82,7 @@ fn operator_function(op: &BinaryOperator) -> Option<Arc<ScalarUDF>> {
         PipeAndGt => udf(GeometryOverAbove),
         LtDashGt => udf(Distance::new()),
         Custom(op) if op == "<#>" => udf(GeometryDistanceBox),
+        Custom(op) if op == "<<->>" => udf(GeometryDistanceCentroidNd),
         _ => return None,
     })
 }

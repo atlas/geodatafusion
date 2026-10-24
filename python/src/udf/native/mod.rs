@@ -208,6 +208,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<operators::PyGeometryBelow>()?;
     m.add_class::<operators::PyGeometryContains>()?;
     m.add_class::<operators::PyGeometryDistanceBox>()?;
+    m.add_class::<operators::PyGeometryDistanceCentroidNd>()?;
     m.add_class::<operators::PyGeometryLeft>()?;
     m.add_class::<operators::PyGeometryOverAbove>()?;
     m.add_class::<operators::PyGeometryOverBelow>()?;

@@ -1,8 +1,8 @@
 use geodatafusion::udf::native::operators::{
     GeographyDistanceKnn, GeographyOverlaps, GeometryAbove, GeometryBelow, GeometryContains,
-    GeometryDistanceBox, GeometryLeft, GeometryOverAbove, GeometryOverBelow, GeometryOverLeft,
-    GeometryOverRight, GeometryOverlaps, GeometryOverlapsNd, GeometryRight, GeometrySame,
-    GeometryWithin,
+    GeometryDistanceBox, GeometryDistanceCentroidNd, GeometryLeft, GeometryOverAbove,
+    GeometryOverBelow, GeometryOverLeft, GeometryOverRight, GeometryOverlaps, GeometryOverlapsNd,
+    GeometryRight, GeometrySame, GeometryWithin,
 };
 
 use crate::impl_udf;
@@ -20,6 +20,11 @@ impl_udf!(
     GeometryDistanceBox,
     PyGeometryDistanceBox,
     "GeometryDistanceBox"
+);
+impl_udf!(
+    GeometryDistanceCentroidNd,
+    PyGeometryDistanceCentroidNd,
+    "GeometryDistanceCentroidNd"
 );
 impl_udf!(GeometryLeft, PyGeometryLeft, "GeometryLeft");
 impl_udf!(GeometryOverAbove, PyGeometryOverAbove, "GeometryOverAbove");

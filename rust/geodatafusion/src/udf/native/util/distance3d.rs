@@ -16,7 +16,9 @@ use geo_traits::{
     RectTrait, TriangleTrait,
 };
 
+use crate::udf::native::bounding_box::util::bounds::BoundingRect;
 use crate::udf::native::util::distance;
+use crate::udf::native::util::float_box::{round_down, round_up};
 
 /// A point in space.
 pub(crate) type Xyz = [f64; 3];
@@ -154,6 +156,108 @@ fn flat(measure: distance::Measure) -> Measure3D {
         distance: measure.distance,
         points: [[p.0, p.1, 0.0], [q.0, q.1, 0.0]],
     }
+}
+
+/// The n-dimensional distance of PostGIS's `<<->>`, combined with the difference in M if both
+/// geometries have M. 0 if either is empty, as in PostGIS.
+///
+/// It is the distance between the nearest points, in 3D if both geometries have Z, otherwise in
+/// 2D, so lines that cross are at distance 0. The M of a point or line is its M at the nearest
+/// point, interpolated along the line. For other geometries PostGIS takes the gap between the
+/// M ranges of their single-precision boxes.
+pub(crate) fn distance_nd(
+    geom1: &impl GeometryTrait<T = f64>,
+    geom2: &impl GeometryTrait<T = f64>,
+) -> f64 {
+    let use_z = has_z(geom1) && has_z(geom2);
+    let points = if use_z {
+        nearest_parts(&parts(geom1), &parts(geom2)).map(|measure| measure.points)
+    } else {
+        distance::nearest(geom1, geom2).map(|measure| flat(measure).points)
+    };
+    let Some(points) = points else {
+        return 0.0;
+    };
+    let distance = norm(sub(points[1], points[0]));
+    if !(has_m(geom1) && has_m(geom2)) {
+        return distance;
+    }
+    let m_difference = match (linear_m(geom1), linear_m(geom2)) {
+        (Some(line1), Some(line2)) => (m_at(&line1, points[0]) - m_at(&line2, points[1])).abs(),
+        _ => match (m_range(geom1), m_range(geom2)) {
+            (Some((min1, max1)), Some((min2, max2))) => (min2 - max1).max(min1 - max2).max(0.0),
+            _ => 0.0,
+        },
+    };
+    (distance * distance + m_difference * m_difference).sqrt()
+}
+
+/// Whether a geometry has M.
+fn has_m(geom: &impl GeometryTrait<T = f64>) -> bool {
+    matches!(geom.dim(), Dimensions::Xym | Dimensions::Xyzm)
+}
+
+/// The vertices of a point or a line, with Z (0 if none) and M; `None` for other geometries.
+fn linear_m(geom: &impl GeometryTrait<T = f64>) -> Option<Vec<[f64; 4]>> {
+    let xyzm = |coord: &dyn CoordTrait<T = f64>| {
+        let (z, m) = match coord.dim() {
+            Dimensions::Xyzm => (coord.nth_or_panic(2), coord.nth_or_panic(3)),
+            _ => (0.0, coord.nth_or_panic(2)),
+        };
+        [coord.x(), coord.y(), z, m]
+    };
+    match geom.as_type() {
+        GeometryType::Point(point) => Some(point.coord().iter().map(|c| xyzm(c)).collect()),
+        GeometryType::LineString(line) => Some(line.coords().map(|c| xyzm(&c)).collect()),
+        _ => None,
+    }
+}
+
+/// The M of a line at `p`, a point of it: interpolated along the segment nearest to `p` in 2D,
+/// as PostGIS locates it even in 3D.
+fn m_at(line: &[[f64; 4]], p: Xyz) -> f64 {
+    let point = |v: &[f64; 4]| [v[0], v[1], 0.0];
+    let p = [p[0], p[1], 0.0];
+    let mut best: Option<(f64, f64)> = None;
+    if let [only] = line {
+        return only[3];
+    }
+    for segment in line.windows(2) {
+        let (a, b) = (point(&segment[0]), point(&segment[1]));
+        let ab = sub(b, a);
+        let length_squared = dot(ab, ab);
+        let r = if length_squared == 0.0 {
+            0.0
+        } else {
+            dot(sub(p, a), ab) / length_squared
+        };
+        // At an end, its own M.
+        let (q, m) = if r <= 0.0 {
+            (a, segment[0][3])
+        } else if r >= 1.0 {
+            (b, segment[1][3])
+        } else {
+            (
+                add(a, scale(ab, r)),
+                segment[0][3] + r * (segment[1][3] - segment[0][3]),
+            )
+        };
+        let distance = norm(sub(q, p));
+        if best.is_none_or(|(best, _)| distance < best) {
+            best = Some((distance, m));
+        }
+    }
+    best.map_or(0.0, |(_, m)| m)
+}
+
+/// The M range of a geometry as PostGIS boxes it, rounded outward to single precision; `None`
+/// if it is empty.
+fn m_range(geom: &impl GeometryTrait<T = f64>) -> Option<(f64, f64)> {
+    let mut bounds = BoundingRect::new(true);
+    bounds.add_geometry(geom);
+    bounds
+        .m_range()
+        .map(|(min, max)| (round_down(min), round_up(max)))
 }
 
 /// Whether a geometry has Z. Its points have Z then, or are taken as Z 0.

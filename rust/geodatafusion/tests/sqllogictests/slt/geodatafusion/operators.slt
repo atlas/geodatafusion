@@ -1,4 +1,4 @@
-# The bounding box operators and <->, <#>: EMPTY, NULL, boxes, single-precision boxes, Z and M,
+# The bounding box operators and <->, <#>, <<->>: EMPTY, NULL, boxes, single-precision boxes, Z and M,
 # SRIDs, the geography forms of && and <->, and the same operators on other types.
 
 # Each operator on overlapping and separate boxes
@@ -155,6 +155,124 @@ query RR
 SELECT 'POINT EMPTY'::geometry <#> 'POINT(3 4)'::geometry, 'POINT EMPTY'::geometry <#> 'POINT EMPTY'::geometry
 ----
 340282346639000000000000000000000000000 340282346639000000000000000000000000000
+
+# <<->> is the distance between the nearest points, in 3D if both have Z, measured in 2D otherwise
+query R
+SELECT ('POINT(0 0)'::geometry <<->> 'POINT(3 4)'::geometry)
+----
+5
+
+query R
+SELECT ('POINT Z (0 0 0)'::geometry <<->> 'POINT Z (3 4 12)'::geometry)
+----
+13
+
+query R
+SELECT ('POINT Z (0 0 12)'::geometry <<->> 'POINT(3 4)'::geometry)
+----
+5
+
+query R
+SELECT ('POLYGON((0 0,10 0,10 10,0 10,0 0))'::geometry <<->> 'POINT(5 5)'::geometry)
+----
+0
+
+query T
+SELECT ('MULTIPOINT((-4.870611 -8),(1 3.695335),(-6.0 1.351))'::geometry <<->> 'LINESTRING(5.475784 6, -8.3 -5.5)'::geometry)::text
+----
+1.0990790343921544
+
+query R
+SELECT ('LINESTRING(-10 1, 7.856061 -1.180629, 6 8.474917, 0 -8.4)'::geometry <<->> 'LINESTRING(-6 2, 3.453702 1.9, -7.7 -7)'::geometry)
+----
+0
+
+# With M on both sides, M counts: interpolated for points and lines, at the nearest points located in 2D
+query R
+SELECT ('POINT M (0 0 0)'::geometry <<->> 'POINT M (3 4 12)'::geometry)
+----
+13
+
+query T
+SELECT ('POINT ZM (0 0 0 0)'::geometry <<->> 'POINT ZM (1 1 1 1)'::geometry)::text
+----
+1.9999999999999998
+
+query T
+SELECT ('LINESTRING M (0 0 0,10 0 10)'::geometry <<->> 'POINT M (5 3 0)'::geometry)::text
+----
+5.830951894845301
+
+query T
+SELECT ('LINESTRING ZM (0 0 0 0,10 0 0 10)'::geometry <<->> 'POINT ZM (5 3 4 0)'::geometry)::text
+----
+7.0710678118654755
+
+query R
+SELECT ('LINESTRING M (0 0 0,10 0 10)'::geometry <<->> 'LINESTRING M (5 -1 100,5 1 0)'::geometry)
+----
+45
+
+query T
+SELECT ('LINESTRING M (0 0 0,10 0 10)'::geometry <<->> 'LINESTRING M (2 2 50,8 2 50)'::geometry)::text
+----
+48.041648597857254
+
+query T
+SELECT ('LINESTRING ZM(-9.2 -4 -5.148784 14.5588, 1.1 -1.979 -4.9 -17.447)'::geometry <<->> 'POINT ZM(5 0.984 7.5 -5)'::geometry)::text
+----
+18.239440177812476
+
+query R
+SELECT ('LINESTRING M (0 0 0,10 0 10)'::geometry <<->> 'POINT(5 3)'::geometry)
+----
+3
+
+# and for other geometries the gap between the M ranges of their single-precision boxes
+query R
+SELECT ('MULTIPOINT M ((0 0 0),(10 0 10))'::geometry <<->> 'POINT M (6 0 0)'::geometry)
+----
+4
+
+query T
+SELECT ('MULTIPOINT M ((0 0 0.1))'::geometry <<->> 'POINT M (0 0 0)'::geometry)::text
+----
+0.09999999403953552
+
+query T
+SELECT ('POLYGON M ((0 0 10,10 0 10,10 10 10,0 10 10,0 0 10))'::geometry <<->> 'POINT M (5 -5 0)'::geometry)::text
+----
+11.180339887498949
+
+query T
+SELECT ('MULTILINESTRING M ((0 0 0,10 0 10))'::geometry <<->> 'POINT M (5 3 -20)'::geometry)::text
+----
+20.223748416156685
+
+query R
+SELECT ('GEOMETRYCOLLECTION M (POINT M (0 0 1))'::geometry <<->> 'POINT M (3 4 13)'::geometry)
+----
+13
+
+# Boxes, EMPTY and NULL
+query TT
+SELECT ('BOX(0 0,1 1)'::box2d <<->> 'BOX(3 4,5 6)'::box2d)::text, ('BOX3D(0 0 0,1 1 1)'::box3d <<->> 'POINT Z (0.5 0.5 0.5)'::geometry)::text
+----
+3.605551275463989 0.5
+
+query RR
+SELECT ('POINT EMPTY'::geometry <<->> 'POINT(5 5)'::geometry), ('LINESTRING EMPTY'::geometry <<->> 'LINESTRING EMPTY'::geometry)
+----
+0 0
+
+query T
+SELECT (NULL::geometry <<->> 'POINT(5 5)'::geometry)::text
+----
+NULL
+
+# <<->> doesn't take geography
+query error
+SELECT 'POINT(0 0)'::geography <<->> 'POINT(1 1)'::geography
 
 # && on geography compares geocentric boxes: an edge bulges toward the pole between its ends
 query TTTT
