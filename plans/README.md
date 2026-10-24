@@ -273,6 +273,14 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    Box text output done: `box2d_out` and `box3d_out`, which `box::text` calls, with the numbers
    as WKT writes them; an untyped NULL now reads as a NULL geometry (`ST_XMin(NULL)` failed).
    Parity 4929/5116 -> 4964/5151.
+   G1 batch 5 in part: the 3D distance kernel (`native/util/distance3d`) with ST_3DDistance,
+   ST_3DMaxDistance, ST_3DClosestPoint, ST_3DShortestLine, ST_3DLongestLine, ST_3DDWithin,
+   ST_3DDFullyWithin and ST_3DIntersects, fitted to PostGIS's segment arithmetic (2,998 of 3,000
+   random segment pairs to the bit) and to its "any value" Z for 2D input; then the operators
+   `<<->>` (the distance between the nearest points, with M) and `|=|` (ST_DistanceCPA). PostGIS's
+   plane arithmetic, and its plane for non-planar polygons, aren't reproduced: projections onto
+   polygons can differ in the last digit. Parity 4964/5151 -> 5244/5417. Left in batch 5:
+   ST_RemoveIrrelevantPointsForView.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
@@ -288,7 +296,7 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    what `INSERT` writes to a geometry column (G6 question 12). The shim is gone. Parity
    2074/2468 -> 2133/2526. Batch 2 done too: the box operators, `<->` (ST_Distance) and `<#>`,
    planned for geometry and box operands, on PostGIS's single-precision boxes; the harness parses
-   in the PostgreSQL dialect. Parity 2189/2555. Left: batch 4 (geography, since done), `<<->>` and `|=|`,
+   in the PostgreSQL dialect. Parity 2189/2555. Left: batch 4 (geography), `<<->>` and `|=|` (all since done),
    typmod geometry types (not enforced, G6 question 10).
 
 ## Decisions

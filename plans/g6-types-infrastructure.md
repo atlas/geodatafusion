@@ -728,7 +728,7 @@ storage-type test in the operator planner, consider the INSERT analyzer rule.
 | `<<`, `>>`, `&<`, `&>`, `<<\|`, `\|>>`, `&<\|`, `\|&>` | Box position | "Strictly left" uses `xmax < xmin`; overleft is `xmax <= xmax` | S | 8 |
 | `<->` | True 2D distance; geography: sphere | KNN `ORDER BY a <-> b LIMIT k` is a sort, no index | S | — |
 | `<#>` | Box-to-box distance | | S | — |
-| `<<->>` | n-D distance of box centroids | Uses M when present | S | — |
+| `<<->>` | n-D distance between the nearest points (done) | Not of the box centroids, despite the name: 3D if both have Z; M interpolated at the nearest points for points and lines, otherwise the gap between the M ranges of the single-precision boxes | S | — |
 | `\|=\|` | ST_DistanceCPA (G1) | Requires M-valued linestrings | — | — |
 | `=` | DataFusion bytewise equality | PostGIS compares type, coordinates and SRID (`'SRID=4326;POINT(1 2)' = 'POINT(1 2)'` is false). With column-level CRS and WKB storage, bytes differ only in byte order; overriding `=` would stop DataFusion using hash joins | — | st_geometry_eq 4/4 |
 | SRID model | `util::srid`, `scalar_srid`, `common_metadata` | Mixed SRIDs error per row in PostGIS; per column here. ESRI codes are not EPSG codes | S | 154 records via G4/G3 |
