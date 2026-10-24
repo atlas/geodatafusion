@@ -3,6 +3,7 @@
 pub(crate) mod best_srid;
 pub(crate) mod box_geometry;
 pub(crate) mod distance;
+pub(crate) mod distance3d;
 pub(crate) mod float_box;
 pub(crate) mod geocentric_box;
 pub(crate) mod geodesic;

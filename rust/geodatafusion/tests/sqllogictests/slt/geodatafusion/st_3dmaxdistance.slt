@@ -1,0 +1,183 @@
+# Edge cases for ST_3DMaxDistance, not covered by the PostGIS docs examples.
+
+# NULL and EMPTY
+query R
+SELECT ST_3DMaxDistance(NULL::geometry, 'POINT(1 1 1)'::geometry)
+----
+NULL
+
+query R
+SELECT ST_3DMaxDistance('POINT EMPTY'::geometry, 'POINT(1 1 1)'::geometry)
+----
+NULL
+
+query R
+SELECT ST_3DMaxDistance('POINT(1 1 1)'::geometry, 'LINESTRING Z EMPTY'::geometry)
+----
+NULL
+
+# Points
+query R
+SELECT ST_3DMaxDistance('POINT(0 0 12)'::geometry, 'POINT(3 4 0)'::geometry)
+----
+13
+
+query R
+SELECT ST_3DMaxDistance('MULTIPOINT((0 0 0),(10 0 10))'::geometry, 'POINT(6 0 3)'::geometry)
+----
+8.0622577483
+
+# Lines: interiors, ends, crossings and parallels
+query R
+SELECT ST_3DMaxDistance('LINESTRING(0 0 0,10 0 10)'::geometry, 'POINT(4 3 10)'::geometry)
+----
+11.1803398875
+
+query R
+SELECT ST_3DMaxDistance('LINESTRING(0 0 0,10 0 10)'::geometry, 'POINT(20 0 0)'::geometry)
+----
+20
+
+query R
+SELECT ST_3DMaxDistance('LINESTRING(0 0 0,10 0 0)'::geometry, 'LINESTRING(5 -1 1,5 1 1)'::geometry)
+----
+5.19615242271
+
+query R
+SELECT ST_3DMaxDistance('LINESTRING(0 0 0,1 1 1)'::geometry, 'LINESTRING(0 1 0,1 0 1)'::geometry)
+----
+1.41421356237
+
+query R
+SELECT ST_3DMaxDistance('LINESTRING(0 0 0,10 0 0)'::geometry, 'LINESTRING(5 1 0,15 1 0)'::geometry)
+----
+15.0332963784
+
+query R
+SELECT ST_3DMaxDistance('LINESTRING(0 0 0,10 0 0)'::geometry, 'LINESTRING(8 2 0,2 2 0)'::geometry)
+----
+8.24621125124
+
+query R
+SELECT ST_3DMaxDistance('LINESTRING(0 0 0,10 0 0)'::geometry, 'LINESTRING(12 2 0,18 2 0)'::geometry)
+----
+18.1107702763
+
+# Polygons: above, beside, under a hole, tilted
+query R
+SELECT ST_3DMaxDistance('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'POINT(4 3 1)'::geometry)
+----
+10.0498756211
+
+query R
+SELECT ST_3DMaxDistance('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'POINT(14 3 0)'::geometry)
+----
+16.4316767252
+
+query R
+SELECT ST_3DMaxDistance('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5),(2 2 5,6 2 5,6 6 5,2 6 5,2 2 5))'::geometry, 'POINT(4 3 0)'::geometry)
+----
+10.4880884817
+
+query R
+SELECT ST_3DMaxDistance('POLYGON((0 0 0,10 0 10,10 10 10,0 10 0,0 0 0))'::geometry, 'POINT(4 3 10)'::geometry)
+----
+12.8452325787
+
+query R
+SELECT ST_3DMaxDistance('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'LINESTRING(4 3 0,4 3 10)'::geometry)
+----
+10.4880884817
+
+query R
+SELECT ST_3DMaxDistance('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'LINESTRING(4 3 7,6 3 8)'::geometry)
+----
+9.69535971483
+
+query R
+SELECT ST_3DMaxDistance('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'LINESTRING(-1 1 1,1 1 1)'::geometry)
+----
+14.7648230602
+
+query R
+SELECT ST_3DMaxDistance('POLYGON((0 0 0,10 0 0,10 10 0,0 10 0,0 0 0))'::geometry, 'POLYGON((1 1 1,2 1 1,2 2 1,1 2 1,1 1 1))'::geometry)
+----
+12.7671453348
+
+query R
+SELECT ST_3DMaxDistance('POLYGON((0 0 0,10 0 0,10 10 0,0 10 0,0 0 0))'::geometry, 'POLYGON((5 -5 -5,5 5 -5,5 5 5,5 -5 5,5 -5 -5))'::geometry)
+----
+16.5831239518
+
+query R
+SELECT ST_3DMaxDistance('POLYGON((5 -5 -5,5 5 -5,5 5 5,5 -5 5,5 -5 -5))'::geometry, 'POLYGON((0 0 0,10 0 0,10 10 0,0 10 0,0 0 0))'::geometry)
+----
+16.5831239518
+
+query R
+SELECT ST_3DMaxDistance('POLYGON((175 150 5,20 40 5,35 45 5,50 60 5,100 100 5,175 150 5))'::geometry, 'MULTILINESTRING((175 155 2,20 40 20,50 60 -2,125 100 1,175 155 1),(1 10 2,5 20 1))'::geometry)
+----
+223.349501902
+
+# A polygon spanning no plane is measured to its ring
+query R
+SELECT ST_3DMaxDistance('POLYGON((0 0 0,5 5 5,10 10 10,0 0 0))'::geometry, 'POINT(4 3 10)'::geometry)
+----
+11.1803398875
+
+# Collections
+query R
+SELECT ST_3DMaxDistance('GEOMETRYCOLLECTION(POINT(0 0 0),LINESTRING(5 5 5,6 6 6))'::geometry, 'POINT(3 4 0)'::geometry)
+----
+7
+
+# Without Z on one side or both: in 2D, the missing Z any value
+query R
+SELECT ST_3DMaxDistance('POINT(0 0)'::geometry, 'POINT(3 4)'::geometry)
+----
+5
+
+query R
+SELECT ST_3DMaxDistance('POINT(0 0 12)'::geometry, 'POINT(3 4)'::geometry)
+----
+5
+
+query R
+SELECT ST_3DMaxDistance('LINESTRING(0 0 0,10 0 10)'::geometry, 'POINT(4 3)'::geometry)
+----
+6.7082039325
+
+query R
+SELECT ST_3DMaxDistance('LINESTRING(0 0,10 0)'::geometry, 'LINESTRING(4 3 7,4 -3 9)'::geometry)
+----
+6.7082039325
+
+query R
+SELECT ST_3DMaxDistance('POLYGON((0 0 1,10 0 2,10 10 3,0 10 4,0 0 1))'::geometry, 'POINT(14 3)'::geometry)
+----
+15.6524758425
+
+query R
+SELECT ST_3DMaxDistance('POINT(6 3)'::geometry, 'GEOMETRYCOLLECTION(POINT(0 0 1),POINT(10 0 20),POINT(100 0 -50))'::geometry)
+----
+94.0478601564
+
+# M is dropped
+query R
+SELECT ST_3DMaxDistance('POINT ZM (0 0 1 2)'::geometry, 'POINT ZM (3 4 5 6)'::geometry)
+----
+6.40312423743
+
+query R
+SELECT ST_3DMaxDistance('POINT M (0 0 12)'::geometry, 'POINT(3 4 0)'::geometry)
+----
+5
+
+# Mixed SRIDs are an error
+query error
+SELECT ST_3DMaxDistance('SRID=4326;POINT(0 0 1)'::geometry, 'POINT(3 4 0)'::geometry)
+
+query R
+SELECT ST_3DMaxDistance('SRID=4326;POINT(0 0 1)'::geometry, 'SRID=4326;POINT(3 4 0)'::geometry)
+----
+5.09901951359

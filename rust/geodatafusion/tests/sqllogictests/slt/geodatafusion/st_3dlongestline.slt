@@ -1,0 +1,173 @@
+# Edge cases for ST_3DLongestLine, not covered by the PostGIS docs examples.
+
+# NULL
+query T
+SELECT ST_AsText(ST_3DLongestLine(NULL::geometry, 'POINT(1 1 1)'::geometry))
+----
+NULL
+
+# Points
+query T
+SELECT ST_AsText(ST_3DLongestLine('POINT(0 0 12)'::geometry, 'POINT(3 4 0)'::geometry))
+----
+LINESTRING Z (0 0 12,3 4 0)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('MULTIPOINT((0 0 0),(10 0 10))'::geometry, 'POINT(6 0 3)'::geometry))
+----
+LINESTRING Z (10 0 10,6 0 3)
+
+# Lines: interiors, ends, crossings and parallels
+query T
+SELECT ST_AsText(ST_3DLongestLine('LINESTRING(0 0 0,10 0 10)'::geometry, 'POINT(4 3 10)'::geometry))
+----
+LINESTRING Z (0 0 0,4 3 10)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('LINESTRING(0 0 0,10 0 10)'::geometry, 'POINT(20 0 0)'::geometry))
+----
+LINESTRING Z (0 0 0,20 0 0)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('LINESTRING(0 0 0,10 0 0)'::geometry, 'LINESTRING(5 -1 1,5 1 1)'::geometry))
+----
+LINESTRING Z (0 0 0,5 -1 1)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('LINESTRING(0 0 0,1 1 1)'::geometry, 'LINESTRING(0 1 0,1 0 1)'::geometry))
+----
+LINESTRING Z (0 0 0,1 0 1)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('LINESTRING(0 0 0,10 0 0)'::geometry, 'LINESTRING(5 1 0,15 1 0)'::geometry))
+----
+LINESTRING Z (0 0 0,15 1 0)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('LINESTRING(0 0 0,10 0 0)'::geometry, 'LINESTRING(8 2 0,2 2 0)'::geometry))
+----
+LINESTRING Z (0 0 0,8 2 0)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('LINESTRING(0 0 0,10 0 0)'::geometry, 'LINESTRING(12 2 0,18 2 0)'::geometry))
+----
+LINESTRING Z (0 0 0,18 2 0)
+
+# Polygons: above, beside, under a hole, tilted
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'POINT(4 3 1)'::geometry))
+----
+LINESTRING Z (10 10 5,4 3 1)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'POINT(14 3 0)'::geometry))
+----
+LINESTRING Z (0 10 5,14 3 0)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5),(2 2 5,6 2 5,6 6 5,2 6 5,2 2 5))'::geometry, 'POINT(4 3 0)'::geometry))
+----
+LINESTRING Z (10 10 5,4 3 0)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((0 0 0,10 0 10,10 10 10,0 10 0,0 0 0))'::geometry, 'POINT(4 3 10)'::geometry))
+----
+LINESTRING Z (0 10 0,4 3 10)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'LINESTRING(4 3 0,4 3 10)'::geometry))
+----
+LINESTRING Z (10 10 5,4 3 0)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'LINESTRING(4 3 7,6 3 8)'::geometry))
+----
+LINESTRING Z (0 10 5,6 3 8)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'LINESTRING(-1 1 1,1 1 1)'::geometry))
+----
+LINESTRING Z (10 10 5,-1 1 1)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((0 0 0,10 0 0,10 10 0,0 10 0,0 0 0))'::geometry, 'POLYGON((1 1 1,2 1 1,2 2 1,1 2 1,1 1 1))'::geometry))
+----
+LINESTRING Z (10 10 0,1 1 1)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((0 0 0,10 0 0,10 10 0,0 10 0,0 0 0))'::geometry, 'POLYGON((5 -5 -5,5 5 -5,5 5 5,5 -5 5,5 -5 -5))'::geometry))
+----
+LINESTRING Z (10 10 0,5 -5 -5)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((5 -5 -5,5 5 -5,5 5 5,5 -5 5,5 -5 -5))'::geometry, 'POLYGON((0 0 0,10 0 0,10 10 0,0 10 0,0 0 0))'::geometry))
+----
+LINESTRING Z (5 -5 -5,10 10 0)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((175 150 5,20 40 5,35 45 5,50 60 5,100 100 5,175 150 5))'::geometry, 'MULTILINESTRING((175 155 2,20 40 20,50 60 -2,125 100 1,175 155 1),(1 10 2,5 20 1))'::geometry))
+----
+LINESTRING Z (175 150 5,1 10 2)
+
+# A polygon spanning no plane is measured to its ring
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((0 0 0,5 5 5,10 10 10,0 0 0))'::geometry, 'POINT(4 3 10)'::geometry))
+----
+LINESTRING Z (0 0 0,4 3 10)
+
+# Collections
+query T
+SELECT ST_AsText(ST_3DLongestLine('GEOMETRYCOLLECTION(POINT(0 0 0),LINESTRING(5 5 5,6 6 6))'::geometry, 'POINT(3 4 0)'::geometry))
+----
+LINESTRING Z (6 6 6,3 4 0)
+
+# Without Z on one side or both: in 2D, the missing Z any value
+query T
+SELECT ST_AsText(ST_3DLongestLine('POINT(0 0)'::geometry, 'POINT(3 4)'::geometry))
+----
+LINESTRING(0 0,3 4)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POINT(0 0 12)'::geometry, 'POINT(3 4)'::geometry))
+----
+LINESTRING Z (0 0 12,3 4 12)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('LINESTRING(0 0 0,10 0 10)'::geometry, 'POINT(4 3)'::geometry))
+----
+LINESTRING Z (10 0 10,4 3 0)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('LINESTRING(0 0,10 0)'::geometry, 'LINESTRING(4 3 7,4 -3 9)'::geometry))
+----
+LINESTRING Z (10 0 7,4 -3 9)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POLYGON((0 0 1,10 0 2,10 10 3,0 10 4,0 0 1))'::geometry, 'POINT(14 3)'::geometry))
+----
+LINESTRING Z (0 10 4,14 3 1)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POINT(6 3)'::geometry, 'GEOMETRYCOLLECTION(POINT(0 0 1),POINT(10 0 20),POINT(100 0 -50))'::geometry))
+----
+LINESTRING Z (6 3 20,100 0 -50)
+
+# M is dropped
+query T
+SELECT ST_AsText(ST_3DLongestLine('POINT ZM (0 0 1 2)'::geometry, 'POINT ZM (3 4 5 6)'::geometry))
+----
+LINESTRING Z (0 0 1,3 4 5)
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('POINT M (0 0 12)'::geometry, 'POINT(3 4 0)'::geometry))
+----
+LINESTRING Z (0 0 0,3 4 0)
+
+# Mixed SRIDs are an error
+query error
+SELECT ST_AsText(ST_3DLongestLine('SRID=4326;POINT(0 0 1)'::geometry, 'POINT(3 4 0)'::geometry))
+
+query T
+SELECT ST_AsText(ST_3DLongestLine('SRID=4326;POINT(0 0 1)'::geometry, 'SRID=4326;POINT(3 4 0)'::geometry))
+----
+LINESTRING Z (0 0 1,3 4 0)

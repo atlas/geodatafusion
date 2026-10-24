@@ -1,0 +1,173 @@
+# Edge cases for ST_3DClosestPoint, not covered by the PostGIS docs examples.
+
+# NULL
+query T
+SELECT ST_AsText(ST_3DClosestPoint(NULL::geometry, 'POINT(1 1 1)'::geometry))
+----
+NULL
+
+# Points
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POINT(0 0 12)'::geometry, 'POINT(3 4 0)'::geometry))
+----
+POINT Z (0 0 12)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('MULTIPOINT((0 0 0),(10 0 10))'::geometry, 'POINT(6 0 3)'::geometry))
+----
+POINT Z (0 0 0)
+
+# Lines: interiors, ends, crossings and parallels
+query T
+SELECT ST_AsText(ST_3DClosestPoint('LINESTRING(0 0 0,10 0 10)'::geometry, 'POINT(4 3 10)'::geometry))
+----
+POINT Z (7 0 7)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('LINESTRING(0 0 0,10 0 10)'::geometry, 'POINT(20 0 0)'::geometry))
+----
+POINT Z (10 0 10)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('LINESTRING(0 0 0,10 0 0)'::geometry, 'LINESTRING(5 -1 1,5 1 1)'::geometry))
+----
+POINT Z (5 0 0)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('LINESTRING(0 0 0,1 1 1)'::geometry, 'LINESTRING(0 1 0,1 0 1)'::geometry))
+----
+POINT Z (0.5 0.5 0.5)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('LINESTRING(0 0 0,10 0 0)'::geometry, 'LINESTRING(5 1 0,15 1 0)'::geometry))
+----
+POINT Z (5 0 0)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('LINESTRING(0 0 0,10 0 0)'::geometry, 'LINESTRING(8 2 0,2 2 0)'::geometry))
+----
+POINT Z (2 0 0)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('LINESTRING(0 0 0,10 0 0)'::geometry, 'LINESTRING(12 2 0,18 2 0)'::geometry))
+----
+POINT Z (10 0 0)
+
+# Polygons: above, beside, under a hole, tilted
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'POINT(4 3 1)'::geometry))
+----
+POINT Z (4 3 5)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'POINT(14 3 0)'::geometry))
+----
+POINT Z (10 3 5)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5),(2 2 5,6 2 5,6 6 5,2 6 5,2 2 5))'::geometry, 'POINT(4 3 0)'::geometry))
+----
+POINT Z (4 2 5)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((0 0 0,10 0 10,10 10 10,0 10 0,0 0 0))'::geometry, 'POINT(4 3 10)'::geometry))
+----
+POINT Z (7 3 7)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'LINESTRING(4 3 0,4 3 10)'::geometry))
+----
+POINT Z (4 3 5)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'LINESTRING(4 3 7,6 3 8)'::geometry))
+----
+POINT Z (4 3 5)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((0 0 5,10 0 5,10 10 5,0 10 5,0 0 5))'::geometry, 'LINESTRING(-1 1 1,1 1 1)'::geometry))
+----
+POINT Z (1 1 5)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((0 0 0,10 0 0,10 10 0,0 10 0,0 0 0))'::geometry, 'POLYGON((1 1 1,2 1 1,2 2 1,1 2 1,1 1 1))'::geometry))
+----
+POINT Z (1 1 0)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((0 0 0,10 0 0,10 10 0,0 10 0,0 0 0))'::geometry, 'POLYGON((5 -5 -5,5 5 -5,5 5 5,5 -5 5,5 -5 -5))'::geometry))
+----
+POINT Z (5 5 0)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((5 -5 -5,5 5 -5,5 5 5,5 -5 5,5 -5 -5))'::geometry, 'POLYGON((0 0 0,10 0 0,10 10 0,0 10 0,0 0 0))'::geometry))
+----
+POINT Z (5 0 0)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((175 150 5,20 40 5,35 45 5,50 60 5,100 100 5,175 150 5))'::geometry, 'MULTILINESTRING((175 155 2,20 40 20,50 60 -2,125 100 1,175 155 1),(1 10 2,5 20 1))'::geometry))
+----
+POINT Z (40.45454545454545 53.63636363636364 5)
+
+# A polygon spanning no plane is measured to its ring
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((0 0 0,5 5 5,10 10 10,0 0 0))'::geometry, 'POINT(4 3 10)'::geometry))
+----
+POINT Z (5.666666666666667 5.666666666666667 5.666666666666667)
+
+# Collections
+query T
+SELECT ST_AsText(ST_3DClosestPoint('GEOMETRYCOLLECTION(POINT(0 0 0),LINESTRING(5 5 5,6 6 6))'::geometry, 'POINT(3 4 0)'::geometry))
+----
+POINT Z (0 0 0)
+
+# Without Z on one side or both: in 2D, the missing Z any value
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POINT(0 0)'::geometry, 'POINT(3 4)'::geometry))
+----
+POINT(0 0)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POINT(0 0 12)'::geometry, 'POINT(3 4)'::geometry))
+----
+POINT Z (0 0 12)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('LINESTRING(0 0 0,10 0 10)'::geometry, 'POINT(4 3)'::geometry))
+----
+POINT Z (4 0 4)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('LINESTRING(0 0,10 0)'::geometry, 'LINESTRING(4 3 7,4 -3 9)'::geometry))
+----
+POINT Z (4 0 8)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POLYGON((0 0 1,10 0 2,10 10 3,0 10 4,0 0 1))'::geometry, 'POINT(14 3)'::geometry))
+----
+POINT Z (10 3 2.3)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POINT(6 3)'::geometry, 'GEOMETRYCOLLECTION(POINT(0 0 1),POINT(10 0 20),POINT(100 0 -50))'::geometry))
+----
+POINT Z (6 3 20)
+
+# M is dropped
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POINT ZM (0 0 1 2)'::geometry, 'POINT ZM (3 4 5 6)'::geometry))
+----
+POINT Z (0 0 1)
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POINT M (0 0 12)'::geometry, 'POINT(3 4 0)'::geometry))
+----
+POINT Z (0 0 0)
+
+# Mixed SRIDs are an error
+query error
+SELECT ST_AsText(ST_3DClosestPoint('SRID=4326;POINT(0 0 1)'::geometry, 'POINT(3 4 0)'::geometry))
+
+query T
+SELECT ST_AsText(ST_3DClosestPoint('SRID=4326;POINT(0 0 1)'::geometry, 'SRID=4326;POINT(3 4 0)'::geometry))
+----
+POINT Z (0 0 1)
