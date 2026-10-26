@@ -279,8 +279,14 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    random segment pairs to the bit) and to its "any value" Z for 2D input; then the operators
    `<<->>` (the distance between the nearest points, with M) and `|=|` (ST_DistanceCPA). PostGIS's
    plane arithmetic, and its plane for non-planar polygons, aren't reproduced: projections onto
-   polygons can differ in the last digit. Parity 4964/5151 -> 5244/5417. Left in batch 5:
-   ST_RemoveIrrelevantPointsForView.
+   polygons can differ in the last digit. Parity 4964/5151 -> 5244/5417.
+   G1 batch 5 done: ST_RemoveIrrelevantPointsForView, fitted to PostGIS's output (its docs give
+   no algorithm): a point goes if it, the last point kept and the next point lie beyond one side
+   of the view; with `cartesian_hint`, also if their triangle stays outside, by PostGIS's
+   half-open edge test. PostGIS's quirks are kept: it counts a ring vertex on the line through
+   the view's bottom edge twice when it checks whether the ring goes around the view, and the
+   box that leaves a geometry unchanged ignores holes. Matches 23,000 random calls, 8,000 of
+   them on the view's edges. Parity 5244/5417 -> 5304/5472.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
