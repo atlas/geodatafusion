@@ -171,3 +171,9 @@ query T
 SELECT ST_AsText(ST_3DClosestPoint('SRID=4326;POINT(0 0 1)'::geometry, 'SRID=4326;POINT(3 4 0)'::geometry))
 ----
 POINT Z (0 0 1)
+
+# PostGIS boxes a polygon by its exterior ring, so a hole outside it doesn't count
+query T
+SELECT ST_AsText(ST_3DClosestPoint('POINT(-5.5 -5.6)'::geometry, 'POLYGON Z((5 5 1,6 5 1,6 6 1,5 6 1,5 5 1),(-5 -5 9,-6 -5 9,-6 -6 9,-5 -5 9))'::geometry))
+----
+POINT Z (-5.5 -5.6 1)

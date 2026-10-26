@@ -184,3 +184,9 @@ SELECT d, ST_AsText(ST_Expand(g, d)) FROM (VALUES ('POINT(0 0)'::geometry, 1), (
 1 POLYGON((-1 -1,-1 1,1 1,1 -1,-1 -1))
 2 POLYGON((-2 -2,-2 3,3 3,3 -2,-2 -2))
 NULL NULL
+
+# PostGIS boxes a polygon by its exterior ring, so a hole outside it doesn't count
+query T
+SELECT ST_AsText(ST_Expand('POLYGON((5 5,6 5,6 6,5 6,5 5),(-5 -5,-6 -5,-6 -6,-5 -5))'::geometry, 1))
+----
+POLYGON((4 4,4 7,7 7,7 4,4 4))

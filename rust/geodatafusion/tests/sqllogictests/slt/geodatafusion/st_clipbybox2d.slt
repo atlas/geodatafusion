@@ -145,3 +145,9 @@ query T
 SELECT ST_AsEWKT(ST_ClipByBox2D(NULL, 'BOX(0 0,1 1)'::box2d))
 ----
 NULL
+
+# PostGIS boxes a polygon by its exterior ring, so a hole outside it doesn't count
+query T
+SELECT ST_AsEWKT(ST_ClipByBox2D('POLYGON((5 5,6 5,6 6,5 6,5 5),(-5 -5,-6 -5,-6 -6,-5 -5))'::geometry, 'BOX(4 4,7 7)'::box2d))
+----
+POLYGON((5 5,6 5,6 6,5 6,5 5),(-5 -5,-6 -5,-6 -6,-5 -5))

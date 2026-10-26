@@ -102,3 +102,9 @@ SELECT ST_AsText(ST_Envelope(g)) FROM (VALUES ('LINESTRING(0 0,5 5)'::geometry),
 NULL
 POINT(1 1)
 POLYGON((0 0,0 5,5 5,5 0,0 0))
+
+# PostGIS boxes a polygon by its exterior ring, so a hole outside it doesn't count
+query T
+SELECT ST_AsText(ST_Envelope('POLYGON((5 5,6 5,6 6,5 6,5 5),(-5 -5,-6 -5,-6 -6,-5 -5))'::geometry))
+----
+POLYGON((5 5,5 6,6 6,6 5,5 5))

@@ -46,3 +46,9 @@ SELECT k, ST_Extent(g) FROM (VALUES (1, 'POINT(1 2)'::geometry), (2, 'POINT(5 5)
 1 BOX(1 -4,3 2)
 2 BOX(5 5,5 5)
 3 NULL
+
+# PostGIS boxes a polygon by its exterior ring, so a hole outside it doesn't count
+query T
+SELECT ST_Extent(g) FROM (VALUES ('POLYGON((5 5,6 5,6 6,5 6,5 5),(-5 -5,-6 -5,-6 -6,-5 -5))'::geometry)) AS t(g)
+----
+BOX(5 5,6 6)

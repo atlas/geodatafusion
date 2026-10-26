@@ -3,19 +3,19 @@
 # The test run fails if these numbers don't match, so regressions are caught and
 # improvements are recorded.
 geodatafusion/_st_bestsrid 6/6
-geodatafusion/box2d 29/29
+geodatafusion/box2d 30/30
 geodatafusion/box2d_out 16/16
-geodatafusion/box3d 23/23
+geodatafusion/box3d 24/24
 geodatafusion/box3d_out 15/15
 geodatafusion/geography 45/45
 geodatafusion/geometry 64/64
 geodatafusion/geometrytype 19/19
-geodatafusion/operators 71/71
-geodatafusion/st_3dclosestpoint 33/33
+geodatafusion/operators 74/74
+geodatafusion/st_3dclosestpoint 34/34
 geodatafusion/st_3ddfullywithin 25/25
 geodatafusion/st_3ddistance 36/36
 geodatafusion/st_3ddwithin 26/26
-geodatafusion/st_3dextent 10/10
+geodatafusion/st_3dextent 11/11
 geodatafusion/st_3dintersects 14/14
 geodatafusion/st_3dlength 12/12
 geodatafusion/st_3dlineinterpolatepoint 8/8
@@ -32,7 +32,7 @@ geodatafusion/st_asbinary 19/19
 geodatafusion/st_asencodedpolyline 21/21
 geodatafusion/st_asewkb 17/17
 geodatafusion/st_asewkt 36/36
-geodatafusion/st_asgeojson 68/68
+geodatafusion/st_asgeojson 69/69
 geodatafusion/st_ashexewkb 17/17
 geodatafusion/st_aslatlontext 53/53
 geodatafusion/st_asmvtgeom 122/122
@@ -41,13 +41,13 @@ geodatafusion/st_astext 30/30
 geodatafusion/st_astwkb 34/34
 geodatafusion/st_azimuth 19/19
 geodatafusion/st_boundary 32/32
-geodatafusion/st_boundingdiagonal 22/22
+geodatafusion/st_boundingdiagonal 23/23
 geodatafusion/st_box2dfromgeohash 12/12
 geodatafusion/st_buffer 46/46
 geodatafusion/st_buildarea 12/12
 geodatafusion/st_centroid 31/31
 geodatafusion/st_chaikinsmoothing 24/24
-geodatafusion/st_clipbybox2d 27/27
+geodatafusion/st_clipbybox2d 28/28
 geodatafusion/st_closestpoint 42/42
 geodatafusion/st_closestpointofapproach 16/16
 geodatafusion/st_collect 21/21
@@ -78,10 +78,10 @@ geodatafusion/st_dumprings 10/10
 geodatafusion/st_dumpsegments 14/14
 geodatafusion/st_dwithin 28/28
 geodatafusion/st_endpoint 16/16
-geodatafusion/st_envelope 19/19
+geodatafusion/st_envelope 20/20
 geodatafusion/st_equals 20/20
-geodatafusion/st_expand 35/35
-geodatafusion/st_extent 8/8
+geodatafusion/st_expand 36/36
+geodatafusion/st_extent 9/9
 geodatafusion/st_exteriorring 16/16
 geodatafusion/st_filterbym 26/26
 geodatafusion/st_flipcoordinates 11/11
@@ -233,7 +233,7 @@ geodatafusion/st_voronoipolygons 13/13
 geodatafusion/st_within 25/25
 geodatafusion/st_x 10/10
 geodatafusion/st_xmax 16/16
-geodatafusion/st_xmin 18/18
+geodatafusion/st_xmin 19/19
 geodatafusion/st_y 10/10
 geodatafusion/st_ymax 16/16
 geodatafusion/st_ymin 16/16

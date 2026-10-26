@@ -348,3 +348,9 @@ query T
 SELECT ST_AsGeoJSON('LINESTRING(-100 60,100 60)'::geography, 3, 1)
 ----
 {"type":"LineString","bbox":[-100.000,60.000,100.000,60.000],"coordinates":[[-100,60],[100,60]]}
+
+# PostGIS boxes a polygon by its exterior ring, so a hole outside it doesn't count
+query T
+SELECT ST_AsGeoJSON('POLYGON Z((5 5 1,6 5 1,6 6 1,5 6 1,5 5 1),(-5 -5 9,-6 -5 9,-6 -6 9,-5 -5 9))'::geometry, 9, 1)
+----
+{"type":"Polygon","bbox":[5.000000000,5.000000000,1.000000000,6.000000000,6.000000000,1.000000000],"coordinates":[[[5,5,1],[6,5,1],[6,6,1],[5,6,1],[5,5,1]],[[-5,-5,9],[-6,-5,9],[-6,-6,9],[-5,-5,9]]]}

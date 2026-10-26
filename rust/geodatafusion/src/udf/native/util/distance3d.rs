@@ -265,11 +265,12 @@ fn has_z(geom: &impl GeometryTrait<T = f64>) -> bool {
     matches!(geom.dim(), Dimensions::Xyz | Dimensions::Xyzm)
 }
 
-/// The Z range of the parts of a geometry, or `None` if there are none.
+/// The Z range of the parts of a geometry as PostGIS boxes it, polygons by their shells, or
+/// `None` if there are none.
 fn z_range(parts: &[Part]) -> Option<(f64, f64)> {
     parts
         .iter()
-        .flat_map(|part| part.vertices())
+        .flat_map(|part| part.outline())
         .fold(None, |range, p| {
             Some(range.map_or((p[2], p[2]), |(min, max): (f64, f64)| {
                 (min.min(p[2]), max.max(p[2]))
@@ -326,13 +327,6 @@ impl Part {
             Part::Point(p) => std::slice::from_ref(p),
             Part::Line(line) => line,
             Part::Polygon(polygon) => &polygon.rings[0],
-        }
-    }
-
-    fn vertices(&self) -> Vec<Xyz> {
-        match self {
-            Part::Polygon(polygon) => polygon.rings.iter().flatten().copied().collect(),
-            part => part.outline().to_vec(),
         }
     }
 }

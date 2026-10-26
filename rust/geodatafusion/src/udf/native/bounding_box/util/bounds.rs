@@ -146,12 +146,11 @@ impl BoundingRect {
         }
     }
 
+    /// PostGIS boxes a polygon by its exterior ring, so a hole outside it, in an invalid polygon,
+    /// doesn't count.
     fn add_polygon(&mut self, polygon: &impl PolygonTrait<T = f64>) {
         if let Some(exterior) = polygon.exterior() {
             self.add_line_string(&exterior);
-        }
-        for interior in polygon.interiors() {
-            self.add_line_string(&interior);
         }
     }
 
