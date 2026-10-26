@@ -287,6 +287,9 @@ Within each step, work in usage order ([inventory.md](inventory.md), E6).
    the view's bottom edge twice when it checks whether the ring goes around the view, and the
    box that leaves a geometry unchanged ignores holes. Matches 23,000 random calls, 8,000 of
    them on the view's edges. Parity 5244/5417 -> 5304/5472.
+   Polygon boxes now cover the exterior ring only, as PostGIS's do, for every box function and
+   the 3D kernel's Z range; a hole outside its polygon no longer counts. Parity 5304/5472 ->
+   5318/5486.
 5. **Late:** GML/KML input, ST_AsX3D, ST_AsMARC21, curve shims.
 6. **DataFusion 55** (D17): the branch is on 55.1 (geoarrow 0.9.0, arrow 59). Verified on 55.1:
    a cast to the type planner's field keeps its extension and CRS through projections,
