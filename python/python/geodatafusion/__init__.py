@@ -131,6 +131,7 @@ def register_all_native(ctx: SessionContext):
     ctx.register_udf(udf(native.SetPoint()))
     ctx.register_udf(udf(native.RemovePoint()))
     ctx.register_udf(udf(native.RemoveRepeatedPoints()))
+    ctx.register_udf(udf(native.RemoveIrrelevantPointsForView()))
     ctx.register_udf(udf(native.Segmentize()))
     ctx.register_udf(udf(native.LineExtend()))
     ctx.register_udf(udf(native.Scroll()))

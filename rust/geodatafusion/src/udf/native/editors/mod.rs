@@ -9,6 +9,7 @@ mod line_extend;
 mod multi;
 mod project;
 mod quantize_coordinates;
+mod remove_irrelevant_points_for_view;
 mod remove_repeated_points;
 mod remove_small_parts;
 mod reverse;
@@ -29,6 +30,7 @@ pub use line_extend::LineExtend;
 pub use multi::Multi;
 pub use project::Project;
 pub use quantize_coordinates::QuantizeCoordinates;
+pub use remove_irrelevant_points_for_view::RemoveIrrelevantPointsForView;
 pub use remove_repeated_points::RemoveRepeatedPoints;
 pub use remove_small_parts::RemoveSmallParts;
 pub use reverse::Reverse;
@@ -64,4 +66,5 @@ pub fn register(session_context: &datafusion::prelude::SessionContext) {
     session_context.register_udf(LineExtend.into());
     session_context.register_udf(Scroll.into());
     session_context.register_udf(RemoveSmallParts.into());
+    session_context.register_udf(RemoveIrrelevantPointsForView.into());
 }

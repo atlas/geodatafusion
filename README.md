@@ -136,7 +136,7 @@ geodatafusion::register(&ctx);
 | ST_QuantizeCoordinates           | ✅          | Sets least significant bits of coordinates to zero                                                  |
 | ST_RemovePoint                   | ✅          | Remove a point from a linestring.                                                                   |
 | ST_RemoveRepeatedPoints          | ✅          | Returns a version of a geometry with duplicate points removed.                                      |
-| ST_RemoveIrrelevantPointsForView |             | Removes points that are irrelevant for rendering a specific rectangluar view of a geometry.         |
+| ST_RemoveIrrelevantPointsForView | ✅          | Removes points that are irrelevant for rendering a specific rectangular view of a geometry.         |
 | ST_RemoveSmallParts              | ✅          | Removes small parts (polygon rings or linestrings) of a geometry.                                   |
 | ST_Reverse                       | ✅          | Return the geometry with vertex order reversed.                                                     |
 | ST_Segmentize                    | ✅          | Returns a modified geometry/geography having no segment longer than a given distance.               |

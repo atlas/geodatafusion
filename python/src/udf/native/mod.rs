@@ -124,6 +124,7 @@ pub(crate) fn native(m: &Bound<PyModule>) -> PyResult<()> {
     m.add_class::<editors::PySetPoint>()?;
     m.add_class::<editors::PyRemovePoint>()?;
     m.add_class::<editors::PyRemoveRepeatedPoints>()?;
+    m.add_class::<editors::PyRemoveIrrelevantPointsForView>()?;
     m.add_class::<editors::PySegmentize>()?;
     m.add_class::<editors::PyLineExtend>()?;
     m.add_class::<editors::PyScroll>()?;
