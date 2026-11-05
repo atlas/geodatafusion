@@ -10,7 +10,7 @@ exclude = ["python"]
 resolver = "2"
 
 [workspace.package]
-version = "0.6.0"
+version = "0.6.0-atlas.1"
 authors = ["Kyle Barron <kylebarron2@gmail.com>"]
 edition = "2024"
 license = "MIT OR Apache-2.0"
@@ -40,8 +40,8 @@ geoarrow-array = "0.9.0"
 geoarrow-flatgeobuf = "0.9.0"
 geoarrow-geojson = "0.9.0"
 geoarrow-schema = "0.9.0"
-geodatafusion = { path = "rust/geodatafusion", version = "0.6.0" }
-geodatafusion-wagyu = { path = "rust/geodatafusion-wagyu", version = "0.6.0" }
+geodatafusion = { path = "rust/geodatafusion", version = "0.6.0-atlas.1" }
+geodatafusion-wagyu = { path = "rust/geodatafusion-wagyu", version = "0.6.0-atlas.1", registry = "atlas" }
 geojson = "0.24"
 geoparquet = "0.9.0"
 geos = { version = "11.1", default-features = false }
