@@ -21,6 +21,6 @@ pub(crate) mod set_returning;
 pub(crate) mod signature;
 pub(crate) mod srid;
 mod srid_authorities;
-mod srid_lonlat;
+pub(crate) mod srid_lonlat;
 #[cfg(test)]
 pub(crate) mod test;

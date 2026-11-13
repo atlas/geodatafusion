@@ -12,6 +12,8 @@ pub mod sql;
 pub mod udf;
 pub(crate) mod util;
 
+pub use util::srid_lonlat::SRID_LONLAT;
+
 /// Register all UDFs defined in geodatafusion
 pub fn register(session_context: &datafusion::prelude::SessionContext) {
     crate::udf::geo::validation::register(session_context);

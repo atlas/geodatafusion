@@ -16,7 +16,7 @@ use crate::util::geography::is_geography;
 ///
 /// A function joins this list when it computes on the sphere or spheroid for geography; until
 /// then, geography is an error rather than a planar result in degrees.
-const GEOGRAPHY_FUNCTIONS: &[&str] = &[
+pub const GEOGRAPHY_FUNCTIONS: &[&str] = &[
     "geography",
     "geometry",
     "geometrytype",

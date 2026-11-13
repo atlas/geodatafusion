@@ -12,6 +12,7 @@ use std::sync::Arc;
 pub(crate) use casts::unfold_text_cast;
 use datafusion::execution::FunctionRegistry;
 use datafusion::prelude::SessionContext;
+pub use geography::GEOGRAPHY_FUNCTIONS;
 pub use types::GeoTypePlanner;
 
 /// Adds the casts to and from the spatial types, including `INSERT`'s, the operators, and the
