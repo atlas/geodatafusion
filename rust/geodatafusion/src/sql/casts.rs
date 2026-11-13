@@ -64,7 +64,8 @@ impl FunctionRewrite for GeoCastRewrite {
 }
 
 /// Whether a cast of `source` to `target` keeps its GeoArrow type and storage, changing only the
-/// metadata, such as the CRS.
+/// metadata, such as the CRS. The values are not checked against the new metadata: the caller
+/// vouches for it, as a host does when it gives a column the CRS its source keeps none of.
 fn restates(source: &Field, target: &Field) -> bool {
     is_spatial(target)
         && source.extension_type_name() == target.extension_type_name()
