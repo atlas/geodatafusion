@@ -26,8 +26,11 @@ use crate::util::srid::{SRID_UNKNOWN, crs_to_srid};
 /// | `geom::bytea` | `st_asewkb(geom)` |
 /// | `box::text` | `box2d_out(box)` or `box3d_out(box)`, by the box's dimension |
 ///
-/// A cast of a geometry to any other type, or of a box to anything but text, is a plan error. Without this, DataFusion would cast
-/// the storage: text bytes as WKB, or WKB as text.
+/// A cast of a geometry to its own GeoArrow type and storage is left as it is: it changes only
+/// what the field says of the values, such as the CRS of a native geometry read from a source
+/// that keeps none, and DataFusion casts it without touching them. A cast of a geometry to any
+/// other type, or of a box to anything but text, is a plan error. Without this, DataFusion would
+/// cast the storage: text bytes as WKB, or WKB as text.
 #[derive(Debug)]
 pub(crate) struct GeoCastRewrite;
 
@@ -53,11 +56,19 @@ impl FunctionRewrite for GeoCastRewrite {
             return Ok(Transformed::yes(call(udf, *input.clone())));
         }
         let (_, source) = input.to_field(schema)?;
-        if is_spatial(&source) {
+        if is_spatial(&source) && !restates(&source, target) {
             return cast_from(&source, target, *input.clone()).map(Transformed::yes);
         }
         Ok(Transformed::no(expr))
     }
+}
+
+/// Whether a cast of `source` to `target` keeps its GeoArrow type and storage, changing only the
+/// metadata, such as the CRS.
+fn restates(source: &Field, target: &Field) -> bool {
+    is_spatial(target)
+        && source.extension_type_name() == target.extension_type_name()
+        && source.data_type() == target.data_type()
 }
 
 /// The function converting a value to a spatial target type.
@@ -146,4 +157,98 @@ fn udf(function: impl ScalarUDFImpl + 'static) -> Arc<ScalarUDF> {
 
 fn call(udf: Arc<ScalarUDF>, input: Expr) -> Expr {
     Expr::ScalarFunction(ScalarFunction::new_udf(udf, vec![input]))
+}
+
+#[cfg(test)]
+mod test {
+    use std::sync::Arc;
+
+    use arrow_array::RecordBatch;
+    use arrow_array::cast::AsArray;
+    use arrow_array::types::Int32Type;
+    use arrow_schema::Schema;
+    use datafusion::prelude::{SessionContext, col};
+    use geoarrow_array::GeoArrowArray;
+    use geoarrow_array::test::point;
+    use geoarrow_schema::{CoordType, GeoArrowType, LineStringType};
+
+    use super::*;
+    use crate::util::srid::srid_to_crs;
+
+    /// A native point column `geom` with `metadata`.
+    fn point_field(metadata: Metadata) -> Field {
+        point::array(CoordType::Separated, Dimension::XY)
+            .with_metadata(Arc::new(metadata))
+            .data_type()
+            .to_field("geom", true)
+    }
+
+    /// A table `t` of native points without a CRS.
+    fn points() -> SessionContext {
+        let ctx = SessionContext::new();
+        crate::register(&ctx);
+        let points = point::array(CoordType::Separated, Dimension::XY);
+        let schema = Schema::new([Arc::new(point_field(Metadata::default()))]);
+        let batch = RecordBatch::try_new(Arc::new(schema), vec![points.to_array_ref()]).unwrap();
+        ctx.register_batch("t", batch).unwrap();
+        ctx
+    }
+
+    fn cast(target: Field) -> Expr {
+        Expr::Cast(Cast::new_from_field(
+            Box::new(col("geom")),
+            Arc::new(target),
+        ))
+        .alias("geom")
+    }
+
+    #[tokio::test]
+    async fn test_cast_to_own_type_keeps_values_and_states_crs() {
+        let ctx = points();
+        let in_4326 = point_field(Metadata::new(srid_to_crs(4326), None));
+        let restated = ctx
+            .table("t")
+            .await
+            .unwrap()
+            .select(vec![cast(in_4326.clone())])
+            .unwrap();
+        let batches = restated.clone().collect().await.unwrap();
+        assert_eq!(batches[0].schema().field(0).metadata(), in_4326.metadata());
+        let original = ctx.table("t").await.unwrap().collect().await.unwrap();
+        assert_eq!(batches[0].column(0), original[0].column(0));
+
+        ctx.register_table("restated", restated.into_view())
+            .unwrap();
+        let srids = ctx
+            .sql("SELECT ST_SRID(geom) FROM restated")
+            .await
+            .unwrap()
+            .collect()
+            .await
+            .unwrap();
+        let srids = srids[0].column(0).as_primitive::<Int32Type>();
+        assert!(srids.iter().flatten().count() > 0);
+        assert!(srids.iter().flatten().all(|srid| srid == 4326));
+    }
+
+    #[tokio::test]
+    async fn test_cast_to_another_geometry_type_is_an_error() {
+        let ctx = points();
+        let lines =
+            GeoArrowType::LineString(LineStringType::new(Dimension::XY, Default::default()))
+                .to_field("geom", true);
+        let error = ctx
+            .table("t")
+            .await
+            .unwrap()
+            .select(vec![cast(lines)])
+            .unwrap()
+            .collect()
+            .await
+            .unwrap_err();
+        assert!(
+            error.to_string().contains("Cannot cast geoarrow.point"),
+            "{error}"
+        );
+    }
 }
