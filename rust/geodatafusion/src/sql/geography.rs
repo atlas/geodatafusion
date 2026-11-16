@@ -9,7 +9,7 @@ use datafusion::logical_expr::{Expr, ExprSchemable, LogicalPlan};
 use datafusion::optimizer::AnalyzerRule;
 use geoarrow_schema::{BoxType, Dimension};
 
-use crate::util::geography::is_geography;
+use crate::util::geography::{geography_spheroid, geography_srid, is_geography};
 
 /// The functions that take geography, PostGIS's geography overloads that geodatafusion
 /// implements, and the conversions that the casts call.
@@ -54,9 +54,12 @@ pub const GEOGRAPHY_FUNCTIONS: &[&str] = &[
 ];
 
 /// Rejects geography arguments to geodatafusion's functions that have no geography form, as
-/// PostgreSQL does for PostGIS's: `ST_X(geography)` doesn't exist.
+/// PostgreSQL does for PostGIS's: `ST_X(geography)` doesn't exist. Planar functions would
+/// otherwise compute in degrees on longitude/latitude, without an error.
 ///
-/// Planar functions would otherwise compute in degrees on longitude/latitude, without an error.
+/// Also rejects geography in an SRID that isn't longitude/latitude, such as `geography(x)` of a
+/// projected geometry, which PostGIS refuses: a function's return field states the CRS of what
+/// it converts unchecked, so the unanalysed plan says what the statement does.
 #[derive(Debug)]
 pub(crate) struct GeoGeographyCalls;
 
@@ -85,6 +88,7 @@ impl AnalyzerRule for GeoGeographyCalls {
 }
 
 fn check_call(expr: &Expr, schema: &DFSchema) -> Result<()> {
+    check_lon_lat(expr, schema)?;
     let (name, args) = match expr {
         Expr::ScalarFunction(ScalarFunction { func, args }) => (func.name(), args),
         Expr::AggregateFunction(AggregateFunction { func, params }) => (func.name(), &params.args),
@@ -105,6 +109,21 @@ fn check_call(expr: &Expr, schema: &DFSchema) -> Result<()> {
     if fields.iter().any(|field| is_geography(field)) {
         let types: Vec<_> = fields.iter().map(|field| sql_type(field)).collect();
         return plan_err!("function {name}({}) does not exist", types.join(", "));
+    }
+    Ok(())
+}
+
+/// Refuses a function whose result is geography in an SRID that isn't longitude/latitude.
+fn check_lon_lat(expr: &Expr, schema: &DFSchema) -> Result<()> {
+    let Expr::ScalarFunction(ScalarFunction { func, .. }) = expr else {
+        return Ok(());
+    };
+    let (_, field) = expr.to_field(schema)?;
+    if !is_geography(&field) {
+        return Ok(());
+    }
+    if let Some(srid) = geography_srid(&field) {
+        geography_spheroid(func.name(), srid)?;
     }
     Ok(())
 }
