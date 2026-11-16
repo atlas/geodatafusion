@@ -86,7 +86,7 @@ impl ScalarUDFImpl for Intersection {
         // Geometry with geography is cast to geography.
         let metadata = if !is_geography(first) && is_geography(second) {
             let srid = crs_to_srid(input_metadata(first).crs()).unwrap_or(SRID_UNKNOWN);
-            std::sync::Arc::new(geography_metadata(self.name(), srid)?)
+            std::sync::Arc::new(geography_metadata(srid))
         } else {
             input_metadata(first)
         };

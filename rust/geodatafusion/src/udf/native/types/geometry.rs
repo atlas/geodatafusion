@@ -170,7 +170,9 @@ pub(crate) enum Target {
 }
 
 /// The field of a cast's result: the SRID is the type modifier's, the embedded one, or the
-/// input's (see [`column_srid`]); geography's is 4326 without one, and must be longitude/latitude.
+/// input's (see [`column_srid`]); geography's is 4326 without one. Geography's SRID is kept as
+/// it is: one that is not longitude/latitude is refused once the plan is analysed, and where
+/// the cast is computed.
 pub(crate) fn cast_return_field(
     name: &str,
     args: &ReturnFieldArgs,
@@ -210,7 +212,7 @@ pub(crate) fn cast_return_field(
     let srid = column_srid(name, input_srid, typmod_srid)?;
     let metadata = match target {
         Target::Geometry => Metadata::new(srid_to_crs(srid), None),
-        Target::Geography => geography_metadata(name, srid)?,
+        Target::Geography => geography_metadata(srid),
     };
     Ok(wkb_return_field(name, Arc::new(metadata)))
 }

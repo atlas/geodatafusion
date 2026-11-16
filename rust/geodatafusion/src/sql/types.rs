@@ -7,8 +7,8 @@ use datafusion::logical_expr::planner::TypePlanner;
 use datafusion::sql::sqlparser::ast::{self, ObjectNamePart};
 use geoarrow_schema::{BoxType, Dimension, Edges, Metadata, WkbType};
 
-use crate::util::geography::geography_metadata;
-use crate::util::srid::{SRID_UNKNOWN, clamp_srid, srid_to_crs};
+use crate::util::geography::{geography_metadata, geography_spheroid};
+use crate::util::srid::{SRID_UNKNOWN, clamp_srid, crs_to_srid, srid_to_crs};
 
 /// The geometry types a `geometry(type, srid)` type modifier may name, as PostGIS spells them
 /// without a Z, M or ZM suffix.
@@ -108,8 +108,13 @@ fn plan_spatial_type(name: &ast::ObjectName, modifiers: &[String]) -> Result<Opt
             let crs = if modifiers.is_empty() {
                 Default::default()
             } else {
-                let srid = geometry_typmod_srid(modifiers)?;
-                geography_metadata("geography", srid)?.crs().clone()
+                // A type modifier's SRID that isn't longitude/latitude is refused as the type
+                // is planned.
+                let metadata = geography_metadata(geometry_typmod_srid(modifiers)?);
+                if let Some(srid) = crs_to_srid(metadata.crs()) {
+                    geography_spheroid("geography", srid)?;
+                }
+                metadata.crs().clone()
             };
             let metadata = Arc::new(Metadata::new(crs, Some(Edges::Spherical)));
             Field::new("", DataType::Binary, true).with_extension_type(WkbType::new(metadata))

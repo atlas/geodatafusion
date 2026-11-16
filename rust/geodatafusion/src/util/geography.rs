@@ -35,15 +35,16 @@ pub(crate) fn geography_srid(field: &Field) -> Option<i32> {
     }
 }
 
-/// The metadata of geography with `srid`: unknown becomes 4326, and any other SRID than a
-/// longitude/latitude one is an error, as in PostGIS.
-pub(crate) fn geography_metadata(name: &str, srid: i32) -> Result<Metadata> {
+/// The metadata of geography with `srid`, unknown becoming 4326. It is not checked here, so a
+/// plan states the CRS of what it converts, whatever that is: an SRID other than a
+/// longitude/latitude one is refused once the plan is analysed, as in PostGIS, and again where
+/// it is computed.
+pub(crate) fn geography_metadata(srid: i32) -> Metadata {
     let srid = match srid {
         SRID_UNKNOWN => SRID_GEOGRAPHY_DEFAULT,
         srid => srid,
     };
-    geography_spheroid(name, srid)?;
-    Ok(Metadata::new(srid_to_crs(srid), Some(Edges::Spherical)))
+    Metadata::new(srid_to_crs(srid), Some(Edges::Spherical))
 }
 
 /// The spheroid of a geography SRID, or PostGIS's error for one that isn't longitude/latitude.
@@ -74,8 +75,9 @@ pub(crate) fn geography_argument(
     let srid = crs_to_srid(geometries.data_type().metadata().crs()).ok_or_else(|| {
         exec_datafusion_err!("{name}: geometry with a CRS that doesn't name an SRID")
     })?;
-    let metadata = geography_metadata(name, srid)?;
+    let metadata = geography_metadata(srid);
     let srid = crs_to_srid(metadata.crs()).unwrap_or(SRID_GEOGRAPHY_DEFAULT);
+    geography_spheroid(name, srid)?;
     let field = Arc::new(
         Field::new(field.name(), DataType::Binary, true)
             .with_extension_type(WkbType::new(Arc::new(metadata))),

@@ -154,3 +154,78 @@ fn sql_type(field: &Field) -> String {
     }
     field.data_type().to_string().to_ascii_lowercase()
 }
+
+#[cfg(test)]
+mod test {
+    use std::sync::Arc;
+
+    use datafusion::execution::session_state::SessionStateBuilder;
+    use datafusion::prelude::SessionContext;
+
+    use super::*;
+    use crate::sql::GeoTypePlanner;
+    use crate::util::geography::geography_srid;
+
+    const LON_LAT_ONLY: &str = "Only lon/lat coordinate systems are supported in geography";
+
+    fn context() -> SessionContext {
+        let state = SessionStateBuilder::new()
+            .with_default_features()
+            .with_type_planner(Arc::new(GeoTypePlanner::new()))
+            .build();
+        let ctx = SessionContext::new_with_state(state);
+        crate::register(&ctx);
+        ctx
+    }
+
+    /// The unanalysed plan states the CRS geography is taken of, so a caller reading it sees
+    /// what the statement does; the plan is refused once it is analysed, as PostGIS refuses it.
+    #[tokio::test]
+    async fn test_geography_of_projected_geometry_plans_with_its_crs_and_is_refused_when_analysed()
+    {
+        let ctx = context();
+        let called = ctx
+            .sql("SELECT geography(ST_SetSRID(ST_Point(500000, 6600000), 25833)) AS g")
+            .await
+            .unwrap();
+        let field = called.schema().field(0);
+        assert!(is_geography(field));
+        assert_eq!(geography_srid(field), Some(25833));
+        let cast = ctx
+            .sql("SELECT ST_SetSRID(ST_Point(500000, 6600000), 25833)::geography AS g")
+            .await
+            .unwrap();
+        for frame in [called, cast] {
+            let error = frame.collect().await.unwrap_err().to_string();
+            assert!(
+                error.contains(&format!("geography: {LON_LAT_ONLY} (SRID 25833)")),
+                "{error}"
+            );
+        }
+        let lon_lat = ctx
+            .sql("SELECT geography(ST_Point(10.75, 59.91, 4258)) AS g")
+            .await
+            .unwrap();
+        lon_lat.collect().await.unwrap();
+    }
+
+    /// Geometry intersected with geography is taken as geography in its own SRID, which is
+    /// refused once the plan is analysed when it isn't longitude/latitude.
+    #[tokio::test]
+    async fn test_intersection_of_projected_geometry_with_geography_is_refused_when_analysed() {
+        let ctx = context();
+        let frame = ctx
+            .sql(
+                "SELECT ST_Intersection(ST_SetSRID(ST_Point(500000, 6600000), 25833), \
+                 geography(ST_Point(10, 60))) AS g",
+            )
+            .await
+            .unwrap();
+        assert_eq!(geography_srid(frame.schema().field(0)), Some(25833));
+        let error = frame.collect().await.unwrap_err().to_string();
+        assert!(
+            error.contains(&format!("st_intersection: {LON_LAT_ONLY} (SRID 25833)")),
+            "{error}"
+        );
+    }
+}
